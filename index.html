@@ -3,215 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ماشین حساب حرفه‌ای آربیتراژ طلا (سبد دارایی)</title>
+    <title>ماشین حساب حرفه‌ای آربیتراژ طلا</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
         body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .input-wrapper { position: relative; }
         .currency-badge { 
             position: absolute; 
-            left: 8px; 
+            left: 12px; 
             top: 50%; 
             transform: translateY(-50%); 
-            font-size: 0.7rem; 
+            font-size: 0.75rem; 
             color: #64748b; 
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
             pointer-events: none;
         }
-        .input-row input { padding-left: 2.5rem; }
-        /* Small adjustments for compact rows */
-        .compact-input { padding: 0.5rem; font-size: 0.9rem; }
+        input[type=number] { padding-left: 3.5rem; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
     <!-- Main Container -->
-    <div class="w-full max-w-6xl bg-white rounded-2xl card-shadow overflow-hidden">
+    <div class="w-full max-w-5xl bg-white rounded-2xl card-shadow overflow-hidden">
         
         <!-- Header -->
-        <header class="bg-slate-900 text-white p-4 md:p-6 text-center relative overflow-hidden">
+        <header class="bg-slate-900 text-white p-6 text-center relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            <h1 class="text-xl md:text-2xl font-bold relative z-10 text-amber-400">ماشین حساب پیشرفته آربیتراژ طلا</h1>
-            <p class="text-slate-300 text-xs md:text-sm mt-2 relative z-10">مدیریت سبد فروش (مخلوط سکه و آبشده) و تبدیل به دارایی جدید</p>
+            <h1 class="text-2xl md:text-3xl font-bold relative z-10 text-amber-400">ماشین حساب آربیتراژ طلا</h1>
+            <p class="text-slate-300 text-sm mt-2 relative z-10">تحلیل هوشمند سود و زیان تعویض سکه</p>
         </header>
 
-        <div class="p-4 md:p-6">
+        <div class="p-6 md:p-8">
             
-            <!-- Grid Layout -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            <!-- Inputs Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 
-                <!-- Side A: Selling (Basket) -->
-                <div class="bg-red-50 rounded-xl border border-red-100 relative group">
-                    <div class="bg-red-100 p-3 rounded-t-xl border-b border-red-200 flex justify-between items-center">
-                        <span class="font-bold text-red-800 flex items-center gap-2">
-                            🔻 سبد فروش (دارایی موجود)
-                        </span>
-                        <span class="text-xs text-red-600 bg-white px-2 py-1 rounded">ورودی</span>
-                    </div>
+                <!-- Side A: Selling -->
+                <div class="bg-red-50 rounded-xl p-5 border border-red-100 relative group transition-all hover:shadow-md">
+                    <div class="absolute -top-3 right-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">گام ۱: فروش (خروج سرمایه)</div>
                     
-                    <div class="p-4 space-y-3">
-                        <!-- Headers -->
-                        <div class="grid grid-cols-12 gap-2 text-xs text-red-700 font-bold mb-1 px-1">
-                            <div class="col-span-4">نوع دارایی</div>
-                            <div class="col-span-3 text-center">تعداد / گرم</div>
-                            <div class="col-span-5 text-center">فی فروش (تومان)</div>
+                    <div class="space-y-4 mt-2">
+                        <div>
+                            <label class="block text-sm font-medium text-red-800 mb-1">نوع سکه موجود</label>
+                            <select id="sellType" class="w-full p-3 rounded-lg border-gray-200 border focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition-all bg-white" onchange="calculate()">
+                                <option value="half" selected>نیم سکه (وزن ۴.۰۶۶)</option>
+                                <option value="full">تمام سکه (وزن ۸.۱۳۳)</option>
+                                <option value="quarter">ربع سکه (وزن ۲.۰۳۳)</option>
+                            </select>
                         </div>
-
-                        <!-- Row 1: Full Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">تمام سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyFull" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceFull" value="147000000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none" oninput="calculate()">
-                                <span class="currency-badge">T</span>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-red-800 mb-1">تعداد</label>
+                                <input type="number" id="sellCount" value="30" class="w-full p-3 rounded-lg border border-gray-200 text-center focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" oninput="calculate()">
+                            </div>
+                            <div class="input-wrapper">
+                                <label class="block text-sm font-medium text-red-800 mb-1">قیمت فروش</label>
+                                <input type="number" id="sellPrice" value="82500000" class="w-full p-3 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" oninput="calculate()">
+                                <span class="currency-badge">تومان</span>
                             </div>
                         </div>
 
-                        <!-- Row 2: Half Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">نیم سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyHalf" value="30" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceHalf" value="82500000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none" oninput="calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 3: Quarter Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">ربع سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyQuarter" value="2" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceQuarter" value="52000000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none" oninput="calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 4: Melted Gold -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-yellow-50 p-2 rounded border border-yellow-200 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-yellow-800">آبشده (۱۸ عیار)</div>
-                            <div class="col-span-3 relative">
-                                <input type="number" id="qtyMelted" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-yellow-300 outline-none border-yellow-300">
-                                <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[0.6rem] text-yellow-600">گرم</span>
-                            </div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceMelted" placeholder="فی هر گرم" class="w-full compact-input border rounded focus:ring-1 ring-yellow-300 outline-none border-yellow-300" oninput="calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Total Sell Summary -->
-                        <div class="mt-4 pt-3 border-t border-red-200 flex justify-between items-center">
-                            <span class="text-sm text-red-800 font-bold">مجموع نقدینگی حاصل:</span>
-                            <span id="totalCash" class="font-black text-xl text-red-900">0 تومان</span>
+                        <div class="pt-2 border-t border-red-200 flex justify-between items-center">
+                            <span class="text-sm text-red-700">نقدینگی حاصل شده:</span>
+                            <span id="totalCash" class="font-bold text-red-900 text-lg">0</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Side B: Buying (Target) -->
-                <div class="bg-emerald-50 rounded-xl border border-emerald-100 relative group flex flex-col">
-                    <div class="bg-emerald-100 p-3 rounded-t-xl border-b border-emerald-200 flex justify-between items-center">
-                        <span class="font-bold text-emerald-800 flex items-center gap-2">
-                            ✅ خرید (هدف سرمایه‌گذاری)
-                        </span>
-                        <span class="text-xs text-emerald-600 bg-white px-2 py-1 rounded">خروجی</span>
-                    </div>
+                <!-- Side B: Buying -->
+                <div class="bg-emerald-50 rounded-xl p-5 border border-emerald-100 relative group transition-all hover:shadow-md">
+                    <div class="absolute -top-3 right-4 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">گام ۲: خرید (هدف)</div>
                     
-                    <div class="p-6 space-y-6 flex-1 flex flex-col justify-center">
+                    <div class="space-y-4 mt-2">
                         <div>
-                            <label class="block text-sm font-bold text-emerald-800 mb-2">قصد خرید چه چیزی را دارید؟</label>
-                            <select id="buyType" class="w-full p-3 rounded-lg border-emerald-200 border focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none bg-white transition-all shadow-sm" onchange="calculate()">
-                                <option value="melted">طلای آبشده (خام ۱۸ عیار)</option>
-                                <option value="full" selected>تمام سکه</option>
+                            <label class="block text-sm font-medium text-emerald-800 mb-1">نوع سکه هدف</label>
+                            <select id="buyType" class="w-full p-3 rounded-lg border-gray-200 border focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all bg-white" onchange="calculate()">
                                 <option value="half">نیم سکه</option>
+                                <option value="full" selected>تمام سکه</option>
                                 <option value="quarter">ربع سکه</option>
                             </select>
                         </div>
                         
-                        <div class="relative">
-                            <label class="block text-sm font-bold text-emerald-800 mb-2" id="buyPriceLabel">قیمت خرید (تومان)</label>
-                            <div class="relative">
-                                <input type="number" id="buyPrice" value="147000000" class="w-full p-4 pl-16 rounded-xl border border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-xl font-bold text-emerald-900 shadow-inner" oninput="calculate()">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-medium">Toman</span>
-                            </div>
-                            <div class="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span id="buyHint">قیمت یک سکه تمام را وارد کنید</span>
-                            </div>
+                        <div class="input-wrapper">
+                            <label class="block text-sm font-medium text-emerald-800 mb-1">قیمت خرید (روز)</label>
+                            <input type="number" id="buyPrice" value="147000000" class="w-full p-3 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none" oninput="calculate()">
+                            <span class="currency-badge">تومان</span>
                         </div>
 
-                        <div class="bg-white/60 p-4 rounded-xl border border-emerald-200 mt-auto">
-                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm text-emerald-800 font-bold">مقدار قابل خرید:</span>
-                                <span id="buyCountDisplay" class="font-black text-2xl text-emerald-900">0</span>
+                        <div class="pt-2 border-t border-emerald-200">
+                             <div class="flex flex-col mb-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-emerald-700">تعداد قابل خرید:</span>
+                                    <span id="buyCountInt" class="font-bold text-emerald-900 text-lg">0 عدد</span>
+                                </div>
+                                <!-- Added Theoretical Value -->
+                                <div class="text-left text-xs text-emerald-500 font-normal mt-0.5" dir="ltr">
+                                    (قدرت خرید کل: <span id="buyCountTheoretical">0</span>)
+                                </div>
                             </div>
-                            <div class="flex justify-between items-center text-xs text-emerald-600 mt-2 pt-2 border-t border-emerald-100">
-                                <span>باقی‌مانده پول:</span>
-                                <span id="cashRemains">0 تومان</span>
+                            <div class="flex justify-between items-center border-t border-emerald-100 pt-2">
+                                <span class="text-xs text-emerald-600">پول نقد باقی‌مانده:</span>
+                                <span id="cashRemains" class="font-bold text-emerald-700 text-sm">0 تومان</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Analysis Dashboard -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6 shadow-inner">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                    
-                    <!-- Stats -->
-                    <div class="md:col-span-1 space-y-4">
-                        <div class="text-center">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">تراز وزنی (استاندارد سکه ۹۰۰)</h3>
-                            <div class="flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-100">
-                                <div class="text-right">
-                                    <span class="block text-[10px] text-red-400">فروخته شده</span>
-                                    <span id="weightSoldVal" class="text-lg font-bold text-slate-700">0</span>
-                                </div>
-                                <div class="text-slate-300 text-xl">➜</div>
-                                <div class="text-left">
-                                    <span class="block text-[10px] text-emerald-400">خریداری شده</span>
-                                    <span id="weightBoughtVal" class="text-lg font-bold text-slate-700">0</span>
-                                </div>
+            <!-- Analysis Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Stats Cards -->
+                <div class="lg:col-span-1 space-y-4">
+                    <!-- Weight Comparison -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">تراز وزن سکه (عیار ۹۰۰)</h3>
+                        <div class="flex justify-between items-end px-2">
+                            <div class="text-right">
+                                <div class="text-xs text-red-500 mb-1">داده شده</div>
+                                <div id="weightSoldVal" class="text-xl font-bold text-slate-700">0</div>
+                            </div>
+                            <div class="text-slate-300 text-2xl mb-1">➜</div>
+                            <div class="text-left">
+                                <div class="text-xs text-emerald-500 mb-1">گرفته شده</div>
+                                <div id="weightBoughtVal" class="text-xl font-bold text-slate-700">0</div>
                             </div>
                         </div>
-
-                        <!-- Result Box -->
-                        <div id="resultCard" class="p-4 rounded-xl border text-center transition-colors duration-300 bg-slate-100 border-slate-300">
-                            <div class="text-sm text-slate-600 mb-1">تغییر خالص سرمایه</div>
-                            <div id="netWeightVal" class="text-3xl font-black text-slate-800 ltr py-1" style="direction: ltr;">0.00 g</div>
-                            <div id="recommendationText" class="text-xs font-bold mt-1 text-slate-500">...</div>
-                        </div>
-                        
-                        <div class="text-[10px] text-slate-400 text-center leading-relaxed">
-                            * نکته: تمام وزن‌ها (حتی طلای ۱۸ عیار) برای مقایسه دقیق به «وزن معادل سکه» تبدیل شده‌اند.
-                        </div>
                     </div>
 
-                    <!-- Chart -->
-                    <div class="md:col-span-2 h-64 bg-white rounded-xl border border-slate-100 p-2 relative">
-                        <canvas id="arbitrageChart"></canvas>
+                    <!-- Net Result -->
+                    <div id="resultCard" class="p-5 rounded-xl border text-center transition-colors duration-300 bg-slate-100 border-slate-300">
+                        <div class="text-sm text-slate-600 mb-2">
+                            نتیجه خالص وزنی
+                            <span class="block text-[10px] text-slate-400 font-normal mt-1">(مبنا: وزن فیزیکی سکه)</span>
+                        </div>
+                        <div id="netWeightVal" class="text-3xl font-bold text-slate-800 ltr" style="direction: ltr;">0.00 g</div>
+                        <div id="recommendationText" class="text-sm font-medium mt-2 text-slate-500">...</div>
+
+                        <!-- Breakdown Section -->
+                        <div class="mt-4 pt-4 border-t border-slate-200/50 bg-white/30 rounded">
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="text-right text-slate-500">سود وزن فیزیکی:</div>
+                                <div id="physicalDiffVal" class="font-bold text-slate-700 ltr text-left">0.00 g</div>
+                                
+                                <div class="text-right text-slate-500">ارزش وزنی پول نقد:</div>
+                                <div id="cashDiffVal" class="font-bold text-emerald-600 ltr text-left">0.00 g</div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-4 relative h-64 shadow-inner">
+                    <canvas id="arbitrageChart"></canvas>
                 </div>
             </div>
 
+        </div>
+        
+        <!-- Footer -->
+        <div class="bg-slate-50 p-4 text-center border-t border-slate-100 text-xs text-slate-400">
+            <span id="footerText">محاسبات بر اساس وزن استاندارد سکه (عیار ۹۰۰) انجام می‌شود.</span>
         </div>
     </div>
 
 <script>
     // --- Constants ---
-    // Weights in grams (Standard Bank Markazi - Purity 900)
+    // Weights in grams (Standard Bank Markazi)
     const COIN_WEIGHTS = {
-        'full': 8.133,
+        'quarter': 2.03325,
         'half': 4.0665,
-        'quarter': 2.03325
+        'full': 8.133
     };
     
-    // Purity Ratios
-    // Coin is 900. Melted (Raw) is 750 (18k).
-    // To convert 18k weight to Coin Equivalent (900): Weight18k * (750 / 900)
-    const RATIO_18K_TO_COIN = 750 / 900; 
-
     // --- State & Chart ---
     let chartInstance = null;
 
@@ -221,125 +191,110 @@
 
     // --- Core Logic ---
     function calculate() {
-        // --- 1. Calculate SELL Side (The Basket) ---
-        let totalCash = 0;
-        let totalSoldWeightCoinBasis = 0;
-
-        // Helper to process row
-        function processRow(qtyId, priceId, weightPerUnit, isMelted = false) {
-            const q = parseFloat(document.getElementById(qtyId).value) || 0;
-            const p = parseFloat(document.getElementById(priceId).value) || 0;
-            
-            if (q > 0) {
-                totalCash += (q * p);
-                if (isMelted) {
-                    // q is grams of 18k
-                    // Convert to Coin Equivalent (900)
-                    totalSoldWeightCoinBasis += (q * RATIO_18K_TO_COIN);
-                } else {
-                    // q is count of coins
-                    totalSoldWeightCoinBasis += (q * weightPerUnit);
-                }
-            }
-        }
-
-        processRow('qtyFull', 'priceFull', COIN_WEIGHTS.full);
-        processRow('qtyHalf', 'priceHalf', COIN_WEIGHTS.half);
-        processRow('qtyQuarter', 'priceQuarter', COIN_WEIGHTS.quarter);
-        processRow('qtyMelted', 'priceMelted', 0, true); // weight handled internally
-
-        // --- 2. Calculate BUY Side ---
+        // 1. Get Values
+        const sellType = document.getElementById('sellType').value;
+        const sellCount = parseFloat(document.getElementById('sellCount').value) || 0;
+        const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+        
         const buyType = document.getElementById('buyType').value;
         const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
-        
-        // Update Labels based on selection
-        const buyLabel = document.getElementById('buyPriceLabel');
-        const buyHint = document.getElementById('buyHint');
-        
-        if (buyType === 'melted') {
-            buyLabel.innerText = "قیمت هر گرم طلای ۱۸ عیار";
-            buyHint.innerText = "قیمت یک گرم طلای خام (آبشده) را وارد کنید";
-        } else {
-            buyLabel.innerText = "قیمت خرید سکه (تومان)";
-            buyHint.innerText = "قیمت خرید یک عدد سکه را وارد کنید";
-        }
 
-        let buyCountDisplay = "0";
+        // 2. Sell Calculations
+        const totalCash = sellCount * sellPrice;
+        
+        // Weight is pure physical weight of the coin (900 purity implicitly handled as basis)
+        const weightSoldTarget = sellCount * COIN_WEIGHTS[sellType];
+
+        // 3. Buy Calculations
+        let buyCountFloor = 0;
         let cashRemains = 0;
-        let totalBoughtWeightCoinBasis = 0;
-
+        
         if (buyPrice > 0) {
-            if (buyType === 'melted') {
-                // Buying Melted Gold (Grams)
-                // We can buy fractional grams
-                const gramsBought = totalCash / buyPrice;
-                buyCountDisplay = gramsBought.toFixed(2) + " گرم";
-                cashRemains = 0; // Assuming divisible
-
-                // Convert obtained 18k grams to Coin Equivalent for comparison
-                totalBoughtWeightCoinBasis = gramsBought * RATIO_18K_TO_COIN;
-
-            } else {
-                // Buying Coins (Integer)
-                const coinWeight = COIN_WEIGHTS[buyType];
-                const countFloor = Math.floor(totalCash / buyPrice);
-                cashRemains = totalCash - (countFloor * buyPrice);
-                
-                // Display
-                buyCountDisplay = countFloor + " عدد";
-
-                // Weight Calculation (Physical Coins + Cash Equivalent)
-                const physicalWeight = countFloor * coinWeight;
-                const cashEquivalentWeight = (cashRemains / buyPrice) * coinWeight;
-                
-                totalBoughtWeightCoinBasis = physicalWeight + cashEquivalentWeight;
-            }
+            buyCountFloor = Math.floor(totalCash / buyPrice);
+            cashRemains = totalCash - (buyCountFloor * buyPrice);
         }
 
-        // --- 3. Update UI ---
+        // Theoretical Count (Decimal) for display ONLY
+        const theoreticalBuyCount = buyPrice > 0 ? (totalCash / buyPrice) : 0;
+        
+        // --- Breakdown Calculations ---
+        
+        // A. Physical Gold Acquired (Actual coins bought)
+        const weightBoughtPhysical = buyCountFloor * COIN_WEIGHTS[buyType];
+        
+        // B. Remainder Cash Equivalent
+        const weightCashEquivalent = buyPrice > 0 
+            ? (cashRemains / buyPrice) * COIN_WEIGHTS[buyType]
+            : 0;
+
+        // Total theoretical weight acquired
+        const weightBoughtTarget = weightBoughtPhysical + weightCashEquivalent;
+        const netWeightDiff = weightBoughtTarget - weightSoldTarget;
+        
+        // Specific differences for breakdown
+        const physicalDiff = weightBoughtPhysical - weightSoldTarget;
+
+        // 4. Update UI
         document.getElementById('totalCash').innerText = formatCurrency(totalCash) + " تومان";
-        document.getElementById('buyCountDisplay').innerText = buyCountDisplay;
+        
+        // --- FIX: Show Integer Count matching Cash Remains, and Theoretical in subtext ---
+        document.getElementById('buyCountInt').innerText = buyCountFloor + " عدد";
+        document.getElementById('buyCountTheoretical').innerText = theoreticalBuyCount.toFixed(3);
+        
         document.getElementById('cashRemains').innerText = formatCurrency(cashRemains) + " تومان";
 
-        document.getElementById('weightSoldVal').innerText = formatWeight(totalSoldWeightCoinBasis);
-        document.getElementById('weightBoughtVal').innerText = formatWeight(totalBoughtWeightCoinBasis);
+        document.getElementById('weightSoldVal').innerText = formatWeight(weightSoldTarget);
+        document.getElementById('weightBoughtVal').innerText = formatWeight(weightBoughtTarget);
 
-        const netDiff = totalBoughtWeightCoinBasis - totalSoldWeightCoinBasis;
-        
+        // Update Breakdown
+        const physicalElem = document.getElementById('physicalDiffVal');
+        const physicalSign = physicalDiff > 0 ? "+" : "";
+        physicalElem.innerText = `${physicalSign}${formatWeight(physicalDiff)} g`;
+        physicalElem.className = "font-bold ltr text-left " + (physicalDiff >= 0 ? "text-slate-700" : "text-red-600");
+
+        const cashElem = document.getElementById('cashDiffVal');
+        cashElem.innerText = `+${formatWeight(weightCashEquivalent)} g`;
+
         // Result Styling
         const netElem = document.getElementById('netWeightVal');
         const recElem = document.getElementById('recommendationText');
         const cardElem = document.getElementById('resultCard');
 
-        const sign = netDiff > 0 ? "+" : "";
-        netElem.innerText = `${sign}${formatWeight(netDiff)} g`;
+        const sign = netWeightDiff > 0 ? "+" : "";
+        netElem.innerText = `${sign}${formatWeight(netWeightDiff)} گرم`;
 
-        if (netDiff > 0.1) {
+        if (netWeightDiff > 0.1) {
             // Profit
-            cardElem.className = "p-4 rounded-xl border text-center bg-emerald-100 border-emerald-300 text-emerald-900";
-            netElem.className = "text-3xl font-black text-emerald-700 ltr";
-            recElem.innerText = "✅ معامله سودده است";
-        } else if (netDiff < -0.1) {
+            cardElem.className = "p-5 rounded-xl border text-center bg-emerald-100 border-emerald-300 text-emerald-900";
+            netElem.className = "text-3xl font-bold text-emerald-700 ltr";
+            recElem.innerText = "✅ پیشنهاد: سودده (تایید شد)";
+            recElem.className = "text-sm font-bold mt-2 text-emerald-700";
+        } else if (netWeightDiff < -0.1) {
             // Loss
-            cardElem.className = "p-4 rounded-xl border text-center bg-red-100 border-red-300 text-red-900";
-            netElem.className = "text-3xl font-black text-red-700 ltr";
-            recElem.innerText = "⛔ معامله زیان‌ده است";
+            cardElem.className = "p-5 rounded-xl border text-center bg-red-100 border-red-300 text-red-900";
+            netElem.className = "text-3xl font-bold text-red-700 ltr";
+            recElem.innerText = "⛔ پیشنهاد: زیان‌ده";
+            recElem.className = "text-sm font-bold mt-2 text-red-700";
         } else {
             // Neutral
-            cardElem.className = "p-4 rounded-xl border text-center bg-yellow-50 border-yellow-200 text-yellow-900";
-            netElem.className = "text-3xl font-black text-yellow-600 ltr";
-            recElem.innerText = "⚖️ سر به سر (بی‌تفاوت)";
+            cardElem.className = "p-5 rounded-xl border text-center bg-yellow-50 border-yellow-200 text-yellow-900";
+            netElem.className = "text-3xl font-bold text-yellow-600 ltr";
+            recElem.innerText = "⚖️ پیشنهاد: بی‌تفاوت";
+            recElem.className = "text-sm font-bold mt-2 text-yellow-700";
         }
 
-        updateChart(totalSoldWeightCoinBasis, totalBoughtWeightCoinBasis);
+        // 5. Update Chart
+        updateChart(weightSoldTarget, weightBoughtTarget);
     }
 
     function updateChart(sold, bought) {
         const ctx = document.getElementById('arbitrageChart').getContext('2d');
         const isProfit = bought >= sold;
         const boughtColor = isProfit ? '#10b981' : '#ef4444'; 
+        const labelText = 'وزن سکه (۹۰۰)';
 
         if (chartInstance) {
+            chartInstance.data.datasets[0].label = labelText;
             chartInstance.data.datasets[0].data = [sold, bought];
             chartInstance.data.datasets[0].backgroundColor = ['#94a3b8', boughtColor]; 
             chartInstance.update();
@@ -347,26 +302,26 @@
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['مجموع وزن فروخته شده', 'وزن قابل خرید'],
+                    labels: ['وضعیت فعلی (قبل از فروش)', 'وضعیت جدید (بعد از خرید)'],
                     datasets: [{
-                        label: 'وزن معادل سکه (گرم)',
+                        label: labelText,
                         data: [sold, bought],
                         backgroundColor: ['#94a3b8', boughtColor],
-                        borderRadius: 6,
-                        barThickness: 60
+                        borderRadius: 8,
+                        barThickness: 50
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
+                        legend: { display: true },
                         tooltip: {
                             bodyFont: { family: 'Vazirmatn' },
                             titleFont: { family: 'Vazirmatn' },
                             callbacks: {
                                 label: function(context) {
-                                    return context.parsed.y.toFixed(3) + " گرم (معادل سکه)";
+                                    return context.parsed.y.toFixed(3) + " گرم";
                                 }
                             }
                         }
@@ -383,15 +338,18 @@
                         }
                     },
                     animation: {
-                        duration: 500
+                        duration: 800,
+                        easing: 'easeOutQuart'
                     }
                 }
             });
         }
     }
 
-    // Initialize
-    window.addEventListener('load', calculate);
+    // Initialize on load
+    window.addEventListener('load', () => {
+        calculate();
+    });
 
 </script>
 </body>
