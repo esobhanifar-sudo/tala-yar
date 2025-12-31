@@ -3,465 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ماشین حساب حرفه‌ای آربیتراژ طلا (سبد دارایی)</title>
+    <title>جعبه ابزار مدیریت کسب‌وکار طلا</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
         body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; }
-        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        .currency-badge { 
-            position: absolute; 
-            left: 8px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            font-size: 0.7rem; 
-            color: #64748b; 
-            pointer-events: none;
-        }
-        .input-row input { padding-left: 2.5rem; }
-        /* Small adjustments for compact rows */
-        .compact-input { padding: 0.5rem; font-size: 0.9rem; }
+        .hero-pattern { background-color: #0f172a; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231e293b' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4">
+<body class="min-h-screen flex flex-col">
 
-    <!-- Main Container -->
-    <div class="w-full max-w-6xl bg-white rounded-2xl card-shadow overflow-hidden">
-        
-        <!-- Header -->
-        <header class="bg-slate-900 text-white p-4 md:p-6 text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            <h1 class="text-xl md:text-2xl font-bold relative z-10 text-amber-400">ماشین حساب پیشرفته آربیتراژ طلا</h1>
-            <p class="text-slate-300 text-xs md:text-sm mt-2 relative z-10">مدیریت سبد فروش (مخلوط سکه و آبشده) و تبدیل به دارایی جدید</p>
-        </header>
+    <!-- Hero Section -->
+    <header class="hero-pattern text-white py-16 px-4 text-center relative overflow-hidden">
+        <div class="relative z-10 max-w-4xl mx-auto">
+            <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-400">جعبه ابزار هوشمند طلا</h1>
+            <p class="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                مدیریت حرفه‌ای آربیتراژ، محاسبه سود و زیان وزنی و کنترل هوشمند تعهدات مالی
+            </p>
+        </div>
+        <!-- Decorative Glow -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-500 rounded-full blur-[100px] opacity-10 pointer-events-none"></div>
+    </header>
 
-        <div class="p-4 md:p-6">
-            
-            <!-- Grid Layout -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                
-                <!-- Side A: Selling (Basket) -->
-                <div class="bg-red-50 rounded-xl border border-red-100 relative group">
-                    <div class="bg-red-100 p-3 rounded-t-xl border-b border-red-200 flex justify-between items-center">
-                        <span class="font-bold text-red-800 flex items-center gap-2">
-                            🔻 سبد فروش (دارایی موجود)
-                        </span>
-                        <span class="text-xs text-red-600 bg-white px-2 py-1 rounded">ورودی</span>
-                    </div>
+    <!-- Tools Grid -->
+    <main class="flex-grow p-6 md:p-12 -mt-8">
+        <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- Tool Card 1: Calculator -->
+            <a href="calculator.html" class="block group">
+                <div class="bg-white rounded-2xl p-6 h-full border border-slate-200 shadow-sm card-hover relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-amber-100 rounded-bl-[100px] -mr-4 -mt-4 transition group-hover:bg-amber-200"></div>
                     
-                    <div class="p-4 space-y-3">
-                        <!-- Headers -->
-                        <div class="grid grid-cols-12 gap-2 text-xs text-red-700 font-bold mb-1 px-1">
-                            <div class="col-span-4">نوع دارایی</div>
-                            <div class="col-span-3 text-center">تعداد / گرم</div>
-                            <div class="col-span-5 text-center">فی فروش (تومان)</div>
-                        </div>
-
-                        <!-- Row 1: Full Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">تمام سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyFull" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceFull" value="147,000,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 2: Half Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">نیم سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyHalf" value="30" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceHalf" value="82,500,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 3: Quarter Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">ربع سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyQuarter" value="2" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceQuarter" value="52,000,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 4: Melted Gold -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-yellow-50 p-2 rounded border border-yellow-200 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-yellow-800">آبشده (۱۸ عیار)</div>
-                            <div class="col-span-3 relative">
-                                <input type="number" id="qtyMelted" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-yellow-300 outline-none border-yellow-300">
-                                <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[0.6rem] text-yellow-600">گرم</span>
-                            </div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceMelted" placeholder="فی هر گرم" class="w-full compact-input border rounded focus:ring-1 ring-yellow-300 outline-none border-yellow-300 text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Total Sell Summary -->
-                        <div class="mt-4 pt-3 border-t border-red-200 flex justify-between items-center">
-                            <span class="text-sm text-red-800 font-bold">مجموع نقدینگی حاصل:</span>
-                            <span id="totalCash" class="font-black text-xl text-red-900">0 تومان</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Side B: Buying (Target) -->
-                <div class="bg-emerald-50 rounded-xl border border-emerald-100 relative group flex flex-col">
-                    <div class="bg-emerald-100 p-3 rounded-t-xl border-b border-emerald-200 flex justify-between items-center">
-                        <span class="font-bold text-emerald-800 flex items-center gap-2">
-                            ✅ خرید (هدف سرمایه‌گذاری)
-                        </span>
-                        <span class="text-xs text-emerald-600 bg-white px-2 py-1 rounded">خروجی</span>
-                    </div>
-                    
-                    <div class="p-6 space-y-6 flex-1 flex flex-col justify-center">
-                        <div>
-                            <label class="block text-sm font-bold text-emerald-800 mb-2">قصد خرید چه چیزی را دارید؟</label>
-                            <select id="buyType" class="w-full p-3 rounded-lg border-emerald-200 border focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none bg-white transition-all shadow-sm" onchange="calculate()">
-                                <option value="melted">طلای آبشده (خام ۱۸ عیار)</option>
-                                <option value="full" selected>تمام سکه</option>
-                                <option value="half">نیم سکه</option>
-                                <option value="quarter">ربع سکه</option>
-                            </select>
+                    <div class="relative z-10 flex flex-col h-full">
+                        <div class="w-14 h-14 bg-amber-500 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg shadow-amber-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                         </div>
                         
-                        <div class="relative">
-                            <label class="block text-sm font-bold text-emerald-800 mb-2" id="buyPriceLabel">قیمت خرید (تومان)</label>
-                            <div class="relative">
-                                <input type="text" inputmode="numeric" id="buyPrice" value="147,000,000" class="w-full p-4 pl-16 rounded-xl border border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-xl font-bold text-emerald-900 shadow-inner text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-medium">Toman</span>
-                            </div>
-                            <div class="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span id="buyHint">قیمت یک سکه تمام را وارد کنید</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-white/60 p-4 rounded-xl border border-emerald-200 mt-auto">
-                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm text-emerald-800 font-bold">مقدار قابل خرید:</span>
-                                <span id="buyCountDisplay" class="font-black text-2xl text-emerald-900">0</span>
-                            </div>
-                            <div class="flex justify-between items-center text-xs text-emerald-600 mt-2 pt-2 border-t border-emerald-100">
-                                <span>باقی‌مانده پول:</span>
-                                <span id="cashRemains">0 تومان</span>
-                            </div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2 group-hover:text-amber-600 transition">ماشین حساب آربیتراژ</h2>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
+                            محاسبه دقیق سود و زیان تعویض سکه و طلای آبشده. تبدیل وزن‌ها به استاندارد واحد، مدیریت سبد فروش و محاسبه سود معادل سکه تمام.
+                        </p>
+                        
+                        <div class="flex items-center text-amber-600 font-bold text-sm">
+                            اجرای ابزار
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 transform transition group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
 
-            <!-- Analysis Dashboard -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6 shadow-inner">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <!-- Tool Card 2: Loan Manager -->
+            <a href="loan.html" class="block group">
+                <div class="bg-white rounded-2xl p-6 h-full border border-slate-200 shadow-sm card-hover relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-100 rounded-bl-[100px] -mr-4 -mt-4 transition group-hover:bg-blue-200"></div>
                     
-                    <!-- Stats -->
-                    <div class="md:col-span-1 space-y-4">
-                        <div class="text-center">
-                            <!-- Removed Title Here -->
-                            <div class="flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-100">
-                                <div class="text-right">
-                                    <span class="block text-[10px] text-red-400">فروخته شده</span>
-                                    <span id="weightSoldVal" class="text-lg font-bold text-slate-700">0</span>
-                                </div>
-                                <div class="text-slate-300 text-xl">➜</div>
-                                <div class="text-left">
-                                    <span class="block text-[10px] text-emerald-400">خریداری شده</span>
-                                    <span id="weightBoughtVal" class="text-lg font-bold text-slate-700">0</span>
-                                </div>
-                            </div>
+                    <div class="relative z-10 flex flex-col h-full">
+                        <div class="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg shadow-blue-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-
-                        <!-- Result Box -->
-                        <div id="resultCard" class="p-4 rounded-xl border text-center transition-colors duration-300 bg-slate-100 border-slate-300">
-                            <div class="text-sm text-slate-600 mb-1">تغییر خالص سرمایه</div>
-                            <div id="netWeightVal" class="text-3xl font-black text-slate-800 ltr py-1" style="direction: ltr;">0.00 g</div>
-                            <div id="recommendationText" class="text-xs font-bold mt-1 text-slate-500">...</div>
-
-                            <!-- Equivalent Profit Section -->
-                            <div class="mt-4 pt-4 border-t border-slate-200/50 bg-white/30 rounded">
-                                <div class="space-y-2 text-xs">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-500">معادل سکه تمام:</span>
-                                        <span id="profitInCoinsVal" class="font-bold text-slate-700 ltr">0.00 عدد</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-500">سود/زیان (تومان):</span>
-                                        <span id="profitInTomansVal" class="font-bold text-emerald-600 ltr">0</span>
-                                    </div>
-                                </div>
-                            </div>
+                        
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition">مدیریت وام و نقطه سر به سر</h2>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
+                            ثبت و کنترل وام‌ها، پیگیری اقساط پرداخت شده و تحلیل لحظه‌ای (Live) نقطه سر به سر بر اساس قیمت روز طلا و دارایی خریداری شده.
+                        </p>
+                        
+                        <div class="flex items-center text-blue-600 font-bold text-sm">
+                            اجرای داشبورد
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 transform transition group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         </div>
-                    </div>
-
-                    <!-- Chart -->
-                    <div class="md:col-span-2 h-64 bg-white rounded-xl border border-slate-100 p-2 relative">
-                        <canvas id="arbitrageChart"></canvas>
                     </div>
                 </div>
-            </div>
+            </a>
 
         </div>
-    </div>
+    </main>
 
-<script>
-    // --- Constants ---
-    // Weights in grams (Standard Bank Markazi - Purity 900)
-    const COIN_WEIGHTS = {
-        'full': 8.133,
-        'half': 4.0665,
-        'quarter': 2.03325
-    };
-    
-    // Purity Ratios
-    // Coin is 900. Melted (Raw) is 750 (18k).
-    // To convert 18k weight to Coin Equivalent (900): Weight18k * (750 / 900)
-    const RATIO_18K_TO_COIN = 750 / 900; 
+    <!-- Footer -->
+    <footer class="text-center py-6 text-slate-400 text-xs">
+        <p>طراحی شده برای مدیریت هوشمند کسب‌وکار طلا</p>
+    </footer>
 
-    // --- State & Chart ---
-    let chartInstance = null;
-
-    // --- Utils ---
-    const formatCurrency = (num) => new Intl.NumberFormat('fa-IR').format(num);
-    const formatWeight = (num) => num.toFixed(3);
-
-    // Format input with commas as you type
-    function formatInput(el) {
-        // Remove non-digit characters
-        let val = el.value.replace(/,/g, '').replace(/\D/g, '');
-        // Format with commas if value exists
-        if (val) {
-            el.value = parseInt(val).toLocaleString('en-US');
-        } else {
-            el.value = '';
-        }
-    }
-
-    // Helper to get raw numeric value from input (removes commas)
-    function getRawValue(id) {
-        const el = document.getElementById(id);
-        const val = el.value.replace(/,/g, '').replace(/\D/g, ''); // Remove commas and non-digits (for prices)
-        // Note: For decimal inputs (like quantities of melted gold), we might need to allow dots.
-        // But here we apply getRawValue mostly to Price inputs which are integers in Tomans.
-        // For Melted Qty, we use parseFloat directly on the input (type=number there, or simple text without commas usually).
-        // Let's check where it's used.
-        return parseFloat(val) || 0;
-    }
-
-    // --- Core Logic ---
-    function calculate() {
-        // --- 1. Calculate SELL Side (The Basket) ---
-        let totalCash = 0;
-        let totalSoldWeightCoinBasis = 0;
-
-        // Helper to process row
-        function processRow(qtyId, priceId, weightPerUnit, isMelted = false) {
-            // Quantity is usually a simple number/decimal
-            const qtyEl = document.getElementById(qtyId);
-            const q = parseFloat(qtyEl.value) || 0;
-            
-            // Price has commas now, use getRawValue helper logic
-            const p = getRawValue(priceId);
-            
-            if (q > 0) {
-                totalCash += (q * p);
-                if (isMelted) {
-                    // q is grams of 18k
-                    // Convert to Coin Equivalent (900)
-                    totalSoldWeightCoinBasis += (q * RATIO_18K_TO_COIN);
-                } else {
-                    // q is count of coins
-                    totalSoldWeightCoinBasis += (q * weightPerUnit);
-                }
-            }
-        }
-
-        processRow('qtyFull', 'priceFull', COIN_WEIGHTS.full);
-        processRow('qtyHalf', 'priceHalf', COIN_WEIGHTS.half);
-        processRow('qtyQuarter', 'priceQuarter', COIN_WEIGHTS.quarter);
-        processRow('qtyMelted', 'priceMelted', 0, true); // weight handled internally
-
-        // --- 2. Calculate BUY Side ---
-        const buyType = document.getElementById('buyType').value;
-        const buyPrice = getRawValue('buyPrice'); // Use helper for commas
-        
-        // Update Labels based on selection
-        const buyLabel = document.getElementById('buyPriceLabel');
-        const buyHint = document.getElementById('buyHint');
-        
-        if (buyType === 'melted') {
-            buyLabel.innerText = "قیمت هر گرم طلای ۱۸ عیار";
-            buyHint.innerText = "قیمت یک گرم طلای خام (آبشده) را وارد کنید";
-        } else {
-            buyLabel.innerText = "قیمت خرید سکه (تومان)";
-            buyHint.innerText = "قیمت خرید یک عدد سکه را وارد کنید";
-        }
-
-        let buyCountDisplay = "0";
-        let cashRemains = 0;
-        let totalBoughtWeightCoinBasis = 0;
-        
-        if (buyPrice > 0) {
-            if (buyType === 'melted') {
-                // Buying Melted Gold (Grams)
-                const gramsBought = totalCash / buyPrice;
-                buyCountDisplay = gramsBought.toFixed(2) + " گرم";
-                cashRemains = 0; 
-
-                // Convert obtained 18k grams to Coin Equivalent for comparison
-                totalBoughtWeightCoinBasis = gramsBought * RATIO_18K_TO_COIN;
-                
-            } else {
-                // Buying Coins (Integer)
-                const coinWeight = COIN_WEIGHTS[buyType];
-                const countFloor = Math.floor(totalCash / buyPrice);
-                cashRemains = totalCash - (countFloor * buyPrice);
-                
-                // Display
-                buyCountDisplay = countFloor + " عدد";
-
-                // Weight Calculation (Physical Coins + Cash Equivalent)
-                const physicalWeight = countFloor * coinWeight;
-                const cashEquivalentWeight = (cashRemains / buyPrice) * coinWeight;
-                
-                totalBoughtWeightCoinBasis = physicalWeight + cashEquivalentWeight;
-            }
-        }
-
-        // --- 3. Update UI ---
-        document.getElementById('totalCash').innerText = formatCurrency(totalCash) + " تومان";
-        document.getElementById('buyCountDisplay').innerText = buyCountDisplay;
-        document.getElementById('cashRemains').innerText = formatCurrency(cashRemains) + " تومان";
-
-        document.getElementById('weightSoldVal').innerText = formatWeight(totalSoldWeightCoinBasis);
-        document.getElementById('weightBoughtVal').innerText = formatWeight(totalBoughtWeightCoinBasis);
-
-        const netDiff = totalBoughtWeightCoinBasis - totalSoldWeightCoinBasis;
-        
-        // Result Styling
-        const netElem = document.getElementById('netWeightVal');
-        const recElem = document.getElementById('recommendationText');
-        const cardElem = document.getElementById('resultCard');
-
-        const sign = netDiff > 0 ? "+" : "";
-        netElem.innerText = `${sign}${formatWeight(netDiff)} g`;
-
-        if (netDiff > 0.1) {
-            // Profit
-            cardElem.className = "p-4 rounded-xl border text-center bg-emerald-100 border-emerald-300 text-emerald-900";
-            netElem.className = "text-3xl font-black text-emerald-700 ltr";
-            recElem.innerText = "✅ معامله سودده است";
-        } else if (netDiff < -0.1) {
-            // Loss
-            cardElem.className = "p-4 rounded-xl border text-center bg-red-100 border-red-300 text-red-900";
-            netElem.className = "text-3xl font-black text-red-700 ltr";
-            recElem.innerText = "⛔ معامله زیان‌ده است";
-        } else {
-            // Neutral
-            cardElem.className = "p-4 rounded-xl border text-center bg-yellow-50 border-yellow-200 text-yellow-900";
-            netElem.className = "text-3xl font-black text-yellow-600 ltr";
-            recElem.innerText = "⚖️ سر به سر (بی‌تفاوت)";
-        }
-        
-        // --- Calculate Equivalent Profit ---
-        // 1. Profit in Full Coins
-        const profitInCoins = netDiff / COIN_WEIGHTS.full;
-        
-        // 2. Profit in Tomans
-        // Calculate Price Per Gram (Coin Basis) of the TARGET asset
-        let pricePerGramCoinBasis = 0;
-        if (buyPrice > 0) {
-            if (buyType === 'melted') {
-                // buyPrice is for 1g 18k (750)
-                // We need price for 1g Coin (900)
-                // 1g 900 = 1g 750 * (900/750) = 1g 750 / RATIO
-                pricePerGramCoinBasis = buyPrice / RATIO_18K_TO_COIN;
-            } else {
-                // buyPrice is for 1 Coin Unit
-                pricePerGramCoinBasis = buyPrice / COIN_WEIGHTS[buyType];
-            }
-        }
-        const profitInTomans = netDiff * pricePerGramCoinBasis;
-
-        // Update UI for Profit Equivalents
-        const coinsElem = document.getElementById('profitInCoinsVal');
-        const tomansElem = document.getElementById('profitInTomansVal');
-        
-        const signCoins = profitInCoins > 0 ? "+" : "";
-        coinsElem.innerText = `${signCoins}${profitInCoins.toFixed(3)} عدد`;
-        coinsElem.className = "font-bold ltr " + (profitInCoins >= 0 ? "text-slate-700" : "text-red-600");
-
-        const signTomans = profitInTomans > 0 ? "+" : "";
-        tomansElem.innerText = `${signTomans}${formatCurrency(Math.round(profitInTomans))} تومان`;
-        tomansElem.className = "font-bold ltr " + (profitInTomans >= 0 ? "text-emerald-600" : "text-red-600");
-
-
-        updateChart(totalSoldWeightCoinBasis, totalBoughtWeightCoinBasis);
-    }
-
-    function updateChart(sold, bought) {
-        const ctx = document.getElementById('arbitrageChart').getContext('2d');
-        const isProfit = bought >= sold;
-        const boughtColor = isProfit ? '#10b981' : '#ef4444'; 
-
-        if (chartInstance) {
-            chartInstance.data.datasets[0].data = [sold, bought];
-            chartInstance.data.datasets[0].backgroundColor = ['#94a3b8', boughtColor]; 
-            chartInstance.update();
-        } else {
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['مجموع وزن فروخته شده', 'وزن قابل خرید'],
-                    datasets: [{
-                        label: 'وزن معادل سکه (گرم)',
-                        data: [sold, bought],
-                        backgroundColor: ['#94a3b8', boughtColor],
-                        borderRadius: 6,
-                        barThickness: 60
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            bodyFont: { family: 'Vazirmatn' },
-                            titleFont: { family: 'Vazirmatn' },
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y.toFixed(3) + " گرم (معادل سکه)";
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: { color: '#f1f5f9' },
-                            ticks: { font: { family: 'Vazirmatn' } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { family: 'Vazirmatn' } }
-                        }
-                    },
-                    animation: {
-                        duration: 500
-                    }
-                }
-            });
-        }
-    }
-
-    // Initialize
-    window.addEventListener('load', calculate);
-
-</script>
 </body>
 </html>
