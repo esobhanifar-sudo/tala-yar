@@ -63,7 +63,7 @@
                             <div class="col-span-4 text-sm font-medium text-slate-700">تمام سکه</div>
                             <div class="col-span-3"><input type="number" id="qtyFull" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
                             <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceFull" value="147000000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none" oninput="calculate()">
+                                <input type="text" inputmode="numeric" id="priceFull" value="147,000,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
                                 <span class="currency-badge">T</span>
                             </div>
                         </div>
@@ -73,7 +73,7 @@
                             <div class="col-span-4 text-sm font-medium text-slate-700">نیم سکه</div>
                             <div class="col-span-3"><input type="number" id="qtyHalf" value="30" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
                             <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceHalf" value="82500000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none" oninput="calculate()">
+                                <input type="text" inputmode="numeric" id="priceHalf" value="82,500,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
                                 <span class="currency-badge">T</span>
                             </div>
                         </div>
@@ -83,7 +83,7 @@
                             <div class="col-span-4 text-sm font-medium text-slate-700">ربع سکه</div>
                             <div class="col-span-3"><input type="number" id="qtyQuarter" value="2" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
                             <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceQuarter" value="52000000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none" oninput="calculate()">
+                                <input type="text" inputmode="numeric" id="priceQuarter" value="52,000,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
                                 <span class="currency-badge">T</span>
                             </div>
                         </div>
@@ -96,7 +96,7 @@
                                 <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[0.6rem] text-yellow-600">گرم</span>
                             </div>
                             <div class="col-span-5 relative input-row">
-                                <input type="number" id="priceMelted" placeholder="فی هر گرم" class="w-full compact-input border rounded focus:ring-1 ring-yellow-300 outline-none border-yellow-300" oninput="calculate()">
+                                <input type="text" inputmode="numeric" id="priceMelted" placeholder="فی هر گرم" class="w-full compact-input border rounded focus:ring-1 ring-yellow-300 outline-none border-yellow-300 text-left ltr" oninput="formatInput(this); calculate()">
                                 <span class="currency-badge">T</span>
                             </div>
                         </div>
@@ -132,7 +132,7 @@
                         <div class="relative">
                             <label class="block text-sm font-bold text-emerald-800 mb-2" id="buyPriceLabel">قیمت خرید (تومان)</label>
                             <div class="relative">
-                                <input type="number" id="buyPrice" value="147000000" class="w-full p-4 pl-16 rounded-xl border border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-xl font-bold text-emerald-900 shadow-inner" oninput="calculate()">
+                                <input type="text" inputmode="numeric" id="buyPrice" value="147,000,000" class="w-full p-4 pl-16 rounded-xl border border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-xl font-bold text-emerald-900 shadow-inner text-left ltr" oninput="formatInput(this); calculate()">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-medium">Toman</span>
                             </div>
                             <div class="text-xs text-emerald-600 mt-2 flex items-center gap-1">
@@ -182,19 +182,20 @@
                             <div id="netWeightVal" class="text-3xl font-black text-slate-800 ltr py-1" style="direction: ltr;">0.00 g</div>
                             <div id="recommendationText" class="text-xs font-bold mt-1 text-slate-500">...</div>
 
-                            <!-- Breakdown Section Added -->
+                            <!-- Equivalent Profit Section -->
                             <div class="mt-4 pt-4 border-t border-slate-200/50 bg-white/30 rounded">
-                                <div class="grid grid-cols-2 gap-2 text-xs">
-                                    <div class="text-right text-slate-500">سود وزن فیزیکی:</div>
-                                    <div id="physicalDiffVal" class="font-bold text-slate-700 ltr text-left">0.00 g</div>
-                                    
-                                    <div class="text-right text-slate-500">ارزش وزنی پول نقد:</div>
-                                    <div id="cashDiffVal" class="font-bold text-emerald-600 ltr text-left">0.00 g</div>
+                                <div class="space-y-2 text-xs">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-500">معادل سکه تمام:</span>
+                                        <span id="profitInCoinsVal" class="font-bold text-slate-700 ltr">0.00 عدد</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-500">سود/زیان (تومان):</span>
+                                        <span id="profitInTomansVal" class="font-bold text-emerald-600 ltr">0</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Removed Footer Note -->
                     </div>
 
                     <!-- Chart -->
@@ -228,6 +229,29 @@
     const formatCurrency = (num) => new Intl.NumberFormat('fa-IR').format(num);
     const formatWeight = (num) => num.toFixed(3);
 
+    // Format input with commas as you type
+    function formatInput(el) {
+        // Remove non-digit characters
+        let val = el.value.replace(/,/g, '').replace(/\D/g, '');
+        // Format with commas if value exists
+        if (val) {
+            el.value = parseInt(val).toLocaleString('en-US');
+        } else {
+            el.value = '';
+        }
+    }
+
+    // Helper to get raw numeric value from input (removes commas)
+    function getRawValue(id) {
+        const el = document.getElementById(id);
+        const val = el.value.replace(/,/g, '').replace(/\D/g, ''); // Remove commas and non-digits (for prices)
+        // Note: For decimal inputs (like quantities of melted gold), we might need to allow dots.
+        // But here we apply getRawValue mostly to Price inputs which are integers in Tomans.
+        // For Melted Qty, we use parseFloat directly on the input (type=number there, or simple text without commas usually).
+        // Let's check where it's used.
+        return parseFloat(val) || 0;
+    }
+
     // --- Core Logic ---
     function calculate() {
         // --- 1. Calculate SELL Side (The Basket) ---
@@ -236,8 +260,12 @@
 
         // Helper to process row
         function processRow(qtyId, priceId, weightPerUnit, isMelted = false) {
-            const q = parseFloat(document.getElementById(qtyId).value) || 0;
-            const p = parseFloat(document.getElementById(priceId).value) || 0;
+            // Quantity is usually a simple number/decimal
+            const qtyEl = document.getElementById(qtyId);
+            const q = parseFloat(qtyEl.value) || 0;
+            
+            // Price has commas now, use getRawValue helper logic
+            const p = getRawValue(priceId);
             
             if (q > 0) {
                 totalCash += (q * p);
@@ -259,7 +287,7 @@
 
         // --- 2. Calculate BUY Side ---
         const buyType = document.getElementById('buyType').value;
-        const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+        const buyPrice = getRawValue('buyPrice'); // Use helper for commas
         
         // Update Labels based on selection
         const buyLabel = document.getElementById('buyPriceLabel');
@@ -277,10 +305,6 @@
         let cashRemains = 0;
         let totalBoughtWeightCoinBasis = 0;
         
-        // Variables for Breakdown
-        let weightBoughtPhysical = 0;
-        let weightCashEquivalent = 0;
-
         if (buyPrice > 0) {
             if (buyType === 'melted') {
                 // Buying Melted Gold (Grams)
@@ -291,10 +315,6 @@
                 // Convert obtained 18k grams to Coin Equivalent for comparison
                 totalBoughtWeightCoinBasis = gramsBought * RATIO_18K_TO_COIN;
                 
-                // For melted, all weight is physical (divisible), no change remains
-                weightBoughtPhysical = totalBoughtWeightCoinBasis;
-                weightCashEquivalent = 0;
-
             } else {
                 // Buying Coins (Integer)
                 const coinWeight = COIN_WEIGHTS[buyType];
@@ -309,9 +329,6 @@
                 const cashEquivalentWeight = (cashRemains / buyPrice) * coinWeight;
                 
                 totalBoughtWeightCoinBasis = physicalWeight + cashEquivalentWeight;
-                
-                weightBoughtPhysical = physicalWeight;
-                weightCashEquivalent = cashEquivalentWeight;
             }
         }
 
@@ -324,7 +341,6 @@
         document.getElementById('weightBoughtVal').innerText = formatWeight(totalBoughtWeightCoinBasis);
 
         const netDiff = totalBoughtWeightCoinBasis - totalSoldWeightCoinBasis;
-        const physicalDiff = weightBoughtPhysical - totalSoldWeightCoinBasis;
         
         // Result Styling
         const netElem = document.getElementById('netWeightVal');
@@ -351,14 +367,38 @@
             recElem.innerText = "⚖️ سر به سر (بی‌تفاوت)";
         }
         
-        // Update Breakdown UI
-        const physicalElem = document.getElementById('physicalDiffVal');
-        const physicalSign = physicalDiff > 0 ? "+" : "";
-        physicalElem.innerText = `${physicalSign}${formatWeight(physicalDiff)} g`;
-        physicalElem.className = "font-bold ltr text-left " + (physicalDiff >= 0 ? "text-slate-700" : "text-red-600");
+        // --- Calculate Equivalent Profit ---
+        // 1. Profit in Full Coins
+        const profitInCoins = netDiff / COIN_WEIGHTS.full;
+        
+        // 2. Profit in Tomans
+        // Calculate Price Per Gram (Coin Basis) of the TARGET asset
+        let pricePerGramCoinBasis = 0;
+        if (buyPrice > 0) {
+            if (buyType === 'melted') {
+                // buyPrice is for 1g 18k (750)
+                // We need price for 1g Coin (900)
+                // 1g 900 = 1g 750 * (900/750) = 1g 750 / RATIO
+                pricePerGramCoinBasis = buyPrice / RATIO_18K_TO_COIN;
+            } else {
+                // buyPrice is for 1 Coin Unit
+                pricePerGramCoinBasis = buyPrice / COIN_WEIGHTS[buyType];
+            }
+        }
+        const profitInTomans = netDiff * pricePerGramCoinBasis;
 
-        const cashElem = document.getElementById('cashDiffVal');
-        cashElem.innerText = `+${formatWeight(weightCashEquivalent)} g`;
+        // Update UI for Profit Equivalents
+        const coinsElem = document.getElementById('profitInCoinsVal');
+        const tomansElem = document.getElementById('profitInTomansVal');
+        
+        const signCoins = profitInCoins > 0 ? "+" : "";
+        coinsElem.innerText = `${signCoins}${profitInCoins.toFixed(3)} عدد`;
+        coinsElem.className = "font-bold ltr " + (profitInCoins >= 0 ? "text-slate-700" : "text-red-600");
+
+        const signTomans = profitInTomans > 0 ? "+" : "";
+        tomansElem.innerText = `${signTomans}${formatCurrency(Math.round(profitInTomans))} تومان`;
+        tomansElem.className = "font-bold ltr " + (profitInTomans >= 0 ? "text-emerald-600" : "text-red-600");
+
 
         updateChart(totalSoldWeightCoinBasis, totalBoughtWeightCoinBasis);
     }
