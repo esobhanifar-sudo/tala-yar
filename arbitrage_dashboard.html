@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد تحلیل حباب و سیگنال آربیتراژ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- AUTHENTICATION -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Try loading auth.js, but don't crash if missing -->
+    <script src="auth.js" onerror="console.warn('auth.js failed to load. Using fallback connection.')"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Safe check for auth guard
+            if (typeof checkAuthGuard === 'function') {
+                checkAuthGuard();
+            } else {
+                console.warn("Auth system not loaded. Skipping access check.");
+            }
+        });
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        .ticker-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #334155; }
+        .bubble-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .bubble-high { background-color: #ef4444; color: white; } /* Sell Signal */
+        .bubble-low { background-color: #10b981; color: white; } /* Buy Signal */
+        .bubble-mid { background-color: #f59e0b; color: white; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 pb-20">
+
+    <!-- Header -->
+    <div class="max-w-7xl mx-auto flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                رهدیس آنالیز
+            </h1>
+            <p class="text-xs text-slate-400">رصد لحظه‌ای حباب و فرصت‌های آربیتراژ</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition">بازگشت</a>
+            <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                بروزرسانی
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Sidebar: Market Overview -->
+        <div class="lg:col-span-1 space-y-4">
+            <!-- Recommendation Card -->
+            <div class="glass-panel rounded-xl p-5 border-l-4 border-amber-500 shadow-lg">
+                <h3 class="text-sm font-bold text-slate-300 mb-2">پیشنهاد هوشمند آربیتراژ</h3>
+                <div id="recommendationBox">
+                    <p class="text-xs text-slate-500">در حال دریافت اطلاعات...</p>
+                </div>
+            </div>
+
+            <!-- Live Prices & Bubbles -->
+            <div class="glass-panel rounded-xl p-4">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-700 pb-2 flex justify-between">
+                    <span>وضعیت حباب سکه‌ها</span>
+                    <span id="connectionStatus" class="text-[10px] text-yellow-500">در حال اتصال...</span>
+                </h3>
+                <div id="marketList" class="space-y-1">
+                    <!-- Items injected by JS -->
+                </div>
+                <!-- Error Log Area -->
+                <div id="errorLog" class="mt-2 text-[10px] text-red-400 font-mono hidden border-t border-red-900/30 pt-2"></div>
+            </div>
+
+            <!-- Settings -->
+            <div class="glass-panel rounded-xl p-4">
+                <label class="text-xs text-slate-400 block mb-2">بازه زمانی نمودار</label>
+                <div class="flex bg-slate-800 rounded p-1">
+                    <button class="flex-1 text-xs py-1 rounded bg-slate-600 text-white">1H</button>
+                    <button class="flex-1 text-xs py-1 rounded hover:bg-slate-700 text-slate-400">4H</button>
+                    <button class="flex-1 text-xs py-1 rounded hover:bg-slate-700 text-slate-400">24H</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chart Area -->
+        <div class="lg:col-span-3 glass-panel rounded-xl p-4 md:p-6">
+            <h2 class="text-lg font-bold text-slate-200 mb-4">روند تغییرات درصد حباب (Bubble Trends)</h2>
+            <div class="chart-container">
+                <canvas id="bubbleChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- Fallback Configuration (In case auth.js fails) ---
+    const FB_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+    const FB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+
+    // --- Constants ---
+    // Standard Weights (g) & Purity Factor
+    const COIN_SPECS = {
+        'full': { name: 'تمام سکه', weight: 8.133, color: '#f59e0b' }, // Amber
+        'half': { name: 'نیم سکه', weight: 4.0665, color: '#3b82f6' }, // Blue
+        'quarter': { name: 'ربع سکه', weight: 2.03325, color: '#10b981' } // Emerald
+    };
+    const PURITY_FACTOR = 0.900 / 0.750; // Convert 18k price to Coin Purity (900)
+
+    // --- State ---
+    let chartInstance = null;
+    let marketData = {}; // Holds current prices
+    let supabaseClient = null;
+
+    // --- Core Logic ---
+
+    // Initialize Client (Robust)
+    function getSupabaseClient() {
+        if (supabaseClient) return supabaseClient;
+        
+        // 1. Try global 'sb' from auth.js
+        if (typeof sb !== 'undefined') {
+            supabaseClient = sb;
+            return sb;
+        }
+        
+        // 2. Try creating local fallback
+        if (typeof supabase !== 'undefined') {
+            console.log("Using fallback Supabase connection...");
+            const { createClient } = supabase;
+            supabaseClient = createClient(FB_URL, FB_KEY);
+            return supabaseClient;
+        }
+        
+        return null;
+    }
+
+    // 1. Calculate Intrinsic Value & Bubble
+    function calculateMetrics(marketPrice, weight, gram18kPrice) {
+        if (!marketPrice || !gram18kPrice) return { intrinsicValue: 0, bubbleAmount: 0, bubblePercent: 0 };
+        
+        // Intrinsic Value = Weight * (Price of 1g 18k * PurityFactor)
+        const intrinsicValue = weight * (gram18kPrice * PURITY_FACTOR);
+        const bubbleAmount = marketPrice - intrinsicValue;
+        const bubblePercent = (bubbleAmount / intrinsicValue) * 100;
+        
+        return { intrinsicValue, bubbleAmount, bubblePercent };
+    }
+
+    // 2. Fetch Data from Supabase
+    async function fetchData() {
+        const statusEl = document.getElementById('connectionStatus');
+        const errorLog = document.getElementById('errorLog');
+        
+        statusEl.innerText = "درحال دریافت...";
+        statusEl.className = "text-[10px] text-yellow-500";
+        errorLog.classList.add('hidden');
+        errorLog.innerText = "";
+
+        let gram18k = 0;
+        let prices = { full: 0, half: 0, quarter: 0 };
+        let isRealData = false;
+        let errorMsg = "";
+
+        const client = getSupabaseClient();
+
+        if (client) {
+            try {
+                // Fetching exactly based on provided schema
+                const { data, error } = await client
+                    .from('Iran_Data')
+                    .select('Gram_18K_Price, Emami_Coin_Price, Half_Coin_Price, Quarter_Coin_Price')
+                    .order('id', { ascending: false })
+                    .limit(1)
+                    .single();
+                
+                if (data && !error) {
+                    // Convert Rials to Tomans (/ 10)
+                    gram18k = parseFloat(data.Gram_18K_Price) / 10;
+                    prices.full = parseFloat(data.Emami_Coin_Price) / 10;
+                    prices.half = parseFloat(data.Half_Coin_Price) / 10;
+                    prices.quarter = parseFloat(data.Quarter_Coin_Price) / 10;
+                    
+                    isRealData = true;
+                    statusEl.innerText = "🟢 زنده";
+                    statusEl.className = "text-[10px] text-emerald-400";
+                    console.log("Real Data fetched:", data);
+                } else {
+                    // Handle Errors
+                    if (error) {
+                        errorMsg = "خطای دیتابیس: " + error.message + " (" + error.code + ")";
+                        console.error("Supabase fetch error:", error);
+                    } else if (!data) {
+                        errorMsg = "جدول Iran_Data خالی است.";
+                        console.warn("Table is empty");
+                    }
+                    
+                    statusEl.innerText = "🔴 خطا";
+                    statusEl.className = "text-[10px] text-red-500";
+                }
+            } catch (e) { 
+                console.error('Connection exception:', e); 
+                errorMsg = "خطای شبکه یا کد: " + e.message;
+                statusEl.innerText = "🔴 استثناء";
+                statusEl.className = "text-[10px] text-red-500";
+            }
+        } else {
+            errorMsg = "کتابخانه Supabase لود نشد (مشکل CDN)";
+            statusEl.innerText = "🔴 قطع";
+            statusEl.className = "text-[10px] text-red-500";
+        }
+
+        // Display Error if any
+        if (errorMsg) {
+            errorLog.innerText = errorMsg;
+            errorLog.classList.remove('hidden');
+            document.getElementById('recommendationBox').innerHTML = `<p class="text-xs text-red-400 text-center">خطا در دریافت داده</p>`;
+        }
+
+        // Process Data (Only if real data exists)
+        if (isRealData) {
+            const analysis = [];
+            for (const [key, spec] of Object.entries(COIN_SPECS)) {
+                const m = calculateMetrics(prices[key], spec.weight, gram18k);
+                analysis.push({
+                    key: key,
+                    name: spec.name,
+                    price: prices[key],
+                    ...m
+                });
+            }
+
+            renderSidebar(analysis, gram18k, isRealData);
+            analyzeArbitrage(analysis);
+            updateChartData(analysis); 
+        } else {
+            const list = document.getElementById('marketList');
+            list.innerHTML = `<div class="text-center text-xs text-slate-500 mt-4 opacity-50">در انتظار داده...<br>اتصال به دیتابیس را بررسی کنید.</div>`;
+        }
+    }
+
+    // 3. Recommendation Engine
+    function analyzeArbitrage(analysis) {
+        // Sort by Bubble % (Highest first)
+        analysis.sort((a, b) => b.bubblePercent - a.bubblePercent);
+
+        const highestBubble = analysis[0];
+        const lowestBubble = analysis[analysis.length - 1];
+        const gap = highestBubble.bubblePercent - lowestBubble.bubblePercent;
+
+        const container = document.getElementById('recommendationBox');
+        
+        if (gap > 2) { // Minimum 2% gap to suggest switch
+            container.innerHTML = `
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center text-red-400">
+                        <span class="text-xs font-bold">فروش (حباب بالا):</span>
+                        <span class="text-sm font-black">${highestBubble.name}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-emerald-400">
+                        <span class="text-xs font-bold">خرید (حباب پایین):</span>
+                        <span class="text-sm font-black">${lowestBubble.name}</span>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-slate-700 text-center">
+                        <span class="text-[10px] text-slate-400">اختلاف حباب:</span>
+                        <span class="text-amber-400 font-bold text-lg ltr">${gap.toFixed(1)}%</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<div class="text-center text-slate-400 text-xs py-2">بازار متعادل است.<br>فرصت آربیتراژ جذابی وجود ندارد.</div>`;
+        }
+    }
+
+    // 4. UI Rendering
+    function renderSidebar(analysis, baseGold, isReal) {
+        const list = document.getElementById('marketList');
+        const priceText = baseGold > 0 ? baseGold.toLocaleString() : "---";
+        list.innerHTML = `<div class="text-xs text-slate-500 mb-2 text-center">مبنا: طلای ۱۸ عیار (${priceText} T)</div>`;
+
+        analysis.forEach(item => {
+            // Determine Color Class
+            let badgeClass = 'bubble-mid';
+            if (item.bubblePercent > 20) badgeClass = 'bubble-high';
+            if (item.bubblePercent < 10) badgeClass = 'bubble-low';
+
+            list.innerHTML += `
+                <div class="ticker-item">
+                    <div>
+                        <div class="text-sm text-slate-200 font-bold">${item.name}</div>
+                        <div class="text-[10px] text-slate-500 font-mono">${item.price.toLocaleString()}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="${badgeClass} bubble-badge inline-block ltr">${item.bubblePercent.toFixed(1)}%</div>
+                        <div class="text-[10px] text-slate-400 mt-1 ltr">حباب: ${(item.bubbleAmount/1000000).toFixed(1)} M</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // 5. Mock History Generator & Chart (Initial empty state)
+    function generateMockHistory() {
+        const labels = [];
+        const dataFull = [];
+        const dataHalf = [];
+        const dataQuarter = [];
+        // Just empty placeholders or simple straight line for now if no data
+        for (let i = 0; i < 12; i++) { 
+            labels.push(`${i+8}:00`);
+            dataFull.push(null);
+            dataHalf.push(null);
+            dataQuarter.push(null);
+        }
+        return { labels, dataFull, dataHalf, dataQuarter };
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('bubbleChart').getContext('2d');
+        const mock = generateMockHistory();
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: mock.labels,
+                datasets: [
+                    {
+                        label: 'تمام سکه',
+                        data: mock.dataFull,
+                        borderColor: COIN_SPECS.full.color,
+                        backgroundColor: COIN_SPECS.full.color,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'نیم سکه',
+                        data: mock.dataHalf,
+                        borderColor: COIN_SPECS.half.color,
+                        backgroundColor: COIN_SPECS.half.color,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'ربع سکه',
+                        data: mock.dataQuarter,
+                        borderColor: COIN_SPECS.quarter.color,
+                        backgroundColor: COIN_SPECS.quarter.color,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { labels: { color: '#94a3b8', font: {family: 'Vazirmatn'} } },
+                    tooltip: { 
+                        rtl: true, 
+                        textDirection: 'rtl',
+                        titleFont: {family: 'Vazirmatn'},
+                        bodyFont: {family: 'Vazirmatn'},
+                        callbacks: {
+                            label: function(context) {
+                                if(context.parsed.y !== null)
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '% حباب';
+                                return '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        title: { display: true, text: 'درصد حباب (%)', color: '#64748b' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChartData(currentAnalysis) {
+        if (!chartInstance) return;
+        
+        // Push new data point logic
+        const now = new Date();
+        const timeLabel = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+        
+        // If we have > 12 points, shift
+        if (chartInstance.data.labels.length > 12) {
+            chartInstance.data.labels.shift();
+            chartInstance.data.datasets.forEach((dataset) => {
+                dataset.data.shift();
+            });
+        }
+        
+        chartInstance.data.labels.push(timeLabel);
+        
+        currentAnalysis.forEach(item => {
+            let datasetIndex = -1;
+            if (item.key === 'full') datasetIndex = 0;
+            if (item.key === 'half') datasetIndex = 1;
+            if (item.key === 'quarter') datasetIndex = 2;
+
+            if (datasetIndex !== -1) {
+                chartInstance.data.datasets[datasetIndex].data.push(item.bubblePercent);
+            }
+        });
+        chartInstance.update();
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+        initChart();
+        fetchData();
+        
+        // Auto refresh every minute
+        setInterval(fetchData, 60000);
+    });
+
+</script>
+</body>
+</html>
