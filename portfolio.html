@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موتور مدیریت دارایی رهدیس (محافظت شده)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- AUTHENTICATION (LOCKED) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Try loading auth.js -->
+    <script src="auth.js" onerror="console.warn('auth.js failed to load.')"></script>
+    
+    <script>
+        // Protect this page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof checkAuthGuard === 'function') {
+                checkAuthGuard();
+            } else {
+                console.warn("Auth system not loaded. Skipping access check.");
+            }
+        });
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .asset-card { transition: all 0.3s ease; }
+        .asset-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); }
+        .action-btn { transition: all 0.2s; }
+        .action-btn:active { transform: scale(0.98); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 pb-20">
+
+    <!-- Header -->
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                موتور دارایی رهدیس
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">مدیریت پورتفولیو بر مبنای تراکنش (Transaction-Based)</p>
+        </div>
+        
+        <!-- Total Value Display -->
+        <div class="glass-panel px-6 py-3 rounded-2xl flex flex-col items-end min-w-[220px] relative">
+            <span class="text-[10px] text-slate-400 mb-1">ارزش کل دارایی‌ها</span>
+            
+            <!-- Tomans -->
+            <div class="flex items-center gap-2 mb-1">
+                <span id="totalPortfolioValue" class="text-2xl font-black text-emerald-400 font-mono ltr">0</span>
+                <span class="text-xs text-emerald-600">تومان</span>
+            </div>
+            
+            <!-- Gold Gram Equivalent -->
+            <div class="flex items-center gap-1 opacity-80">
+                <span class="text-[10px] text-amber-500">معادل:</span>
+                <span id="totalPortfolioGold" class="text-sm font-bold text-amber-400 font-mono ltr">0.000</span>
+                <span class="text-[10px] text-amber-500">گرم طلا</span>
+            </div>
+
+            <!-- Live Indicator -->
+            <span id="priceStatusIndicator" class="w-2 h-2 rounded-full bg-slate-500 animate-pulse absolute top-4 left-4" title="وضعیت دریافت قیمت"></span>
+        </div>
+
+        <div class="flex gap-2 self-end md:self-center">
+            <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition">بازگشت</a>
+            <button onclick="signOut()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition">خروج</button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Portfolio Summary -->
+        <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Asset Grid -->
+            <div id="assetGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Assets will be injected here -->
+            </div>
+
+            <!-- Transaction History -->
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-200">دفترچه تراکنش‌ها (Ledger)</h3>
+                    <button onclick="clearAllData()" class="text-xs text-red-500 hover:text-red-400">بازنشانی سیستم</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead>
+                            <tr class="text-slate-500 border-b border-slate-700">
+                                <th class="pb-3 w-24">تاریخ</th>
+                                <th class="pb-3 w-24">نوع</th>
+                                <th class="pb-3">دارایی</th>
+                                <th class="pb-3">مقدار</th>
+                                <th class="pb-3 text-left">شناسه / لینک</th>
+                                <th class="pb-3 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="txTableBody" class="text-slate-300">
+                            <!-- Rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Actions -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Add Transaction Form -->
+            <div class="glass-panel rounded-2xl p-6 bg-slate-800/50">
+                <div class="flex space-x-1 space-x-reverse bg-slate-700/50 p-1 rounded-lg mb-6">
+                    <button onclick="switchTab('single')" id="tab-single" class="flex-1 py-2 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow">تراکنش ساده</button>
+                    <button onclick="switchTab('convert')" id="tab-convert" class="flex-1 py-2 text-xs font-bold rounded-md transition text-slate-400 hover:text-white">تبدیل دارایی</button>
+                </div>
+
+                <!-- Single Transaction Form -->
+                <form id="singleForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">نوع عملیات</label>
+                        <select id="txType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none">
+                            <option value="INITIAL">نقطه صفر (موجودی اولیه)</option>
+                            <option value="BUY">خرید (افزایش دارایی)</option>
+                            <option value="SELL">فروش (کاهش دارایی)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">دارایی هدف</label>
+                        <select id="txAsset" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none">
+                            <!-- Options injected -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">مقدار</label>
+                        <input type="number" id="txQty" step="0.001" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none ltr text-left">
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2 action-btn">
+                        ثبت تراکنش
+                    </button>
+                </form>
+
+                <!-- Conversion Form (Hidden by default) -->
+                <form id="convertForm" class="space-y-4 hidden">
+                    <div class="p-3 bg-indigo-500/10 rounded-lg border border-indigo-500/20 mb-2">
+                        <p class="text-[10px] text-indigo-300 leading-relaxed">
+                            تبدیل به معنای ثبت همزمان یک <b>فروش</b> و یک <b>خرید</b> است که به هم لینک می‌شوند.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-red-400 mb-1">فروش (مبدأ)</label>
+                            <select id="convAssetFrom" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-xs outline-none"></select>
+                        </div>
+                        <div>
+                             <label class="block text-[10px] text-red-400 mb-1">تعداد/مقدار</label>
+                             <input type="number" id="convQtyFrom" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-xs outline-none ltr">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center -my-2 relative z-10">
+                        <div class="bg-slate-700 p-1 rounded-full border border-slate-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-emerald-400 mb-1">خرید (مقصد)</label>
+                            <select id="convAssetTo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-xs outline-none"></select>
+                        </div>
+                        <div>
+                             <label class="block text-[10px] text-emerald-400 mb-1">تعداد/مقدار</label>
+                             <input type="number" id="convQtyTo" step="0.001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-xs outline-none ltr">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2 action-btn">
+                        ثبت تبدیل
+                    </button>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- Configuration ---
+    const ASSETS = {
+        'GOLD_18K': { label: 'طلای آبشده', unit: 'گرم', color: 'text-amber-400', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+        'FULL_COIN': { label: 'تمام سکه', unit: 'عدد', color: 'text-yellow-300', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        'HALF_COIN': { label: 'نیم سکه', unit: 'عدد', color: 'text-yellow-200', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        'QUARTER_COIN': { label: 'ربع سکه', unit: 'عدد', color: 'text-yellow-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        'IRR': { label: 'ریال (نقد)', unit: 'تومان', color: 'text-green-400', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+        'USD': { label: 'دلار', unit: '$', color: 'text-emerald-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        'EUR': { label: 'یورو', unit: '€', color: 'text-blue-400', icon: 'M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4' }
+    };
+
+    // --- State ---
+    let transactions = [];
+    let currentPrices = {}; // Store fetched prices
+    
+    // --- Utils ---
+    const formatWeight = (num) => num.toFixed(3);
+
+    // --- Core Logic ---
+
+    function loadData() {
+        const saved = localStorage.getItem('rahdis_portfolio_v1');
+        if (saved) {
+            transactions = JSON.parse(saved);
+        }
+        renderPortfolio();
+        renderHistory();
+        fetchPrices(); // Fetch real-time values
+    }
+
+    function saveData() {
+        localStorage.setItem('rahdis_portfolio_v1', JSON.stringify(transactions));
+        renderPortfolio();
+        renderHistory();
+    }
+
+    function addTransaction(type, assetKey, qty, refId = null) {
+        let finalQty = parseFloat(qty);
+        if (type === 'SELL') finalQty = -Math.abs(finalQty);
+        else finalQty = Math.abs(finalQty);
+
+        const tx = {
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+            date: new Date().toISOString(),
+            type: type,
+            asset: assetKey,
+            qty: finalQty,
+            ref_id: refId
+        };
+
+        transactions.push(tx);
+        saveData();
+    }
+
+    function deleteTransaction(id) {
+        if(confirm('آیا از حذف این تراکنش اطمینان دارید؟')) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveData();
+        }
+    }
+
+    function clearAllData() {
+        if(confirm('هشدار: تمام تاریخچه تراکنش‌ها و موجودی پورتفولیو پاک خواهد شد.')) {
+            transactions = [];
+            saveData();
+        }
+    }
+
+    // --- Calculation ---
+    function getBalances() {
+        const balances = {};
+        Object.keys(ASSETS).forEach(key => balances[key] = 0);
+        transactions.forEach(tx => {
+            if (balances[tx.asset] !== undefined) {
+                balances[tx.asset] += tx.qty;
+            }
+        });
+        return balances;
+    }
+
+    // --- Real-time Price Fetching ---
+    async function fetchPrices() {
+        // Fallback or auth.js 'sb'
+        let client = null;
+        if (typeof sb !== 'undefined') client = sb;
+        else if (typeof supabase !== 'undefined') {
+             // Fallback config from other tools
+             const FB_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+             const FB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+             client = supabase.createClient(FB_URL, FB_KEY);
+        }
+
+        if (!client) {
+            console.warn("No Supabase client available.");
+            return;
+        }
+
+        const indicator = document.getElementById('priceStatusIndicator');
+        indicator.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse absolute top-4 left-4";
+
+        try {
+            const { data, error } = await client
+                .from('Iran_Data')
+                .select('Gram_18K_Price, Emami_Coin_Price, Half_Coin_Price, Quarter_Coin_Price, USD_AZAD_Exchange')
+                .order('id', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data && !error) {
+                // Convert Rials to Tomans (/ 10)
+                currentPrices['GOLD_18K'] = parseFloat(data.Gram_18K_Price) / 10;
+                currentPrices['FULL_COIN'] = parseFloat(data.Emami_Coin_Price) / 10;
+                currentPrices['HALF_COIN'] = parseFloat(data.Half_Coin_Price) / 10;
+                currentPrices['QUARTER_COIN'] = parseFloat(data.Quarter_Coin_Price) / 10;
+                
+                // Currency
+                const usdPrice = parseFloat(data.USD_AZAD_Exchange) / 10; // Assuming DB is Rials
+                currentPrices['USD'] = usdPrice;
+                currentPrices['EUR'] = usdPrice * 1.05; // Estimate Euro (~1.05 USD)
+                currentPrices['IRR'] = 1; // 1 Toman = 1 Toman
+
+                indicator.className = "w-2 h-2 rounded-full bg-emerald-500 absolute top-4 left-4";
+                renderPortfolio(); // Re-render with prices
+            } else {
+                console.error("Price fetch error:", error);
+                indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
+            }
+        } catch (e) {
+            console.error("Price fetch exception:", e);
+            indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
+        }
+    }
+
+    // --- Rendering ---
+
+    function renderPortfolio() {
+        const container = document.getElementById('assetGrid');
+        const totalValueEl = document.getElementById('totalPortfolioValue');
+        const totalGoldEl = document.getElementById('totalPortfolioGold');
+        const balances = getBalances();
+        let grandTotal = 0;
+        
+        container.innerHTML = '';
+
+        Object.entries(ASSETS).forEach(([key, spec]) => {
+            const bal = balances[key];
+            const displayBal = bal % 1 === 0 ? bal : bal.toFixed(3);
+            const formatted = (key === 'IRR') ? parseInt(bal).toLocaleString() : displayBal;
+
+            // Calculate Value if price exists
+            let valueDisplay = '';
+            let val = 0;
+            if (currentPrices[key] && bal !== 0) {
+                val = bal * currentPrices[key];
+                grandTotal += val;
+                valueDisplay = `<div class="text-[10px] text-emerald-400 mt-1 border-t border-slate-700/50 pt-1">
+                    ≈ ${parseInt(val).toLocaleString()} تومان
+                </div>`;
+            }
+
+            container.innerHTML += `
+                <div class="glass-panel rounded-xl p-4 asset-card border border-slate-700">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 rounded-lg bg-slate-800 ${spec.color}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${spec.icon}" /></svg>
+                        </div>
+                        <span class="text-sm font-bold text-slate-300">${spec.label}</span>
+                    </div>
+                    <div class="text-right mt-2">
+                        <div class="text-2xl font-black text-white font-mono ltr">${formatted}</div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] text-slate-500 font-bold">${spec.unit}</span>
+                             ${valueDisplay}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Update Total Toman
+        totalValueEl.innerText = parseInt(grandTotal).toLocaleString();
+
+        // Update Total Gold Equivalent
+        if (currentPrices['GOLD_18K'] && currentPrices['GOLD_18K'] > 0) {
+            const totalGold = grandTotal / currentPrices['GOLD_18K'];
+            totalGoldEl.innerText = formatWeight(totalGold);
+        } else {
+            totalGoldEl.innerText = "0.000";
+        }
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('txTableBody');
+        tbody.innerHTML = '';
+        const history = [...transactions].reverse();
+
+        if (history.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs">هنوز تراکنشی ثبت نشده است.</td></tr>`;
+            return;
+        }
+
+        history.forEach(tx => {
+            let typeBadge = '';
+            if (tx.type === 'INITIAL') typeBadge = '<span class="bg-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px]">نقطه صفر</span>';
+            else if (tx.type === 'BUY') typeBadge = '<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px]">خرید</span>';
+            else if (tx.type === 'SELL') typeBadge = '<span class="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[10px]">فروش</span>';
+
+            const assetLabel = ASSETS[tx.asset] ? ASSETS[tx.asset].label : tx.asset;
+            const dateStr = new Date(tx.date).toLocaleDateString('fa-IR') + ' ' + new Date(tx.date).toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'});
+            
+            const isNegative = tx.qty < 0;
+            const qtyClass = isNegative ? 'text-red-400' : 'text-emerald-400';
+            const qtySign = isNegative ? '' : '+';
+            const qtyDisplay = (tx.asset === 'IRR') ? parseInt(tx.qty).toLocaleString() : tx.qty.toFixed(3);
+            const refDisplay = tx.ref_id ? `<span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1 rounded font-mono" title="${tx.ref_id}">LINKED</span>` : '-';
+
+            tbody.innerHTML += `
+                <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition">
+                    <td class="py-3 px-1 text-[10px] text-slate-400">${dateStr}</td>
+                    <td class="py-3 px-1">${typeBadge}</td>
+                    <td class="py-3 px-1 text-xs font-bold text-slate-300">${assetLabel}</td>
+                    <td class="py-3 px-1 text-sm font-mono ltr ${qtyClass}">${qtySign}${qtyDisplay}</td>
+                    <td class="py-3 px-1 text-left">${refDisplay}</td>
+                    <td class="py-3 px-1 text-left">
+                        <button onclick="deleteTransaction('${tx.id}')" class="text-slate-600 hover:text-red-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // --- Tabs & Forms ---
+
+    function switchTab(tab) {
+        const btnSingle = document.getElementById('tab-single');
+        const btnConvert = document.getElementById('tab-convert');
+        const formSingle = document.getElementById('singleForm');
+        const formConvert = document.getElementById('convertForm');
+
+        if (tab === 'single') {
+            btnSingle.classList.replace('text-slate-400', 'text-white');
+            btnSingle.classList.add('bg-indigo-600', 'shadow');
+            
+            btnConvert.classList.remove('bg-indigo-600', 'shadow', 'text-white');
+            btnConvert.classList.add('text-slate-400');
+
+            formSingle.classList.remove('hidden');
+            formConvert.classList.add('hidden');
+        } else {
+            btnConvert.classList.replace('text-slate-400', 'text-white');
+            btnConvert.classList.add('bg-indigo-600', 'shadow');
+            
+            btnSingle.classList.remove('bg-indigo-600', 'shadow', 'text-white');
+            btnSingle.classList.add('text-slate-400');
+
+            formConvert.classList.remove('hidden');
+            formSingle.classList.add('hidden');
+        }
+    }
+
+    // Populate Select Options
+    function initOptions() {
+        const singleSel = document.getElementById('txAsset');
+        const convFrom = document.getElementById('convAssetFrom');
+        const convTo = document.getElementById('convAssetTo');
+        
+        let opts = '';
+        Object.entries(ASSETS).forEach(([key, spec]) => {
+            opts += `<option value="${key}">${spec.label}</option>`;
+        });
+
+        singleSel.innerHTML = opts;
+        convFrom.innerHTML = opts;
+        convTo.innerHTML = opts;
+    }
+
+    // Handle Forms
+    document.getElementById('singleForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const type = document.getElementById('txType').value;
+        const asset = document.getElementById('txAsset').value;
+        const qty = document.getElementById('txQty').value;
+        
+        if(!qty) return alert('لطفاً مقدار را وارد کنید');
+
+        addTransaction(type, asset, qty);
+        document.getElementById('singleForm').reset();
+    });
+
+    document.getElementById('convertForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const assetFrom = document.getElementById('convAssetFrom').value;
+        const qtyFrom = document.getElementById('convQtyFrom').value;
+        const assetTo = document.getElementById('convAssetTo').value;
+        const qtyTo = document.getElementById('convQtyTo').value;
+
+        if(!qtyFrom || !qtyTo) return alert('لطفاً مقادیر مبدأ و مقصد را وارد کنید');
+        if(assetFrom === assetTo) return alert('دارایی مبدأ و مقصد نمی‌تواند یکسان باشد');
+
+        const refId = 'REF-' + Date.now().toString().substr(-6);
+
+        // 1. Sell From
+        addTransaction('SELL', assetFrom, qtyFrom, refId);
+        // 2. Buy To
+        addTransaction('BUY', assetTo, qtyTo, refId);
+
+        document.getElementById('convertForm').reset();
+        alert('تبدیل با موفقیت انجام شد.');
+    });
+
+
+    // --- Boot ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initOptions();
+        loadData();
+    });
+
+</script>
+</body>
+</html>
