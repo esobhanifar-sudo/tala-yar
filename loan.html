@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ماشین حساب حرفه‌ای آربیتراژ طلا (سبد دارایی)</title>
+    <title>مدیریت هوشمند وام و نقطه سر به سر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Jalaali Date Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jalaali-js/dist/jalaali.min.js"></script>
     
-    <!-- AUTHENTICATION (LOCKED) -->
+    <!-- AUTHENTICATION -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="auth.js"></script>
     <script>
@@ -19,543 +21,881 @@
 
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
-        body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f1f5f9; }
+        .input-group label { font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; display: block; }
+        .input-group input, .input-group select { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
+        .input-group input:focus { border-color: #3b82f6; ring: 2px solid #93c5fd; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        .currency-badge { 
-            position: absolute; 
-            left: 8px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            font-size: 0.7rem; 
-            color: #64748b; 
-            pointer-events: none;
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .status-bar-bg { background-color: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
+        .status-bar-fill { height: 100%; transition: width 0.5s ease-in-out, background-color 0.3s; }
+        
+        /* Calendar Specific Styles */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { 
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; position: relative;
+            background-color: #f8fafc; border: 1px solid transparent;
         }
-        .input-row input { padding-left: 2.5rem; }
-        /* Small adjustments for compact rows */
-        .compact-input { padding: 0.5rem; font-size: 0.9rem; }
+        .calendar-day:hover { background-color: #e2e8f0; border-color: #cbd5e1; }
+        .calendar-day.selected { background-color: #3b82f6; color: white; border-color: #2563eb; }
+        .calendar-day.today { border: 2px solid #f59e0b; font-weight: bold; }
+        .calendar-day.empty { background-color: transparent; cursor: default; }
+        
+        .event-badge {
+            position: absolute; bottom: 2px; right: 2px; background-color: #ef4444; color: white;
+            font-size: 0.6rem; width: 14px; height: 14px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; }
+        .modal-content { background: white; border-radius: 1rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4">
+<body class="p-4 md:p-8 min-h-screen pb-20">
 
-    <!-- Main Container -->
-    <div class="w-full max-w-6xl bg-white rounded-2xl card-shadow overflow-hidden">
-        
-        <!-- Header -->
-        <header class="bg-slate-900 text-white p-4 md:p-6 text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            
-            <!-- Auth / Logout Button -->
-            <div class="absolute top-4 left-4 z-20 flex gap-2">
-                <a href="index.html" class="text-xs bg-slate-600/80 hover:bg-slate-500 text-white px-3 py-1.5 rounded-lg transition backdrop-blur-sm border border-slate-500/50 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    <span class="hidden sm:inline">خانه</span>
-                </a>
-                <button onclick="signOut()" class="text-xs bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg transition backdrop-blur-sm border border-red-500/50 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    خروج
-                </button>
+    <!-- Top Bar: Global Settings -->
+    <div class="max-w-7xl mx-auto mb-6 bg-slate-900 text-white p-4 rounded-2xl card-shadow flex flex-col md:flex-row justify-between items-center gap-4 sticky top-2 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-500 p-2 rounded-lg text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
             </div>
+            <div>
+                <h1 class="text-lg font-bold">داشبورد مدیریت وام و آربیتراژ</h1>
+                <p class="text-xs text-slate-400">کنترل تعهدات مالی، اقساط و نقطه سر به سر</p>
+            </div>
+        </div>
 
-            <h1 class="text-xl md:text-2xl font-bold relative z-10 text-amber-400">ماشین حساب پیشرفته آربیتراژ طلا</h1>
-            <p class="text-slate-300 text-xs md:text-sm mt-2 relative z-10">مدیریت سبد فروش (مخلوط سکه و آبشده) و تبدیل به دارایی جدید</p>
-        </header>
-
-        <div class="p-4 md:p-6">
+        <div class="flex items-center gap-4 w-full md:w-auto bg-slate-800 p-2 rounded-xl border border-slate-700">
+            <label class="text-sm text-amber-400 whitespace-nowrap font-bold pl-2">قیمت روز طلا (۱۸ عیار):</label>
+            <div class="relative w-full md:w-48">
+                <!-- IMPORTANT: Calls window.updateAllLoans() defined in script -->
+                <input type="text" id="globalGoldPrice" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white font-mono text-left ltr focus:border-amber-500 outline-none" placeholder="در حال دریافت..." oninput="formatInput(this); window.updateAllLoans && window.updateAllLoans()">
+                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">Toman</span>
+            </div>
             
-            <!-- Grid Layout -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                
-                <!-- Side A: Selling (Basket) -->
-                <div class="bg-red-50 rounded-xl border border-red-100 relative group">
-                    <div class="bg-red-100 p-3 rounded-t-xl border-b border-red-200 flex justify-between items-center">
-                        <span class="font-bold text-red-800 flex items-center gap-2">
-                            🔻 سبد فروش (دارایی موجود)
-                        </span>
-                        <span class="text-xs text-red-600 bg-white px-2 py-1 rounded">ورودی</span>
-                    </div>
-                    
-                    <div class="p-4 space-y-3">
-                        <!-- Headers -->
-                        <div class="grid grid-cols-12 gap-2 text-xs text-red-700 font-bold mb-1 px-1">
-                            <div class="col-span-4">نوع دارایی</div>
-                            <div class="col-span-3 text-center">تعداد / گرم</div>
-                            <div class="col-span-5 text-center">فی فروش (تومان)</div>
-                        </div>
+            <!-- Auth Buttons & Home -->
+            <div class="flex gap-2">
+                <a href="index.html" class="text-xs bg-slate-600 hover:bg-slate-500 px-3 py-2 rounded text-white transition flex items-center gap-1" title="بازگشت به خانه">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    <span class="hidden md:inline">خانه</span>
+                </a>
+                <button onclick="signOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
+            </div>
+        </div>
+    </div>
 
-                        <!-- Row 1: Full Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">تمام سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyFull" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceFull" value="147,000,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 2: Half Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">نیم سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyHalf" value="30" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceHalf" value="82,500,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 3: Quarter Coin -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-red-100 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-slate-700">ربع سکه</div>
-                            <div class="col-span-3"><input type="number" id="qtyQuarter" value="2" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-red-300 outline-none" oninput="calculate()"></div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceQuarter" value="52,000,000" class="w-full compact-input border rounded focus:ring-1 ring-red-300 outline-none text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Row 4: Melted Gold -->
-                        <div class="grid grid-cols-12 gap-2 items-center bg-yellow-50 p-2 rounded border border-yellow-200 shadow-sm">
-                            <div class="col-span-4 text-sm font-medium text-yellow-800">آبشده (۱۸ عیار)</div>
-                            <div class="col-span-3 relative">
-                                <input type="number" id="qtyMelted" placeholder="0" class="w-full compact-input border rounded text-center focus:ring-1 ring-yellow-300 outline-none border-yellow-300">
-                                <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[0.6rem] text-yellow-600">گرم</span>
-                            </div>
-                            <div class="col-span-5 relative input-row">
-                                <input type="text" inputmode="numeric" id="priceMelted" placeholder="فی هر گرم" class="w-full compact-input border rounded focus:ring-1 ring-yellow-300 outline-none border-yellow-300 text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="currency-badge">T</span>
-                            </div>
-                        </div>
-
-                        <!-- Total Sell Summary -->
-                        <div class="mt-4 pt-3 border-t border-red-200 flex justify-between items-center">
-                            <span class="text-sm text-red-800 font-bold">مجموع نقدینگی حاصل:</span>
-                            <span id="totalCash" class="font-black text-xl text-red-900">0 تومان</span>
-                        </div>
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Calendar & Add Form -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Calendar Widget -->
+            <div class="bg-white p-5 rounded-2xl card-shadow">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        تقویم اقساط
+                    </h2>
+                    <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+                        <button onclick="changeMonth(-1)" class="p-1 hover:bg-white rounded shadow-sm text-slate-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                        <span id="calendarMonthTitle" class="text-xs font-bold text-slate-700 w-24 text-center">...</span>
+                        <button onclick="changeMonth(1)" class="p-1 hover:bg-white rounded shadow-sm text-slate-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
                     </div>
                 </div>
 
-                <!-- Side B: Buying (Target) -->
-                <div class="bg-emerald-50 rounded-xl border border-emerald-100 relative group flex flex-col">
-                    <div class="bg-emerald-100 p-3 rounded-t-xl border-b border-emerald-200 flex justify-between items-center">
-                        <span class="font-bold text-emerald-800 flex items-center gap-2">
-                            ✅ خرید (هدف سرمایه‌گذاری)
-                        </span>
-                        <span class="text-xs text-emerald-600 bg-white px-2 py-1 rounded">خروجی</span>
-                    </div>
-                    
-                    <div class="p-6 space-y-6 flex-1 flex flex-col justify-center">
+                <div class="calendar-grid mb-2 text-center text-[10px] text-slate-400 font-bold">
+                    <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
+                </div>
+                
+                <div id="calendarGrid" class="calendar-grid mb-4"></div>
+
+                <div id="selectedDatePanel" class="border-top-2 border-slate-100 pt-3 mt-3 hidden">
+                    <div class="flex justify-between items-end mb-2">
                         <div>
-                            <label class="block text-sm font-bold text-emerald-800 mb-2">قصد خرید چه چیزی را دارید؟</label>
-                            <select id="buyType" class="w-full p-3 rounded-lg border-emerald-200 border focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none bg-white transition-all shadow-sm" onchange="calculate()">
-                                <option value="melted">طلای آبشده (خام ۱۸ عیار)</option>
-                                <option value="full" selected>تمام سکه</option>
-                                <option value="half">نیم سکه</option>
-                                <option value="quarter">ربع سکه</option>
-                            </select>
+                            <span class="text-[10px] text-slate-400 block">اقساط:</span>
+                            <span id="selectedDateTitle" class="text-sm font-bold text-slate-800">...</span>
+                        </div>
+                        <div class="text-right">
+                             <span class="text-[10px] text-slate-400 block">جمع پرداختی:</span>
+                             <span id="selectedDateTotal" class="text-sm font-bold text-indigo-600 font-mono">0</span>
+                        </div>
+                    </div>
+                    <div id="selectedDateList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- Summary Card -->
+            <div class="bg-slate-800 text-white p-6 rounded-2xl card-shadow">
+                <h3 class="text-sm font-bold text-slate-400 mb-4">خلاصه وضعیت کل بدهی‌ها</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                        <span class="text-sm">پرداختی‌های <span id="summaryMonthName" class="text-amber-400 font-bold">...</span>:</span>
+                        <span id="sumMonthlyDue" class="text-xl font-bold text-white font-mono">0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                        <span class="text-sm">کل مانده بدهی:</span>
+                        <span id="sumRemainingDebt" class="text-xl font-bold text-red-400 font-mono">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">ارزش روز کل طلاها:</span>
+                        <span id="sumAssetValue" class="text-xl font-bold text-emerald-400 font-mono">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add/Edit Loan Form -->
+            <div id="formCard" class="bg-white p-6 rounded-2xl card-shadow border-2 border-transparent transition-all">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 id="formTitle" class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        ثبت تسهیلات جدید
+                    </h2>
+                    <button id="btnCancelEdit" onclick="cancelEditMode()" class="hidden text-xs text-red-500 bg-red-50 px-2 py-1 rounded hover:bg-red-100">انصراف</button>
+                </div>
+                
+                <form id="loanForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label>بانک / موسسه</label>
+                            <input type="text" id="bankName" placeholder="مثلاً رسالت" required>
+                        </div>
+                        <div class="input-group">
+                            <label>نام وام‌گیرنده</label>
+                            <input type="text" id="borrower" placeholder="نام شخص" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>مبلغ اصل وام (تومان)</label>
+                        <input type="text" id="principalAmount" inputmode="numeric" placeholder="0" class="ltr text-left" oninput="formatInput(this)" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label>مبلغ کل بازپرداخت (اصل + سود)</label>
+                        <input type="text" id="totalRepayment" inputmode="numeric" placeholder="مبلغ نهایی بدهی" class="ltr text-left" oninput="formatInput(this)" required>
+                    </div>
+
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                        <div class="input-group">
+                            <label class="text-amber-800">وزن طلای خریداری شده</label>
+                            <div class="relative">
+                                <input type="number" step="0.001" id="goldWeight" placeholder="0.000" class="ltr text-left border-amber-200 focus:border-amber-500">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-600 font-bold">گرم</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>نوع بازپرداخت</label>
+                        <select id="repaymentType" class="bg-slate-50" onchange="toggleRepaymentFields(); syncDates('type')">
+                            <option value="monthly">اقساط ماهانه (عادی)</option>
+                            <option value="interval">اقساط دوره‌ای (مثلاً هر ۳ ماه)</option>
+                            <option value="mudaraba">سررسید یکجا (مضاربه)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="input-group" id="installmentsCountGroup">
+                            <label>تعداد اقساط</label>
+                            <input type="number" id="installmentsTotal" placeholder="12" required>
                         </div>
                         
-                        <div class="relative">
-                            <label class="block text-sm font-bold text-emerald-800 mb-2" id="buyPriceLabel">قیمت خرید (تومان)</label>
-                            <div class="relative">
-                                <input type="text" inputmode="numeric" id="buyPrice" value="147,000,000" class="w-full p-4 pl-16 rounded-xl border border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-xl font-bold text-emerald-900 shadow-inner text-left ltr" oninput="formatInput(this); calculate()">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-medium">Toman</span>
-                            </div>
-                            <div class="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span id="buyHint">قیمت یک سکه تمام را وارد کنید</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-white/60 p-4 rounded-xl border border-emerald-200 mt-auto">
-                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm text-emerald-800 font-bold">تعداد خرید واقعی:</span>
-                                <!-- EDITABLE BUY COUNT -->
-                                <div class="flex items-center gap-2">
-                                    <input type="number" id="buyCountInput" class="w-24 p-1 text-center font-black text-2xl text-emerald-900 border-b-2 border-emerald-300 focus:border-emerald-600 outline-none bg-transparent" oninput="updateFinalResults()">
-                                    <span class="text-xs text-emerald-600 font-bold" id="buyUnitLabel">عدد</span>
-                                </div>
-                            </div>
-                            <!-- Show MAX possible as hint -->
-                            <div class="text-right text-[10px] text-emerald-500 mb-2">
-                                (حداکثر قابل خرید با کل پول: <span id="maxBuyCountDisplay">0</span>)
-                            </div>
-
-                            <div class="flex justify-between items-center text-xs text-emerald-600 mt-2 pt-2 border-t border-emerald-100">
-                                <span>باقی‌مانده پول نقد:</span>
-                                <span id="cashRemains" class="font-bold text-sm">0 تومان</span>
-                            </div>
+                        <div class="input-group hidden" id="intervalGroup">
+                            <label id="intervalLabel">فاصله اقساط (ماه)</label>
+                            <input type="number" id="repaymentInterval" placeholder="3" onchange="syncDates('interval')">
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Calculate Button -->
-            <div class="mb-8">
-                <button onclick="calculate()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    محاسبه و تحلیل
-                </button>
-            </div>
-
-            <!-- Analysis Dashboard -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6 shadow-inner">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <!-- Date Logic Section -->
+                    <div class="grid grid-cols-2 gap-3 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                        <div class="input-group col-span-2">
+                            <label>تاریخ دریافت وام (شروع محاسبه)</label>
+                            <input type="text" id="startDate" placeholder="1403/10/01" class="ltr text-center font-mono" onchange="syncDates('start')">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>دوره تنفس (ماه)</label>
+                            <input type="number" id="gracePeriod" placeholder="0" class="border-indigo-200 focus:border-indigo-500 bg-white" onchange="syncDates('grace')">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>تاریخ اولین قسط</label>
+                            <input type="text" id="firstInstallmentDate" placeholder="1403/11/01" class="ltr text-center font-mono border-indigo-200 focus:border-indigo-500 bg-white" onchange="syncDates('first')">
+                        </div>
+                    </div>
                     
-                    <!-- Stats -->
-                    <div class="md:col-span-1 space-y-4">
-                        <div class="text-center">
-                            <!-- Removed Title Here -->
-                            <div class="flex items-center justify-between px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-100">
-                                <div class="text-right">
-                                    <span class="block text-[10px] text-red-400">فروخته شده</span>
-                                    <span id="weightSoldVal" class="text-lg font-bold text-slate-700">0</span>
-                                </div>
-                                <div class="text-slate-300 text-xl">➜</div>
-                                <div class="text-left">
-                                    <span class="block text-[10px] text-emerald-400">خریداری شده</span>
-                                    <span id="weightBoughtVal" class="text-lg font-bold text-slate-700">0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Result Box -->
-                        <div id="resultCard" class="p-4 rounded-xl border text-center transition-colors duration-300 bg-slate-100 border-slate-300">
-                            <div class="text-sm text-slate-600 mb-1">تغییر خالص سرمایه</div>
-                            <div id="netWeightVal" class="text-3xl font-black text-slate-800 ltr py-1" style="direction: ltr;">0.00 g</div>
-                            <div id="recommendationText" class="text-xs font-bold mt-1 text-slate-500">...</div>
-
-                            <!-- Equivalent Profit Section -->
-                            <div class="mt-4 pt-4 border-t border-slate-200/50 bg-white/30 rounded">
-                                <div class="space-y-2 text-xs">
-                                    <!-- Breakdown: Physical Change -->
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-500">تغییر وزن فیزیکی:</span>
-                                        <span id="physicalDiffVal" class="font-bold text-slate-700 ltr">0.00 g</span>
-                                    </div>
-                                    
-                                    <!-- Breakdown: Cash Value -->
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-500">ارزش وزنی پول نقد:</span>
-                                        <span id="cashWeightVal" class="font-bold text-emerald-600 ltr">0.00 g</span>
-                                    </div>
-
-                                    <div class="h-px bg-slate-200 my-1"></div>
-
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-500">معادل سکه تمام:</span>
-                                        <span id="profitInCoinsVal" class="font-bold text-slate-700 ltr">0.00 عدد</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-500">سود/زیان (تومان):</span>
-                                        <span id="profitInTomansVal" class="font-bold text-emerald-600 ltr">0</span>
-                                    </div>
-                                    <!-- Cash Remainder in Result -->
-                                    <div class="flex justify-between items-center border-t border-slate-100 pt-2 mt-1">
-                                        <span class="text-slate-500">باقی‌مانده پول نقد:</span>
-                                        <span id="cashRemainsResult" class="font-bold text-blue-600 ltr">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Only needed for periodic adjustments -->
+                    <div class="input-group hidden"> 
+                        <label>روز پرداخت قسط</label>
+                        <input type="number" id="dueDay" placeholder="مثلاً 5" min="1" max="31">
                     </div>
 
-                    <!-- Chart -->
-                    <div class="md:col-span-2 h-64 bg-white rounded-xl border border-slate-100 p-2 relative">
-                        <canvas id="arbitrageChart"></canvas>
-                    </div>
+                    <button type="submit" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2">
+                        ثبت وام در سیستم
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="lg:col-span-8">
+            
+            <!-- Overdue Alert Section -->
+            <div id="overdueSection" class="hidden mb-6 bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-1 h-full bg-red-500"></div>
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-red-700 font-bold flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
+                        اقساط سررسید گذشته (نیاز به اقدام فوری)
+                    </h2>
+                    <span id="overdueTotal" class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold">0 مورد</span>
                 </div>
+                <div id="overdueList" class="space-y-2"></div>
             </div>
 
+            <!-- Loan List -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-800">لیست وام‌ها و وضعیت سر به سر</h2>
+                <button onclick="clearAllData()" class="text-xs text-red-500 hover:text-red-700 underline">حذف همه</button>
+            </div>
+            
+            <div id="loansList" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="font-bold text-slate-800">وضعیت اقساط و تاریخچه پرداخت</h3>
+                <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+            <div id="historyModalContent" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <div id="paymentDateModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800">ثبت پرداخت قسط</h3>
+                <button onclick="closeModal('paymentDateModal')" class="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+            <p class="text-sm text-slate-600 mb-4">لطفاً تاریخ واقعی پرداخت را تایید یا اصلاح کنید:</p>
+            <div class="input-group mb-4">
+                <label>تاریخ پرداخت (شمسی)</label>
+                <input type="text" id="confirmPaymentDate" class="ltr text-center font-mono text-lg border-blue-300 focus:ring-blue-200">
+            </div>
+            <input type="hidden" id="pendingPaymentLoanId">
+            <input type="hidden" id="pendingPaymentInstallmentNum">
+            <button onclick="confirmPayment()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow">تایید و ثبت پرداخت</button>
         </div>
     </div>
 
 <script>
-    // --- Constants ---
-    // Weights in grams (Standard Bank Markazi - Purity 900)
-    const COIN_WEIGHTS = {
-        'full': 8.133,
-        'half': 4.0665,
-        'quarter': 2.03325
-    };
+    // --- State Management ---
+    let loans = [];
+    try {
+        loans = JSON.parse(localStorage.getItem('arbitrage_loans_v2')) || [];
+    } catch (e) {
+        console.error("Data load failed, resetting.", e);
+        loans = [];
+    }
     
-    // Purity Ratios
-    // Coin is 900. Melted (Raw) is 750 (18k).
-    // To convert 18k weight to Coin Equivalent (900): Weight18k * (750 / 900)
-    const RATIO_18K_TO_COIN = 750 / 900; 
-
-    // --- State & Chart ---
-    let chartInstance = null;
-    let currentTotalCash = 0; // Store globally for re-calc
-
+    let editingLoanId = null;
+    let calYear, calMonth;
+    
     // --- Utils ---
-    const formatCurrency = (num) => new Intl.NumberFormat('fa-IR').format(num);
-    const formatWeight = (num) => num.toFixed(3);
+    const formatNumber = (num) => num ? parseInt(num).toLocaleString('en-US') : '0';
+    const getRawValue = (val) => val ? parseInt(val.replace(/,/g, '').replace(/\D/g, '')) || 0 : 0;
 
-    // Format input with commas as you type
     function formatInput(el) {
-        // Remove non-digit characters
         let val = el.value.replace(/,/g, '').replace(/\D/g, '');
-        // Format with commas if value exists
-        if (val) {
-            el.value = parseInt(val).toLocaleString('en-US');
-        } else {
-            el.value = '';
-        }
+        if (val) el.value = parseInt(val).toLocaleString('en-US');
+        else el.value = '';
     }
 
-    // Helper to get raw numeric value from input (removes commas)
-    function getRawValue(id) {
-        const el = document.getElementById(id);
-        const val = el.value.replace(/,/g, '').replace(/\D/g, ''); // Remove commas and non-digits (for prices)
-        return parseFloat(val) || 0;
+    // --- Date Helpers ---
+    function getTodayJalali() {
+        if (typeof jalaali === 'undefined') return { jy: 1403, jm: 1, jd: 1 };
+        return jalaali.toJalaali(new Date());
+    }
+
+    function parseJalaliString(str) {
+        if (!str || str.length < 8) return getTodayJalali();
+        const parts = str.split('/');
+        return { jy: parseInt(parts[0]), jm: parseInt(parts[1]), jd: parseInt(parts[2]) };
+    }
+
+    function formatJalaliDate(jObj) {
+        return `${jObj.jy}/${String(jObj.jm).padStart(2, '0')}/${String(jObj.jd).padStart(2, '0')}`;
+    }
+
+    function compareJalaliDates(d1Str, d2Str) {
+        if (d1Str === d2Str) return 0;
+        return d1Str > d2Str ? 1 : -1;
+    }
+
+    function addMonthsToJalali(dateObj, monthsToAdd) {
+        let year = dateObj.jy;
+        let month = dateObj.jm + monthsToAdd;
+        let day = dateObj.jd;
+        while (month > 12) { month -= 12; year += 1; }
+        while (month < 1) { month += 12; year -= 1; }
+        if (month > 6 && day === 31) day = 30;
+        if (month === 12 && day > 29) {
+            if (typeof jalaali !== 'undefined' && !jalaali.isValidJalaaliDate(year, 12, 30)) day = 29;
+        }
+        return { jy: year, jm: month, jd: day };
+    }
+
+    function calculateInstallmentDateV2(firstPaymentDateStr, installmentNum, interval = 1) {
+        const start = parseJalaliString(firstPaymentDateStr);
+        const monthsToAdd = (installmentNum - 1) * parseInt(interval);
+        return addMonthsToJalali(start, monthsToAdd);
+    }
+
+    function diffInDays(targetJ, sourceJ) {
+        if (typeof jalaali === 'undefined') return 0;
+        const gTarget = jalaali.toGregorian(targetJ.jy, targetJ.jm, targetJ.jd);
+        const gSource = jalaali.toGregorian(sourceJ.jy, sourceJ.jm, sourceJ.jd);
+        const dTarget = new Date(gTarget.gy, gTarget.gm - 1, gTarget.gd);
+        const dSource = new Date(gSource.gy, gSource.gm - 1, gSource.gd);
+        return Math.ceil((dTarget - dSource) / (1000 * 60 * 60 * 24)); 
+    }
+
+    function diffInMonths(date1Str, date2Str) {
+        const d1 = parseJalaliString(date1Str);
+        const d2 = parseJalaliString(date2Str);
+        return ((d2.jy - d1.jy) * 12) + (d2.jm - d1.jm);
+    }
+
+    // --- Live Price Fetching ---
+    async function fetchLiveGoldPrice() {
+        if (!sb) return; 
+        
+        try {
+            const { data, error } = await sb
+                .from('Iran_Data')
+                .select('Gram_18K_Price')
+                .order('id', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error) {
+                console.error('Error fetching live gold price:', error);
+                return;
+            }
+
+            if (data && data.Gram_18K_Price) {
+                // Database is in Rials, App uses Tomans -> Divide by 10
+                const price = data.Gram_18K_Price / 10;
+                
+                const inputEl = document.getElementById('globalGoldPrice');
+                if (inputEl) {
+                    inputEl.value = parseInt(price).toLocaleString('en-US');
+                    if (window.updateAllLoans) window.updateAllLoans();
+                    
+                    // Visual indicator
+                    inputEl.parentElement.classList.add('ring-2', 'ring-emerald-400');
+                    setTimeout(() => inputEl.parentElement.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+                }
+            }
+        } catch (err) {
+            console.error('Fetch error:', err);
+        }
     }
 
     // --- Core Logic ---
-    function calculate() {
-        // --- 1. Calculate SELL Side (The Basket) ---
-        let totalCash = 0;
-        let totalSoldWeightCoinBasis = 0;
+    function syncDates(source) {
+        const startEl = document.getElementById('startDate');
+        const graceEl = document.getElementById('gracePeriod');
+        const firstEl = document.getElementById('firstInstallmentDate');
+        const typeEl = document.getElementById('repaymentType');
+        const intervalEl = document.getElementById('repaymentInterval');
 
-        // Helper to process row
-        function processRow(qtyId, priceId, weightPerUnit, isMelted = false) {
-            // Quantity is usually a simple number/decimal
-            const qtyEl = document.getElementById(qtyId);
-            const q = parseFloat(qtyEl.value) || 0;
+        const startDate = parseJalaliString(startEl.value);
+        let grace = parseInt(graceEl.value) || 0;
+        let duration = parseInt(intervalEl.value) || 0;
+
+        if (source === 'start' || source === 'grace' || source === 'interval' || source === 'type') {
+            let offset = grace + 1; // Default
             
-            // Price has commas now, use getRawValue helper logic
-            const p = getRawValue(priceId);
+            if (typeEl && typeEl.value === 'mudaraba') {
+                // If Mudaraba, First Payment = Start + Duration
+                if (duration > 0) offset = duration;
+            }
+
+            const newDate = addMonthsToJalali(startDate, offset);
+            firstEl.value = formatJalaliDate(newDate);
+        } else if (source === 'first') {
+            const monthsDiff = diffInMonths(startEl.value, firstEl.value);
             
-            if (q > 0) {
-                totalCash += (q * p);
-                if (isMelted) {
-                    // q is grams of 18k
-                    // Convert to Coin Equivalent (900)
-                    totalSoldWeightCoinBasis += (q * RATIO_18K_TO_COIN);
+            if (typeEl && typeEl.value === 'mudaraba') {
+                intervalEl.value = monthsDiff > 0 ? monthsDiff : 1;
+            } else {
+                let calcGrace = monthsDiff - 1;
+                if (calcGrace < 0) calcGrace = 0;
+                graceEl.value = calcGrace;
+            }
+        }
+    }
+
+    // Explicitly Global Update Function
+    window.updateAllLoans = function() {
+        renderLoans();
+        renderCalendarWidget();
+        renderOverdueSection();
+        updateSummary();
+    };
+
+    function saveLoans() {
+        localStorage.setItem('arbitrage_loans_v2', JSON.stringify(loans));
+        window.updateAllLoans();
+    }
+
+    function clearAllData() {
+        if(confirm('آیا مطمئن هستید؟ تمام اطلاعات پاک خواهد شد.')) {
+            loans = [];
+            saveLoans();
+        }
+    }
+
+    // --- DOM Interaction ---
+    function toggleRepaymentFields() {
+        const type = document.getElementById('repaymentType').value;
+        const intervalGroup = document.getElementById('intervalGroup');
+        const installmentsGroup = document.getElementById('installmentsCountGroup');
+        const intervalInput = document.getElementById('repaymentInterval');
+        const intervalLabel = document.getElementById('intervalLabel');
+        const installmentsInput = document.getElementById('installmentsTotal');
+
+        if (type === 'monthly') {
+            intervalGroup.classList.add('hidden');
+            installmentsGroup.classList.remove('hidden');
+            intervalInput.value = 1; intervalInput.required = false;
+        } else if (type === 'interval') {
+            intervalGroup.classList.remove('hidden');
+            installmentsGroup.classList.remove('hidden');
+            intervalLabel.innerText = "فاصله اقساط (ماه)";
+            intervalInput.value = ""; intervalInput.placeholder = "مثلاً 3"; intervalInput.required = true;
+        } else if (type === 'mudaraba') {
+            intervalGroup.classList.remove('hidden');
+            installmentsGroup.classList.add('hidden');
+            installmentsInput.value = 1;
+            intervalLabel.innerText = "مدت قرارداد (ماه)";
+            intervalInput.placeholder = "مثلاً 12"; intervalInput.value = ""; intervalInput.required = true;
+        }
+    }
+
+    function editLoan(id) {
+        const loan = loans.find(l => l.id === id);
+        if (!loan) return;
+        editingLoanId = id;
+        document.getElementById('bankName').value = loan.bank;
+        document.getElementById('borrower').value = loan.borrower;
+        const pEl = document.getElementById('principalAmount'); pEl.value = loan.principal; formatInput(pEl);
+        const tEl = document.getElementById('totalRepayment'); tEl.value = loan.totalRepayment; formatInput(tEl);
+        document.getElementById('goldWeight').value = loan.goldWeight;
+        document.getElementById('repaymentType').value = loan.repaymentType || 'monthly';
+        toggleRepaymentFields();
+        document.getElementById('installmentsTotal').value = loan.installmentsTotal;
+        document.getElementById('repaymentInterval').value = loan.repaymentInterval;
+        document.getElementById('startDate').value = loan.startDate;
+        document.getElementById('gracePeriod').value = loan.gracePeriod;
+        document.getElementById('firstInstallmentDate').value = loan.firstInstallmentDate || '';
+        if(!document.getElementById('firstInstallmentDate').value) syncDates('start');
+
+        document.getElementById('formCard').classList.add('border-blue-300', 'bg-blue-50');
+        document.getElementById('formTitle').innerText = 'ویرایش اطلاعات وام';
+        document.getElementById('btnSubmit').innerText = 'ذخیره تغییرات';
+        document.getElementById('btnCancelEdit').classList.remove('hidden');
+        document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelEditMode() {
+        editingLoanId = null;
+        document.getElementById('loanForm').reset();
+        document.getElementById('startDate').value = formatJalaliDate(getTodayJalali());
+        document.getElementById('repaymentType').value = 'monthly';
+        toggleRepaymentFields();
+        syncDates('start');
+        document.getElementById('formCard').classList.remove('border-blue-300', 'bg-blue-50');
+        document.getElementById('formTitle').innerText = 'ثبت تسهیلات جدید';
+        document.getElementById('btnSubmit').innerText = 'ثبت وام در سیستم';
+        document.getElementById('btnCancelEdit').classList.add('hidden');
+    }
+
+    function deleteLoan(id) {
+        if(confirm('این وام حذف شود؟')) {
+            loans = loans.filter(l => l.id !== id);
+            if (editingLoanId === id) cancelEditMode();
+            saveLoans();
+        }
+    }
+
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        const type = document.getElementById('repaymentType').value;
+        let installmentsTotal = parseInt(document.getElementById('installmentsTotal').value);
+        let interval = parseInt(document.getElementById('repaymentInterval').value) || 1;
+        if (type === 'mudaraba') installmentsTotal = 1; else if (type === 'monthly') interval = 1;
+
+        const loanData = {
+            bank: document.getElementById('bankName').value,
+            borrower: document.getElementById('borrower').value,
+            principal: getRawValue(document.getElementById('principalAmount').value),
+            totalRepayment: getRawValue(document.getElementById('totalRepayment').value),
+            goldWeight: parseFloat(document.getElementById('goldWeight').value) || 0,
+            installmentsTotal: installmentsTotal,
+            gracePeriod: parseInt(document.getElementById('gracePeriod').value) || 0,
+            startDate: document.getElementById('startDate').value || formatJalaliDate(getTodayJalali()),
+            firstInstallmentDate: document.getElementById('firstInstallmentDate').value,
+            repaymentType: type,
+            repaymentInterval: interval
+        };
+
+        if (editingLoanId) {
+            const index = loans.findIndex(l => l.id === editingLoanId);
+            if (index !== -1) {
+                loans[index] = { ...loans[index], ...loanData };
+                cancelEditMode();
+            }
+        } else {
+            loans.push({ id: Date.now(), payments: [], ...loanData });
+            document.getElementById('loanForm').reset();
+            document.getElementById('startDate').value = formatJalaliDate(getTodayJalali());
+            syncDates('start');
+            toggleRepaymentFields();
+        }
+        saveLoans();
+    }
+
+    // --- Modal & Payment Logic ---
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function initiatePayment(loanId, installmentNum) {
+        document.getElementById('pendingPaymentLoanId').value = loanId;
+        document.getElementById('pendingPaymentInstallmentNum').value = installmentNum;
+        document.getElementById('confirmPaymentDate').value = formatJalaliDate(getTodayJalali());
+        openModal('paymentDateModal');
+    }
+
+    function confirmPayment() {
+        const loanId = parseInt(document.getElementById('pendingPaymentLoanId').value);
+        const installmentNum = parseInt(document.getElementById('pendingPaymentInstallmentNum').value);
+        const dateStr = document.getElementById('confirmPaymentDate').value;
+        const loan = loans.find(l => l.id === loanId);
+        if (loan) {
+            const existingIdx = loan.payments.findIndex(p => p.num === installmentNum);
+            if (existingIdx === -1) {
+                loan.payments.push({ num: installmentNum, date: dateStr });
+                loan.payments.sort((a,b) => a.num - b.num);
+                saveLoans();
+                if (document.getElementById('historyModal').style.display === 'flex') showHistory(loanId);
+            }
+        }
+        closeModal('paymentDateModal');
+    }
+
+    function removePayment(loanId, installmentNum) {
+        if (!confirm('آیا از حذف وضعیت پرداخت این قسط اطمینان دارید؟')) return;
+        const loan = loans.find(l => l.id === loanId);
+        if (loan) {
+            loan.payments = loan.payments.filter(p => p.num !== installmentNum);
+            saveLoans();
+            showHistory(loanId);
+        }
+    }
+
+    // --- Rendering ---
+    function showHistory(loanId) {
+        const loan = loans.find(l => l.id === loanId);
+        if(!loan) return;
+        const container = document.getElementById('historyModalContent');
+        container.innerHTML = '';
+        const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+        const todayStr = formatJalaliDate(getTodayJalali());
+
+        for(let i=1; i<=loan.installmentsTotal; i++) {
+            const dueDateObj = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+            const dueDateStr = formatJalaliDate(dueDateObj);
+            const payment = loan.payments.find(p => p.num === i);
+            const isPaid = !!payment;
+            let statusClass = "bg-slate-50 border-slate-200";
+            let statusText = "";
+            let actionBtn = "";
+            
+            if (isPaid) {
+                statusClass = "bg-emerald-50 border-emerald-200";
+                statusText = `<span class="text-emerald-600 font-bold text-xs">پرداخت شده (${payment.date})</span>`;
+                actionBtn = `<button onclick="removePayment(${loan.id}, ${i})" class="text-xs text-red-400 hover:text-red-600 px-2">لغو</button>`;
+            } else {
+                if (compareJalaliDates(dueDateStr, todayStr) < 0) {
+                    statusClass = "bg-red-50 border-red-200";
+                    statusText = `<span class="text-red-600 font-bold text-xs">معوق (${dueDateStr})</span>`;
+                    actionBtn = `<button onclick="initiatePayment(${loan.id}, ${i})" class="text-xs bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded hover:bg-red-200 font-bold">تایید</button>`;
                 } else {
-                    // q is count of coins
-                    totalSoldWeightCoinBasis += (q * weightPerUnit);
+                    statusText = `<span class="text-slate-400 text-xs">سررسید: ${dueDateStr}</span>`;
+                    actionBtn = `<button onclick="initiatePayment(${loan.id}, ${i})" class="text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-200 font-bold">پرداخت</button>`;
                 }
             }
+            container.innerHTML += `
+                <div class="flex justify-between items-center p-3 rounded border ${statusClass} mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isPaid ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}">${i}</div>
+                        <div><div class="font-mono text-sm font-bold text-slate-700">${formatNumber(installmentAmount)}</div><div>${statusText}</div></div>
+                    </div>
+                    <div>${actionBtn}</div>
+                </div>`;
         }
-
-        processRow('qtyFull', 'priceFull', COIN_WEIGHTS.full);
-        processRow('qtyHalf', 'priceHalf', COIN_WEIGHTS.half);
-        processRow('qtyQuarter', 'priceQuarter', COIN_WEIGHTS.quarter);
-        processRow('qtyMelted', 'priceMelted', 0, true); // weight handled internally
-
-        currentTotalCash = totalCash; // Store for manual updates
-
-        // --- 2. Calculate Buying Power (Max Possible) ---
-        const buyType = document.getElementById('buyType').value;
-        const buyPrice = getRawValue('buyPrice'); 
-        
-        // Update Labels based on selection
-        const buyLabel = document.getElementById('buyPriceLabel');
-        const buyHint = document.getElementById('buyHint');
-        const unitLabel = document.getElementById('buyUnitLabel');
-        const countInput = document.getElementById('buyCountInput');
-        
-        let maxBuyCount = 0;
-
-        if (buyType === 'melted') {
-            buyLabel.innerText = "قیمت هر گرم طلای ۱۸ عیار";
-            buyHint.innerText = "قیمت یک گرم طلای خام (آبشده) را وارد کنید";
-            unitLabel.innerText = "گرم";
-            countInput.step = "0.01";
-            if (buyPrice > 0) maxBuyCount = totalCash / buyPrice;
-        } else {
-            buyLabel.innerText = "قیمت خرید سکه (تومان)";
-            buyHint.innerText = "قیمت خرید یک عدد سکه را وارد کنید";
-            unitLabel.innerText = "عدد";
-            countInput.step = "1";
-            if (buyPrice > 0) maxBuyCount = Math.floor(totalCash / buyPrice);
-        }
-
-        // Update Max Display
-        const maxDisplay = buyType === 'melted' ? maxBuyCount.toFixed(2) + " گرم" : maxBuyCount + " عدد";
-        document.getElementById('maxBuyCountDisplay').innerText = maxDisplay;
-
-        // Auto-set Actual Count to Max (Default behavior on fresh calculate)
-        // If coin, integer. If melted, maybe 2 decimals.
-        countInput.value = buyType === 'melted' ? maxBuyCount.toFixed(3) : maxBuyCount;
-
-        // Update Summary UI
-        document.getElementById('totalCash').innerText = formatCurrency(totalCash) + " تومان";
-        document.getElementById('weightSoldVal').innerText = formatWeight(totalSoldWeightCoinBasis);
-
-        // Finalize
-        updateFinalResults(totalSoldWeightCoinBasis);
+        openModal('historyModal');
     }
 
-    // Called when user edits the buy count manually OR by calculate()
-    function updateFinalResults(soldWeight = null) {
-        // Recalculate sold weight if not passed
-        let soldWeightVal = soldWeight;
-        if (soldWeightVal === null) {
-            soldWeightVal = 0;
-            const addW = (qid, w, isM) => {
-                const q = parseFloat(document.getElementById(qid).value) || 0;
-                if(q>0) soldWeightVal += isM ? (q * RATIO_18K_TO_COIN) : (q * w);
-            };
-            addW('qtyFull', COIN_WEIGHTS.full);
-            addW('qtyHalf', COIN_WEIGHTS.half);
-            addW('qtyQuarter', COIN_WEIGHTS.quarter);
-            addW('qtyMelted', 0, true);
-        }
-
-        const buyType = document.getElementById('buyType').value;
-        const buyPrice = getRawValue('buyPrice');
+    function renderOverdueSection() {
+        const container = document.getElementById('overdueList');
+        const section = document.getElementById('overdueSection');
+        const totalBadge = document.getElementById('overdueTotal');
+        const todayStr = formatJalaliDate(getTodayJalali());
+        const todayJ = getTodayJalali();
         
-        // Read Actual Buy Count
-        const actualCount = parseFloat(document.getElementById('buyCountInput').value) || 0;
+        container.innerHTML = '';
+        let overdueCount = 0;
 
-        // Calculate Cost & Cash Remains
-        const totalCost = actualCount * buyPrice;
-        const cashRemains = currentTotalCash - totalCost;
-
-        let totalBoughtWeightCoinBasis = 0;
-        let physicalWeight = 0;
-        let cashWeight = 0;
-        
-        if (buyPrice > 0) {
-            if (buyType === 'melted') {
-                physicalWeight = actualCount * RATIO_18K_TO_COIN;
-                // Cash / Price = Grams (18k) -> Coin Basis
-                cashWeight = (cashRemains / buyPrice) * RATIO_18K_TO_COIN;
-            } else {
-                physicalWeight = actualCount * COIN_WEIGHTS[buyType];
-                // Cash / Price = Coins -> * CoinWeight
-                cashWeight = (cashRemains / buyPrice) * COIN_WEIGHTS[buyType];
-            }
-
-            totalBoughtWeightCoinBasis = physicalWeight + cashWeight;
-        }
-
-        // Update UI Main
-        document.getElementById('cashRemains').innerText = formatCurrency(cashRemains) + " تومان";
-        document.getElementById('cashRemainsResult').innerText = formatCurrency(cashRemains) + " تومان";
-        document.getElementById('cashRemains').className = cashRemains >= 0 ? "font-bold text-sm text-emerald-700" : "font-bold text-sm text-red-600 ltr"; 
-
-        document.getElementById('weightBoughtVal').innerText = formatWeight(totalBoughtWeightCoinBasis);
-
-        const netDiff = totalBoughtWeightCoinBasis - soldWeightVal;
-        
-        // --- Breakdown Values ---
-        const physicalDiff = physicalWeight - soldWeightVal;
-        
-        document.getElementById('physicalDiffVal').innerText = (physicalDiff > 0 ? "+" : "") + formatWeight(physicalDiff) + " g";
-        document.getElementById('physicalDiffVal').className = "font-bold ltr " + (physicalDiff >= 0 ? "text-slate-700" : "text-red-600");
-
-        document.getElementById('cashWeightVal').innerText = "+" + formatWeight(cashWeight) + " g";
-
-        // Result Styling
-        const netElem = document.getElementById('netWeightVal');
-        const recElem = document.getElementById('recommendationText');
-        const cardElem = document.getElementById('resultCard');
-
-        const sign = netDiff > 0 ? "+" : "";
-        netElem.innerText = `${sign}${formatWeight(netDiff)} g`;
-
-        if (netDiff > 0.1) {
-            cardElem.className = "p-4 rounded-xl border text-center bg-emerald-100 border-emerald-300 text-emerald-900";
-            netElem.className = "text-3xl font-black text-emerald-700 ltr";
-            recElem.innerText = "✅ معامله سودده است";
-        } else if (netDiff < -0.1) {
-            cardElem.className = "p-4 rounded-xl border text-center bg-red-100 border-red-300 text-red-900";
-            netElem.className = "text-3xl font-black text-red-700 ltr";
-            recElem.innerText = "⛔ معامله زیان‌ده است";
-        } else {
-            cardElem.className = "p-4 rounded-xl border text-center bg-yellow-50 border-yellow-200 text-yellow-900";
-            netElem.className = "text-3xl font-black text-yellow-600 ltr";
-            recElem.innerText = "⚖️ سر به سر (بی‌تفاوت)";
-        }
-        
-        // --- Calculate Equivalent Profit ---
-        const profitInCoins = netDiff / COIN_WEIGHTS.full;
-        
-        let pricePerGramCoinBasis = 0;
-        if (buyPrice > 0) {
-            if (buyType === 'melted') {
-                pricePerGramCoinBasis = buyPrice / RATIO_18K_TO_COIN;
-            } else {
-                pricePerGramCoinBasis = buyPrice / COIN_WEIGHTS[buyType];
-            }
-        }
-        const profitInTomans = netDiff * pricePerGramCoinBasis;
-
-        const coinsElem = document.getElementById('profitInCoinsVal');
-        const tomansElem = document.getElementById('profitInTomansVal');
-        
-        const signCoins = profitInCoins > 0 ? "+" : "";
-        coinsElem.innerText = `${signCoins}${profitInCoins.toFixed(3)} عدد`;
-        coinsElem.className = "font-bold ltr " + (profitInCoins >= 0 ? "text-slate-700" : "text-red-600");
-
-        const signTomans = profitInTomans > 0 ? "+" : "";
-        tomansElem.innerText = `${signTomans}${formatCurrency(Math.round(profitInTomans))} تومان`;
-        tomansElem.className = "font-bold ltr " + (profitInTomans >= 0 ? "text-emerald-600" : "text-red-600");
-
-        updateChart(soldWeightVal, totalBoughtWeightCoinBasis);
-    }
-
-    function updateChart(sold, bought) {
-        const ctx = document.getElementById('arbitrageChart').getContext('2d');
-        const isProfit = bought >= sold;
-        const boughtColor = isProfit ? '#10b981' : '#ef4444'; 
-
-        if (chartInstance) {
-            chartInstance.data.datasets[0].data = [sold, bought];
-            chartInstance.data.datasets[0].backgroundColor = ['#94a3b8', boughtColor]; 
-            chartInstance.update();
-        } else {
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['مجموع وزن فروخته شده', 'وزن قابل خرید'],
-                    datasets: [{
-                        label: 'وزن معادل سکه (گرم)',
-                        data: [sold, bought],
-                        backgroundColor: ['#94a3b8', boughtColor],
-                        borderRadius: 6,
-                        barThickness: 60
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            bodyFont: { family: 'Vazirmatn' },
-                            titleFont: { family: 'Vazirmatn' },
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y.toFixed(3) + " گرم (معادل سکه)";
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: { color: '#f1f5f9' },
-                            ticks: { font: { family: 'Vazirmatn' } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { family: 'Vazirmatn' } }
-                        }
-                    },
-                    animation: {
-                        duration: 500
-                    }
+        loans.forEach(loan => {
+            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if (loan.payments.find(p => p.num === i)) continue;
+                const dueDateObj = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                const dueDateStr = formatJalaliDate(dueDateObj);
+                if (compareJalaliDates(dueDateStr, todayStr) < 0) {
+                    overdueCount++;
+                    const diff = diffInDays(dueDateObj, todayJ);
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center bg-white p-3 rounded border border-red-100 shadow-sm mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                <div><div class="text-sm font-bold text-slate-700">${loan.bank}</div><div class="text-xs text-red-600">قسط ${i} - ${dueDateStr}</div></div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono text-sm font-bold text-slate-700">${formatNumber(installmentAmount)}</span>
+                                <button onclick="initiatePayment(${loan.id}, ${i})" class="bg-red-50 text-red-600 hover:bg-red-100 text-xs px-3 py-1.5 rounded font-bold transition">تایید</button>
+                            </div>
+                        </div>`;
                 }
-            });
+            }
+        });
+        
+        if(overdueCount > 0) { section.classList.remove('hidden'); totalBadge.innerText = `${overdueCount} قسط`; } 
+        else { section.classList.add('hidden'); }
+    }
+
+    function renderLoans() {
+        const container = document.getElementById('loansList');
+        const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
+        if (loans.length === 0) {
+            container.innerHTML = `<div class="text-center text-slate-400 py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200">هنوز وامی ثبت نشده است.</div>`;
+            return;
+        }
+        container.innerHTML = '';
+        loans.forEach(loan => {
+            const paidCount = loan.payments.length;
+            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+            const paidAmount = paidCount * installmentAmount;
+            const remainingDebt = loan.totalRepayment - paidAmount;
+            const remainingCount = loan.installmentsTotal - paidCount;
+            const currentAssetValue = loan.goldWeight * globalPrice;
+            const breakEvenRatio = loan.totalRepayment > 0 ? (currentAssetValue / loan.totalRepayment) * 100 : 0;
+            const isBreakEven = currentAssetValue >= loan.totalRepayment;
+            const breakEvenColor = isBreakEven ? 'bg-emerald-500' : 'bg-red-500';
+            const breakEvenText = isBreakEven ? 'سودده' : 'ریسک';
+            const breakEvenTextColor = isBreakEven ? 'text-emerald-700' : 'text-red-700';
+
+            let nextDueStr = "تسویه";
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if (!loan.payments.find(p => p.num === i)) {
+                    const next = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                    nextDueStr = formatJalaliDate(next);
+                    break;
+                }
+            }
+            
+            let typeStr = "ماهانه";
+            if (loan.repaymentType === 'mudaraba') typeStr = `مضاربه (${loan.repaymentInterval} ماه)`;
+            else if (loan.repaymentType === 'interval') typeStr = `هر ${loan.repaymentInterval} ماه`;
+
+            container.innerHTML += `
+                <div class="bg-white rounded-2xl p-5 card-shadow border ${loan.id===editingLoanId?'border-blue-400':'border-slate-100'} relative overflow-hidden transition hover:shadow-lg mb-4">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-50 p-2 rounded-lg text-blue-700 font-bold text-xl w-12 h-12 flex items-center justify-center border border-blue-100">${loan.bank.substring(0,2)}</div>
+                            <div><h3 class="font-bold text-slate-800 text-lg">${loan.bank}</h3><p class="text-xs text-slate-500">${loan.borrower} | ${typeStr}</p></div>
+                        </div>
+                        <div class="text-left"><div class="text-xs text-slate-400">بعدی: <span class="text-indigo-600 font-bold">${nextDueStr}</span></div><div class="font-bold text-slate-700 font-mono text-lg mt-1">${formatNumber(installmentAmount)} <span class="text-[10px] font-normal">T</span></div></div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div><span class="block text-[10px] text-slate-400">کل بازپرداخت</span><span class="block font-bold text-slate-800 text-sm font-mono">${formatNumber(loan.totalRepayment)}</span></div>
+                        <div><span class="block text-[10px] text-slate-400">مانده بدهی</span><span class="block font-bold text-red-600 text-sm font-mono">${formatNumber(remainingDebt)}</span></div>
+                        <div><span class="block text-[10px] text-slate-400">وزن طلا</span><span class="block font-bold text-amber-600 text-sm ltr text-right font-mono">${loan.goldWeight} g</span></div>
+                        <div><span class="block text-[10px] text-slate-400">ارزش روز</span><span class="block font-bold text-emerald-600 text-sm font-mono">${formatNumber(currentAssetValue)}</span></div>
+                    </div>
+                    <div class="mb-5"><div class="flex justify-between text-xs mb-1"><span class="font-bold text-slate-600">پیشرفت (${paidCount}/${loan.installmentsTotal})</span></div><div class="status-bar-bg"><div class="status-bar-fill bg-blue-500" style="width: ${(paidCount/loan.installmentsTotal)*100}%"></div></div></div>
+                    <div class="mb-4"><div class="flex justify-between text-xs mb-1"><span class="font-bold text-slate-600">وضعیت سر به سر</span><span class="font-bold ${breakEvenTextColor}">${breakEvenText}</span></div><div class="status-bar-bg border border-slate-200"><div class="status-bar-fill ${breakEvenColor}" style="width: ${Math.min(breakEvenRatio, 100)}%"></div></div></div>
+                    <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                        <div class="flex gap-2"><button onclick="editLoan(${loan.id})" class="text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded transition">ویرایش</button><button onclick="deleteLoan(${loan.id})" class="text-xs text-red-400 hover:text-red-600 px-3 py-1">حذف</button></div>
+                        <button onclick="showHistory(${loan.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-2">مشاهده وضعیت</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function updateSummary() {
+        const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
+        let totalDebt = 0;
+        let totalAssetValue = 0;
+        loans.forEach(loan => {
+            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+            const paidAmount = loan.payments.length * installmentAmount;
+            totalDebt += (loan.totalRepayment - paidAmount);
+            totalAssetValue += (loan.goldWeight * globalPrice);
+        });
+        document.getElementById('sumRemainingDebt').innerText = formatNumber(totalDebt);
+        document.getElementById('sumAssetValue').innerText = formatNumber(totalAssetValue);
+    }
+
+    // --- Calendar ---
+    const MONTH_NAMES = ["", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+    function initCalendar() { 
+        const today = getTodayJalali();
+        calYear = today.jy; 
+        calMonth = today.jm; 
+        renderCalendarWidget(); 
+        selectDate(calYear, calMonth, today.jd); 
+    }
+    
+    function changeMonth(delta) { 
+        calMonth += delta; 
+        if(calMonth>12){calMonth=1;calYear++} 
+        if(calMonth<1){calMonth=12;calYear--} 
+        renderCalendarWidget(); 
+    }
+
+    function renderCalendarWidget() {
+        document.getElementById('calendarMonthTitle').innerText = `${MONTH_NAMES[calMonth]} ${calYear}`;
+        document.getElementById('summaryMonthName').innerText = `${MONTH_NAMES[calMonth]} ${calYear}`;
+        const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+        
+        let monthlyTotal = 0;
+        const eventsMap = {};
+        
+        loans.forEach(loan => {
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if (loan.payments.find(p => p.num === i)) continue; 
+                const date = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                if (date.jy === calYear && date.jm === calMonth) {
+                    const dateStr = formatJalaliDate(date);
+                    if (!eventsMap[dateStr]) eventsMap[dateStr] = [];
+                    const amount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+                    monthlyTotal += amount;
+                    eventsMap[dateStr].push({ ...loan, amount });
+                }
+            }
+        });
+        
+        document.getElementById('sumMonthlyDue').innerText = formatNumber(monthlyTotal) + " T";
+        
+        const daysInMonth = jalaali.jalaaliMonthLength(calYear, calMonth);
+        const gDate = jalaali.toGregorian(calYear, calMonth, 1);
+        let dayOfWeek = new Date(gDate.gy, gDate.gm-1, gDate.gd).getDay() + 1;
+        if(dayOfWeek===7) dayOfWeek=0;
+        
+        for(let i=0; i<dayOfWeek; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'calendar-day empty'}));
+        
+        const today = getTodayJalali();
+        for(let d=1; d<=daysInMonth; d++) {
+            const dateStr = `${calYear}/${String(calMonth).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+            const events = eventsMap[dateStr] || [];
+            const dayEl = document.createElement('div');
+            dayEl.className = `calendar-day ${calYear===today.jy && calMonth===today.jm && d===today.jd ? 'today' : ''}`;
+            dayEl.onclick = () => selectDate(calYear, calMonth, d);
+            dayEl.innerHTML = `<span>${d}</span>${events.length ? `<div class="event-badge">${events.length}</div>` : ''}`;
+            grid.appendChild(dayEl);
         }
     }
 
-    // Initialize
-    window.addEventListener('load', calculate);
+    function selectDate(y, m, d) {
+        const grid = document.getElementById('calendarGrid');
+        grid.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+        // Find correct element index roughly
+        // Re-implement visual selection if needed, but for now just update panel
+        const dateStr = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+        document.getElementById('selectedDateTitle').innerText = dateStr;
+        
+        let total = 0;
+        const list = document.getElementById('selectedDateList');
+        list.innerHTML = '';
+        
+        // Quick lookup in current view data is hard without regenerating map, so redo logic for single day
+        loans.forEach(loan => {
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if (loan.payments.find(p => p.num === i)) continue; 
+                const date = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                const dStr = formatJalaliDate(date);
+                if (dStr === dateStr) {
+                    const amount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+                    total += amount;
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 mb-1">
+                            <div><div class="text-xs font-bold text-slate-700">${loan.bank}</div><div class="text-[10px] text-slate-500">${loan.borrower}</div></div>
+                            <div class="font-mono text-xs font-bold text-slate-600">${formatNumber(amount)}</div>
+                        </div>`;
+                }
+            }
+        });
+        
+        if (list.innerHTML === '') list.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">هیچ قسطی نیست.</div>`;
+        document.getElementById('selectedDateTotal').innerText = formatNumber(total) + " T";
+        document.getElementById('selectedDatePanel').classList.remove('hidden');
+    }
+
+    // --- Boot ---
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof jalaali === 'undefined') {
+            alert('خطا: کتابخانه تاریخ بارگذاری نشد.');
+            return;
+        }
+        
+        // Make window.updateAllLoans available
+        window.updateAllLoans = function() {
+            renderLoans();
+            renderCalendarWidget();
+            renderOverdueSection();
+            updateSummary();
+        };
+
+        const today = getTodayJalali();
+        document.getElementById('startDate').value = formatJalaliDate(today);
+        syncDates('start');
+        toggleRepaymentFields();
+        
+        const form = document.getElementById('loanForm');
+        if(form) form.addEventListener('submit', handleFormSubmit);
+        
+        window.updateAllLoans();
+        initCalendar();
+        
+        // Fetch Live Price
+        fetchLiveGoldPrice();
+    });
 
 </script>
 </body>
