@@ -372,6 +372,40 @@
         return ((d2.jy - d1.jy) * 12) + (d2.jm - d1.jm);
     }
 
+    // --- Live Price Fetching ---
+    async function fetchLiveGoldPrice() {
+        if (!sb) return; 
+        
+        try {
+            const { data, error } = await sb
+                .from('Iran_Data')
+                .select('Gram_18K_Price')
+                .order('id', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error) {
+                console.error('Error fetching live gold price:', error);
+                return;
+            }
+
+            if (data && data.Gram_18K_Price) {
+                const price = data.Gram_18K_Price;
+                const inputEl = document.getElementById('globalGoldPrice');
+                if (inputEl) {
+                    inputEl.value = parseInt(price).toLocaleString('en-US');
+                    if (window.updateAllLoans) window.updateAllLoans();
+                    
+                    // Visual indicator
+                    inputEl.parentElement.classList.add('ring-2', 'ring-emerald-400');
+                    setTimeout(() => inputEl.parentElement.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+                }
+            }
+        } catch (err) {
+            console.error('Fetch error:', err);
+        }
+    }
+
     // --- Core Logic ---
     function syncDates(source) {
         const startEl = document.getElementById('startDate');
@@ -850,6 +884,9 @@
         
         window.updateAllLoans();
         initCalendar();
+        
+        // Fetch Live Price
+        fetchLiveGoldPrice();
     });
 
 </script>
