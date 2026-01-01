@@ -3,87 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جعبه ابزار مدیریت کسب‌وکار طلا</title>
+    <title>ورود به سیستم مدیریت طلا</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 1. Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
-        body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; }
-        .hero-pattern { background-color: #0f172a; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231e293b' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
-        .card-hover { transition: all 0.3s ease; }
-        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #f59e0b; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <!-- Hero Section -->
-    <header class="hero-pattern text-white py-16 px-4 text-center relative overflow-hidden">
-        <div class="relative z-10 max-w-4xl mx-auto">
-            <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-400">جعبه ابزار هوشمند طلا</h1>
-            <p class="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                مدیریت حرفه‌ای آربیتراژ، محاسبه سود و زیان وزنی و کنترل هوشمند تعهدات مالی
-            </p>
+    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl text-center space-y-6">
+        
+        <!-- Logo / Icon -->
+        <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
         </div>
-        <!-- Decorative Glow -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-500 rounded-full blur-[100px] opacity-10 pointer-events-none"></div>
-    </header>
 
-    <!-- Tools Grid -->
-    <main class="flex-grow p-6 md:p-12 -mt-8">
-        <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <h1 class="text-2xl font-bold text-slate-800">سیستم مدیریت آربیتراژ</h1>
+        <p class="text-slate-500 text-sm">لطفاً برای دسترسی به ابزارها وارد شوید.</p>
 
-            <!-- Tool Card 1: Calculator -->
-            <a href="calculator.html" class="block group">
-                <div class="bg-white rounded-2xl p-6 h-full border border-slate-200 shadow-sm card-hover relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-amber-100 rounded-bl-[100px] -mr-4 -mt-4 transition group-hover:bg-amber-200"></div>
-                    
-                    <div class="relative z-10 flex flex-col h-full">
-                        <div class="w-14 h-14 bg-amber-500 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg shadow-amber-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                        </div>
-                        
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2 group-hover:text-amber-600 transition">ماشین حساب آربیتراژ</h2>
-                        <p class="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
-                            محاسبه دقیق سود و زیان تعویض سکه و طلای آبشده. تبدیل وزن‌ها به استاندارد واحد، مدیریت سبد فروش و محاسبه سود معادل سکه تمام.
-                        </p>
-                        
-                        <div class="flex items-center text-amber-600 font-bold text-sm">
-                            اجرای ابزار
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 transform transition group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        </div>
-                    </div>
-                </div>
-            </a>
-
-            <!-- Tool Card 2: Loan Manager -->
-            <a href="loan.html" class="block group">
-                <div class="bg-white rounded-2xl p-6 h-full border border-slate-200 shadow-sm card-hover relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-100 rounded-bl-[100px] -mr-4 -mt-4 transition group-hover:bg-blue-200"></div>
-                    
-                    <div class="relative z-10 flex flex-col h-full">
-                        <div class="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg shadow-blue-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition">مدیریت وام و نقطه سر به سر</h2>
-                        <p class="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
-                            ثبت و کنترل وام‌ها، پیگیری اقساط پرداخت شده و تحلیل لحظه‌ای (Live) نقطه سر به سر بر اساس قیمت روز طلا و دارایی خریداری شده.
-                        </p>
-                        
-                        <div class="flex items-center text-blue-600 font-bold text-sm">
-                            اجرای داشبورد
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 transform transition group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        </div>
-                    </div>
-                </div>
-            </a>
-
+        <!-- Status / Loading Area -->
+        <div id="status-area" class="py-4">
+            <div class="loader"></div>
+            <p class="text-xs text-slate-400 mt-2">در حال بررسی وضعیت...</p>
         </div>
-    </main>
 
-    <!-- Footer -->
-    <footer class="text-center py-6 text-slate-400 text-xs">
-        <p>طراحی شده برای مدیریت هوشمند کسب‌وکار طلا</p>
-    </footer>
+        <!-- Login Button (Hidden by default) -->
+        <div id="login-section" class="hidden">
+            <button onclick="signInWithGoogle()" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl transition shadow-sm">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
+                ورود با حساب گوگل
+            </button>
+        </div>
 
+        <!-- User Logged In Actions (Hidden by default) -->
+        <div id="user-section" class="hidden space-y-4">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs text-slate-400 mb-1">حساب کاربری:</p>
+                <p id="user-email" class="font-mono text-slate-800 font-bold text-sm ltr"></p>
+                <div id="status-badge" class="mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600">
+                    بررسی دسترسی...
+                </div>
+            </div>
+
+            <div id="action-buttons" class="grid gap-3 hidden">
+                <a href="calculator.html" class="block w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition">
+                    ماشین حساب طلا
+                </a>
+                <a href="loan.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">
+                    مدیریت وام
+                </a>
+                <a href="admin.html" id="admin-btn" class="hidden block w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition">
+                    پنل مدیریت (Admin)
+                </a>
+            </div>
+
+            <button onclick="signOut()" class="text-red-500 text-sm hover:text-red-700 underline mt-4">خروج از حساب</button>
+        </div>
+
+    </div>
+
+    <!-- 2. Import Logic -->
+    <script src="auth.js"></script>
+    
+    <script>
+        // Main Logic to Handle UI States
+        document.addEventListener('DOMContentLoaded', async () => {
+            const statusArea = document.getElementById('status-area');
+            const loginSection = document.getElementById('login-section');
+            const userSection = document.getElementById('user-section');
+            const actionButtons = document.getElementById('action-buttons');
+            const adminBtn = document.getElementById('admin-btn');
+            const badge = document.getElementById('status-badge');
+
+            // Wait a moment for auth check
+            const userProfile = await getUserProfile();
+            
+            // Check Session directly for initial login state
+            const { data: { session } } = await sb.auth.getSession();
+
+            statusArea.classList.add('hidden');
+
+            if (session) {
+                // User is logged in with Google
+                userSection.classList.remove('hidden');
+                document.getElementById('user-email').innerText = session.user.email;
+
+                if (userProfile) {
+                    // We have the record in 'public.users'
+                    if (userProfile.is_active) {
+                        badge.innerText = 'تایید شده (فعال)';
+                        badge.className = 'mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700';
+                        actionButtons.classList.remove('hidden');
+                        
+                        if (userProfile.role === 'admin') {
+                            adminBtn.classList.remove('hidden');
+                        }
+                    } else {
+                        badge.innerText = 'در انتظار تایید مدیر';
+                        badge.className = 'mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700';
+                    }
+                } else {
+                    // Logged in but trigger didn't fire or data missing
+                    badge.innerText = 'پروفایل یافت نشد (دوباره تلاش کنید)';
+                }
+
+            } else {
+                // Not Logged In -> Show Login Button
+                loginSection.classList.remove('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
