@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت کاربران</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>body { font-family: 'Vazirmatn', sans-serif; background-color: #f1f5f9; }</style>
+</head>
+<body class="p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="bg-slate-800 p-4 flex justify-between items-center text-white">
+            <h1 class="text-xl font-bold">پنل مدیریت دسترسی</h1>
+            <button onclick="signOut()" class="text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition">خروج</button>
+        </div>
+
+        <div class="p-6">
+            <table class="w-full text-right">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-500 text-sm">
+                        <th class="pb-3">ایمیل کاربر</th>
+                        <th class="pb-3">تاریخ عضویت</th>
+                        <th class="pb-3">نقش</th>
+                        <th class="pb-3">وضعیت</th>
+                        <th class="pb-3">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody" class="text-slate-700">
+                    <!-- Rows will be injected here -->
+                    <tr><td colspan="5" class="text-center py-4">در حال بارگذاری...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+
+        // Initialize Supabase Client
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- HELPER: Safe Redirect ---
+        function safeRedirect(url) {
+            try {
+                window.location.href = url;
+            } catch (e) {
+                console.warn('Navigation blocked by environment:', e);
+                alert('امکان تغییر صفحه خودکار در این محیط وجود ندارد. لطفاً فایل ' + url + ' را باز کنید.');
+            }
+        }
+
+        // --- AUTH FUNCTIONS ---
+
+        async function checkAdminGuard() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) {
+                safeRedirect('./index.html');
+                return;
+            }
+
+            const { data: user, error } = await sb
+                .from('users')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+
+            if (error || !user || user.role !== 'admin') {
+                alert('شما اجازه دسترسی به این صفحه را ندارید.');
+                safeRedirect('./index.html');
+            }
+        }
+
+        async function signOut() {
+            const { error } = await sb.auth.signOut();
+            if (!error) {
+                safeRedirect('./index.html');
+            } else {
+                console.error('Logout error:', error);
+                alert('خطا در خروج');
+            }
+        }
+
+        // --- ADMIN PANEL LOGIC ---
+
+        // Init Check
+        document.addEventListener('DOMContentLoaded', async () => {
+            // We verify admin access first
+            await checkAdminGuard(); 
+            // If passed (or script continues), load users
+            loadUsers();
+        });
+
+        async function loadUsers() {
+            const { data: users, error } = await sb
+                .from('users')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                // Don't alert immediately on load if it's just a permission error from guard
+                return;
+            }
+
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">کاربری یافت نشد</td></tr>';
+                return;
+            }
+
+            users.forEach(user => {
+                const isActive = user.is_active;
+                const row = document.createElement('tr');
+                row.className = "border-b border-slate-100 hover:bg-slate-50 transition";
+                row.innerHTML = `
+                    <td class="py-3 px-1 ltr text-right font-mono text-sm">${user.email}</td>
+                    <td class="py-3 px-1 text-sm">${new Date(user.created_at).toLocaleDateString('fa-IR')}</td>
+                    <td class="py-3 px-1"><span class="text-xs font-bold px-2 py-1 rounded ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">${user.role}</span></td>
+                    <td class="py-3 px-1">
+                        <span class="text-xs font-bold px-2 py-1 rounded ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${isActive ? 'فعال' : 'غیرفعال'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-1">
+                        ${user.role !== 'admin' ? `
+                            <button onclick="toggleStatus('${user.id}', ${!isActive})" 
+                                class="text-xs px-3 py-1.5 rounded transition text-white shadow-sm ${isActive ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}">
+                                ${isActive ? 'مسدود کردن' : 'تایید دسترسی'}
+                            </button>
+                        ` : '<span class="text-xs text-slate-400">مدیر کل</span>'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function toggleStatus(userId, newStatus) {
+            const { error } = await sb
+                .from('users')
+                .update({ is_active: newStatus })
+                .eq('id', userId);
+
+            if (error) {
+                console.error(error);
+                alert('خطا در به‌روزرسانی وضعیت کاربر');
+            } else {
+                loadUsers(); // Refresh list
+            }
+        }
+    </script>
+</body>
+</html>
