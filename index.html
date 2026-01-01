@@ -3,70 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ورود به سیستم مدیریت طلا</title>
+    <title>پرتال سازمانی رهدیس</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 1. Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
-        body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #f59e0b; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f1f5f9; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .corporate-bg { background-image: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4 corporate-bg">
 
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl text-center space-y-6">
+    <div class="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl text-center space-y-6 border-t-4 border-blue-600">
         
         <!-- Logo / Icon -->
-        <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <!-- Generic Shield/Lock Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
         </div>
 
-        <h1 class="text-2xl font-bold text-slate-800">سیستم مدیریت آربیتراژ</h1>
-        <p class="text-slate-500 text-sm">لطفاً برای دسترسی به ابزارها وارد شوید.</p>
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">سامانه یکپارچه رهدیس</h1>
+            <p class="text-slate-500 text-sm">پرتال داخلی پرسنل و مدیریت منابع</p>
+        </div>
+
+        <div class="h-px bg-slate-100 w-full"></div>
 
         <!-- Status / Loading Area -->
         <div id="status-area" class="py-4">
             <div class="loader"></div>
-            <p class="text-xs text-slate-400 mt-2">در حال بررسی وضعیت...</p>
+            <p class="text-xs text-slate-400 mt-2">بررسی سطح دسترسی...</p>
         </div>
 
         <!-- Login Button (Hidden by default) -->
         <div id="login-section" class="hidden">
-            <button onclick="signInWithGoogle()" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl transition shadow-sm">
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
-                ورود با حساب گوگل
+            <p class="text-xs text-slate-400 mb-4">جهت ورود به شبکه داخلی، احراز هویت الزامی است.</p>
+            <button onclick="signInWithGoogle()" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-lg transition shadow-sm">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                ورود با حساب سازمانی
             </button>
         </div>
 
         <!-- User Logged In Actions (Hidden by default) -->
         <div id="user-section" class="hidden space-y-4">
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <p class="text-xs text-slate-400 mb-1">حساب کاربری:</p>
-                <p id="user-email" class="font-mono text-slate-800 font-bold text-sm ltr"></p>
-                <div id="status-badge" class="mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600">
-                    بررسی دسترسی...
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-right">
+                <p class="text-xs text-slate-400 mb-1">کاربر شناسایی شده:</p>
+                <p id="user-email" class="font-mono text-slate-800 font-bold text-sm ltr text-left"></p>
+                <div class="text-center mt-3">
+                    <div id="status-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600">
+                        بررسی مجوزها...
+                    </div>
                 </div>
             </div>
 
             <div id="action-buttons" class="grid gap-3 hidden">
-                <a href="calculator.html" class="block w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition">
-                    ماشین حساب طلا
+                <a href="calculator.html" class="block w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-3 rounded-lg transition text-sm">
+                    سامانه محاسبات (Rahdis Calc)
                 </a>
-                <a href="loan.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">
-                    مدیریت وام
+                <a href="loan.html" class="block w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-3 rounded-lg transition text-sm">
+                    مدیریت تسهیلات
                 </a>
-                <a href="admin.html" id="admin-btn" class="hidden block w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition">
-                    پنل مدیریت (Admin)
+                <a href="admin.html" id="admin-btn" class="hidden block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition text-sm">
+                    پنل مدیریت سیستم
                 </a>
             </div>
 
-            <button onclick="signOut()" class="text-red-500 text-sm hover:text-red-700 underline mt-4">خروج از حساب</button>
+            <button onclick="signOut()" class="text-red-500 text-xs hover:text-red-700 mt-4 flex items-center justify-center gap-1 mx-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                خروج از سیستم
+            </button>
         </div>
 
+    </div>
+    
+    <div class="fixed bottom-4 text-slate-500 text-[10px] opacity-60">
+        Rahdis Enterprise Portal &copy; 2026
     </div>
 
     <!-- 2. Import Logic -->
@@ -98,20 +114,20 @@
                 if (userProfile) {
                     // We have the record in 'public.users'
                     if (userProfile.is_active) {
-                        badge.innerText = 'تایید شده (فعال)';
-                        badge.className = 'mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700';
+                        badge.innerText = 'دسترسی مجاز';
+                        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700';
                         actionButtons.classList.remove('hidden');
                         
                         if (userProfile.role === 'admin') {
                             adminBtn.classList.remove('hidden');
                         }
                     } else {
-                        badge.innerText = 'در انتظار تایید مدیر';
-                        badge.className = 'mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700';
+                        badge.innerText = 'در انتظار تایید مدیریت';
+                        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700';
                     }
                 } else {
                     // Logged in but trigger didn't fire or data missing
-                    badge.innerText = 'پروفایل یافت نشد (دوباره تلاش کنید)';
+                    badge.innerText = 'خطای پروفایل کاربری';
                 }
 
             } else {
