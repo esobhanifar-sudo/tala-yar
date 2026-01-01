@@ -190,7 +190,7 @@
 
                     <div class="input-group">
                         <label>نوع بازپرداخت</label>
-                        <select id="repaymentType" class="bg-slate-50" onchange="toggleRepaymentFields()">
+                        <select id="repaymentType" class="bg-slate-50" onchange="toggleRepaymentFields(); syncDates('type')">
                             <option value="monthly">اقساط ماهانه (عادی)</option>
                             <option value="interval">اقساط دوره‌ای (مثلاً هر ۳ ماه)</option>
                             <option value="mudaraba">سررسید یکجا (مضاربه)</option>
@@ -205,7 +205,7 @@
                         
                         <div class="input-group hidden" id="intervalGroup">
                             <label id="intervalLabel">فاصله اقساط (ماه)</label>
-                            <input type="number" id="repaymentInterval" placeholder="3">
+                            <input type="number" id="repaymentInterval" placeholder="3" onchange="syncDates('interval')">
                         </div>
                     </div>
 
@@ -377,19 +377,33 @@
         const startEl = document.getElementById('startDate');
         const graceEl = document.getElementById('gracePeriod');
         const firstEl = document.getElementById('firstInstallmentDate');
+        const typeEl = document.getElementById('repaymentType');
+        const intervalEl = document.getElementById('repaymentInterval');
 
         const startDate = parseJalaliString(startEl.value);
         let grace = parseInt(graceEl.value) || 0;
+        let duration = parseInt(intervalEl.value) || 0;
 
-        if (source === 'start' || source === 'grace') {
-            const offset = grace + 1; 
+        if (source === 'start' || source === 'grace' || source === 'interval' || source === 'type') {
+            let offset = grace + 1; // Default
+            
+            if (typeEl && typeEl.value === 'mudaraba') {
+                // If Mudaraba, First Payment = Start + Duration
+                if (duration > 0) offset = duration;
+            }
+
             const newDate = addMonthsToJalali(startDate, offset);
             firstEl.value = formatJalaliDate(newDate);
         } else if (source === 'first') {
             const monthsDiff = diffInMonths(startEl.value, firstEl.value);
-            let calcGrace = monthsDiff - 1;
-            if (calcGrace < 0) calcGrace = 0;
-            graceEl.value = calcGrace;
+            
+            if (typeEl && typeEl.value === 'mudaraba') {
+                intervalEl.value = monthsDiff > 0 ? monthsDiff : 1;
+            } else {
+                let calcGrace = monthsDiff - 1;
+                if (calcGrace < 0) calcGrace = 0;
+                graceEl.value = calcGrace;
+            }
         }
     }
 
