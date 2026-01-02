@@ -15,7 +15,9 @@
     <script>
         // Protect this page
         document.addEventListener('DOMContentLoaded', () => {
-            checkAuthGuard();
+            if (typeof checkAuthGuard === 'function') {
+                checkAuthGuard();
+            }
         });
     </script>
 
@@ -380,10 +382,11 @@
 
     // --- Live Price Fetching ---
     async function fetchLiveGoldPrice() {
-        if (!sb) return; 
+        const client = (typeof sb !== 'undefined') ? sb : ((typeof supabase !== 'undefined') ? supabase : null);
+        if (!client) return; 
         
         try {
-            const { data, error } = await sb
+            const { data, error } = await client
                 .from('Iran_Data')
                 .select('Gram_18K_Price')
                 .order('id', { ascending: false })
@@ -457,9 +460,72 @@
         updateSummary();
     };
 
-    function saveLoans() {
+    // --- MODIFIED SAVE FUNCTION FOR CLOUD SYNC ---
+    async function saveLoans() {
+        // 1. Local Storage (Immediate Save)
         localStorage.setItem('arbitrage_loans_v2', JSON.stringify(loans));
+        
+        // Update UI immediately
         window.updateAllLoans();
+
+        // 2. Cloud Sync (Async)
+        // Detect client
+        const client = (typeof sb !== 'undefined') ? sb : ((typeof supabase !== 'undefined') ? supabase : null);
+        
+        if (!client) {
+            console.log('Supabase client not found. Skipping cloud save.');
+            return;
+        }
+
+        try {
+            const { data: { user } } = await client.auth.getUser();
+            
+            if (user) {
+                // Remove old records for this user (Simple strategy)
+                await client.from('loans').delete().eq('user_id', user.id);
+                
+                // Prepare data with Gregorian Next Due Date
+                const dbData = loans.map(loan => {
+                    let nextDueDateGregorian = null;
+                    
+                    // Find first unpaid installment
+                    for(let i=1; i<=loan.installmentsTotal; i++) {
+                        if (!loan.payments.find(p => p.num === i)) {
+                            // Calculate Jalali
+                            const dateJalali = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                            
+                            // Convert to Gregorian for DB
+                            const g = jalaali.toGregorian(dateJalali.jy, dateJalali.jm, dateJalali.jd);
+                            nextDueDateGregorian = `${g.gy}-${String(g.gm).padStart(2, '0')}-${String(g.gd).padStart(2, '0')}`;
+                            break; 
+                        }
+                    }
+
+                    return {
+                        user_id: user.id,
+                        user_email: user.email,
+                        bank_name: loan.bank,
+                        borrower_name: loan.borrower,
+                        principal_amount: loan.principal,
+                        total_repayment: loan.totalRepayment,
+                        installments_total: loan.installmentsTotal,
+                        start_date: loan.startDate,
+                        repayment_interval: loan.repaymentInterval,
+                        grace_period: loan.gracePeriod,
+                        payments: loan.payments,
+                        next_due_date: nextDueDateGregorian
+                    };
+                });
+                
+                if (dbData.length > 0) {
+                    const { error } = await client.from('loans').insert(dbData);
+                    if (error) console.error('Supabase Insert Error:', error);
+                    else console.log('Successfully synced to cloud.');
+                }
+            }
+        } catch (err) {
+            console.error('Cloud Sync Error:', err);
+        }
     }
 
     function clearAllData() {
