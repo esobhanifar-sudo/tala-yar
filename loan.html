@@ -683,7 +683,14 @@
         }
 
         try {
-            const { data: { user } } = await sb.auth.getSession();
+            // FIXED: Using getUser() instead of getSession() for reliable user object
+            const { data: { user }, error } = await sb.auth.getUser();
+            
+            if (error) {
+                console.error("Auth error:", error);
+                return;
+            }
+
             if (user) {
                 await sb.from('loans').delete().eq('user_id', user.id);
                 const dbData = loans.map(loan => {
@@ -712,8 +719,12 @@
                     };
                 });
                 if (dbData.length > 0) {
-                    await sb.from('loans').insert(dbData);
+                    const { error } = await sb.from('loans').insert(dbData);
+                    if (error) console.error("Insert error:", error);
+                    else console.log("Data saved to cloud successfully");
                 }
+            } else {
+                console.warn("User not logged in. Data saved locally only.");
             }
         } catch (err) {
             console.error('Cloud Sync Error:', err);
@@ -723,13 +734,22 @@
     async function fetchLoansFromCloud() {
         if (!sb) return;
 
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) return;
+        // FIXED: Using getUser() instead of getSession() for consistency
+        const { data: { user }, error: authError } = await sb.auth.getUser();
+        if (authError || !user) {
+             console.log("No user logged in, using local data.");
+             return;
+        }
 
         const { data, error } = await sb
             .from('loans')
             .select('*')
-            .eq('user_id', session.user.id);
+            .eq('user_id', user.id);
+
+        if (error) {
+            console.error("Fetch error:", error);
+            return;
+        }
 
         if (data && data.length > 0) {
             loans = data.map(dbLoan => ({
@@ -764,6 +784,7 @@
             if (typeof window.updateAllLoans === 'function') {
                 window.updateAllLoans();
             }
+            console.log("Data fetched from cloud successfully");
         }
     }
 
