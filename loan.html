@@ -414,6 +414,14 @@
         }
     }
 
+    // --- Helper to get Safe Client ---
+    function getSupabaseClient() {
+        if (typeof sb !== 'undefined') return sb;
+        // Ensure 'supabase' is an actual client instance, not the library object
+        if (typeof supabase !== 'undefined' && typeof supabase.from === 'function') return supabase;
+        return null;
+    }
+
     // --- Rendering Functions (Defined BEFORE usage) ---
 
     // 1. Render Overdue
@@ -634,7 +642,7 @@
 
     // --- Live Price Fetching ---
     async function fetchLiveGoldPrice() {
-        const client = (typeof sb !== 'undefined') ? sb : ((typeof supabase !== 'undefined') ? supabase : null);
+        const client = getSupabaseClient();
         if (!client) return; 
         
         try {
@@ -680,7 +688,7 @@
         }
 
         // 2. Cloud Sync (Async)
-        const client = (typeof sb !== 'undefined') ? sb : ((typeof supabase !== 'undefined') ? supabase : null);
+        const client = getSupabaseClient();
         
         if (!client) {
             console.log('Supabase client not found. Skipping cloud save.');
@@ -732,7 +740,7 @@
     }
 
     async function fetchLoansFromCloud() {
-        const client = (typeof sb !== 'undefined') ? sb : ((typeof supabase !== 'undefined') ? supabase : null);
+        const client = getSupabaseClient();
         if (!client) return;
 
         const { data: { user } } = await client.auth.getUser();
