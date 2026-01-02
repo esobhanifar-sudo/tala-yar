@@ -6,20 +6,11 @@
     <title>مدیریت هوشمند وام و نقطه سر به سر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Jalaali Date Library -->
+    <!-- کتابخانه تاریخ شمسی -->
     <script src="https://cdn.jsdelivr.net/npm/jalaali-js/dist/jalaali.min.js"></script>
     
-    <!-- AUTHENTICATION -->
+    <!-- کتابخانه Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="auth.js"></script>
-    <script>
-        // Protect this page
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof checkAuthGuard === 'function') {
-                checkAuthGuard();
-            }
-        });
-    </script>
 
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -29,7 +20,7 @@
         .input-group input:focus { border-color: #3b82f6; ring: 2px solid #93c5fd; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         
-        /* Custom Scrollbar */
+        /* اسکرول بار سفارشی */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -38,7 +29,7 @@
         .status-bar-bg { background-color: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
         .status-bar-fill { height: 100%; transition: width 0.5s ease-in-out, background-color 0.3s; }
         
-        /* Calendar Specific Styles */
+        /* استایل‌های تقویم */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day { 
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
@@ -56,7 +47,7 @@
             display: flex; align-items: center; justify-content: center; font-weight: bold;
         }
         
-        /* Modal Styles */
+        /* استایل مودال */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; }
         .modal-content { background: white; border-radius: 1rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -79,18 +70,17 @@
         <div class="flex items-center gap-4 w-full md:w-auto bg-slate-800 p-2 rounded-xl border border-slate-700">
             <label class="text-sm text-amber-400 whitespace-nowrap font-bold pl-2">قیمت روز طلا (۱۸ عیار):</label>
             <div class="relative w-full md:w-48">
-                <!-- IMPORTANT: Calls window.updateAllLoans() defined in script -->
                 <input type="text" id="globalGoldPrice" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white font-mono text-left ltr focus:border-amber-500 outline-none" placeholder="در حال دریافت..." oninput="formatInput(this); window.updateAllLoans && window.updateAllLoans()">
                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">Toman</span>
             </div>
             
-            <!-- Auth Buttons & Home -->
+            <!-- دکمه‌های ورود و خروج -->
             <div class="flex gap-2">
                 <a href="index.html" class="text-xs bg-slate-600 hover:bg-slate-500 px-3 py-2 rounded text-white transition flex items-center gap-1" title="بازگشت به خانه">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                     <span class="hidden md:inline">خانه</span>
                 </a>
-                <button onclick="signOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
+                <button onclick="window.handleSignOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
             </div>
         </div>
     </div>
@@ -235,12 +225,6 @@
                         </div>
                     </div>
                     
-                    <!-- Only needed for periodic adjustments -->
-                    <div class="input-group hidden"> 
-                        <label>روز پرداخت قسط</label>
-                        <input type="number" id="dueDay" placeholder="مثلاً 5" min="1" max="31">
-                    </div>
-
                     <button type="submit" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2">
                         ثبت وام در سیستم
                     </button>
@@ -303,12 +287,50 @@
     </div>
 
 <script>
+    // --- SUPABASE CONFIGURATION (Integrated) ---
+    // اطلاعات اتصال مستقیم برای جلوگیری از تاخیر فایل جداگانه
+    const SUPABASE_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+    let sb = null; // کلاینت جهانی
+
+    // تابع راه‌اندازی دیتابیس با تلاش مجدد هوشمند
+    function initSupabase(attempts = 0) {
+        if (typeof supabase !== 'undefined') {
+            try {
+                sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase connected successfully.');
+                
+                // شروع دریافت اطلاعات
+                fetchLoansFromCloud();
+                fetchLiveGoldPrice();
+            } catch (error) {
+                console.error('❌ Supabase init failed:', error);
+            }
+        } else {
+            if (attempts < 20) { // تا 2 ثانیه تلاش کن
+                setTimeout(() => initSupabase(attempts + 1), 100);
+            } else {
+                console.error('CRITICAL: Supabase library failed to load.');
+            }
+        }
+    }
+
+    // خروج از حساب
+    window.handleSignOut = async function() {
+        if (sb) {
+            await sb.auth.signOut();
+            alert('خروج موفقیت‌آمیز بود.');
+            window.location.reload();
+        } else {
+            alert('ارتباط با دیتابیس برقرار نیست.');
+        }
+    }
+
     // --- State Management ---
     let loans = [];
     try {
         loans = JSON.parse(localStorage.getItem('arbitrage_loans_v2')) || [];
     } catch (e) {
-        console.error("Data load failed, resetting.", e);
         loans = [];
     }
     
@@ -414,17 +436,8 @@
         }
     }
 
-    // --- Helper to get Safe Client ---
-    function getSupabaseClient() {
-        if (typeof sb !== 'undefined') return sb;
-        // Ensure 'supabase' is an actual client instance, not the library object
-        if (typeof supabase !== 'undefined' && typeof supabase.from === 'function') return supabase;
-        return null;
-    }
+    // --- Rendering Functions ---
 
-    // --- Rendering Functions (Defined BEFORE usage) ---
-
-    // 1. Render Overdue
     function renderOverdueSection() {
         const container = document.getElementById('overdueList');
         const section = document.getElementById('overdueSection');
@@ -443,7 +456,6 @@
                 const dueDateStr = formatJalaliDate(dueDateObj);
                 if (compareJalaliDates(dueDateStr, todayStr) < 0) {
                     overdueCount++;
-                    const diff = diffInDays(dueDateObj, todayJ);
                     container.innerHTML += `
                         <div class="flex justify-between items-center bg-white p-3 rounded border border-red-100 shadow-sm mb-2">
                             <div class="flex items-center gap-3">
@@ -463,7 +475,6 @@
         else { section.classList.add('hidden'); }
     }
 
-    // 2. Render Loans
     function renderLoans() {
         const container = document.getElementById('loansList');
         const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
@@ -477,7 +488,6 @@
             const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
             const paidAmount = paidCount * installmentAmount;
             const remainingDebt = loan.totalRepayment - paidAmount;
-            const remainingCount = loan.installmentsTotal - paidCount;
             const currentAssetValue = loan.goldWeight * globalPrice;
             const breakEvenRatio = loan.totalRepayment > 0 ? (currentAssetValue / loan.totalRepayment) * 100 : 0;
             const isBreakEven = currentAssetValue >= loan.totalRepayment;
@@ -523,7 +533,6 @@
         });
     }
 
-    // 3. Render Summary
     function updateSummary() {
         const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
         let totalDebt = 0;
@@ -538,9 +547,7 @@
         document.getElementById('sumAssetValue').innerText = formatNumber(totalAssetValue);
     }
 
-    // 4. Render Calendar (MOVED HERE to be defined before usage)
     const MONTH_NAMES = ["", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-    
     function changeMonth(delta) { 
         calMonth += delta; 
         if(calMonth>12){calMonth=1;calYear++} 
@@ -632,7 +639,6 @@
         selectDate(calYear, calMonth, today.jd); 
     }
 
-    // --- MAIN CONTROLLER (Defined last to ensure all functions exist) ---
     window.updateAllLoans = function() {
         renderLoans();
         renderCalendarWidget();
@@ -642,32 +648,21 @@
 
     // --- Live Price Fetching ---
     async function fetchLiveGoldPrice() {
-        const client = getSupabaseClient();
-        if (!client) return; 
-        
+        if (!sb) return; 
         try {
-            const { data, error } = await client
+            const { data, error } = await sb
                 .from('Iran_Data')
                 .select('Gram_18K_Price')
                 .order('id', { ascending: false })
                 .limit(1)
                 .single();
 
-            if (error) {
-                console.error('Error fetching live gold price:', error);
-                return;
-            }
-
             if (data && data.Gram_18K_Price) {
-                // Database is in Rials, App uses Tomans -> Divide by 10
                 const price = data.Gram_18K_Price / 10;
-                
                 const inputEl = document.getElementById('globalGoldPrice');
                 if (inputEl) {
                     inputEl.value = parseInt(price).toLocaleString('en-US');
                     if (window.updateAllLoans) window.updateAllLoans();
-                    
-                    // Visual indicator
                     inputEl.parentElement.classList.add('ring-2', 'ring-emerald-400');
                     setTimeout(() => inputEl.parentElement.classList.remove('ring-2', 'ring-emerald-400'), 1500);
                 }
@@ -679,31 +674,20 @@
 
     // --- CLOUD SYNC ---
     async function saveLoans() {
-        // 1. Local Storage (Immediate Save)
         localStorage.setItem('arbitrage_loans_v2', JSON.stringify(loans));
-        
-        // Update UI immediately
-        if (typeof window.updateAllLoans === 'function') {
-            window.updateAllLoans();
-        }
+        if (typeof window.updateAllLoans === 'function') window.updateAllLoans();
 
-        // 2. Cloud Sync (Async)
-        const client = getSupabaseClient();
-        
-        if (!client) {
-            console.log('Supabase client not found. Skipping cloud save.');
+        if (!sb) {
+            console.log('Supabase client not connected. Saved locally.');
             return;
         }
 
         try {
-            const { data: { user } } = await client.auth.getUser();
-            
+            const { data: { user } } = await sb.auth.getSession();
             if (user) {
-                await client.from('loans').delete().eq('user_id', user.id);
-                
+                await sb.from('loans').delete().eq('user_id', user.id);
                 const dbData = loans.map(loan => {
                     let nextDueDateGregorian = null;
-                    
                     for(let i=1; i<=loan.installmentsTotal; i++) {
                         if (!loan.payments.find(p => p.num === i)) {
                             const dateJalali = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
@@ -712,7 +696,6 @@
                             break; 
                         }
                     }
-
                     return {
                         user_id: user.id,
                         user_email: user.email,
@@ -728,10 +711,8 @@
                         next_due_date: nextDueDateGregorian
                     };
                 });
-                
                 if (dbData.length > 0) {
-                    const { error } = await client.from('loans').insert(dbData);
-                    if (error) console.error('Supabase Insert Error:', error);
+                    await sb.from('loans').insert(dbData);
                 }
             }
         } catch (err) {
@@ -740,21 +721,15 @@
     }
 
     async function fetchLoansFromCloud() {
-        const client = getSupabaseClient();
-        if (!client) return;
+        if (!sb) return;
 
-        const { data: { user } } = await client.auth.getUser();
-        if (!user) return;
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
 
-        const { data, error } = await client
+        const { data, error } = await sb
             .from('loans')
             .select('*')
-            .eq('user_id', user.id);
-
-        if (error) {
-            console.error('Error fetching loans:', error);
-            return;
-        }
+            .eq('user_id', session.user.id);
 
         if (data && data.length > 0) {
             loans = data.map(dbLoan => ({
@@ -909,7 +884,6 @@
         saveLoans();
     }
 
-    // --- Modal & Payment Logic ---
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
@@ -947,7 +921,6 @@
         }
     }
 
-    // --- Rendering (History) ---
     function showHistory(loanId) {
         const loan = loans.find(l => l.id === loanId);
         if(!loan) return;
@@ -1006,17 +979,14 @@
         const form = document.getElementById('loanForm');
         if(form) form.addEventListener('submit', handleFormSubmit);
         
-        // Initial Calendar setup
         initCalendar();
         
-        // Fetch Live Price & Cloud Data
-        fetchLiveGoldPrice();
-        await fetchLoansFromCloud();
-        
-        // Explicitly update once to render everything
         if (typeof window.updateAllLoans === 'function') {
             window.updateAllLoans();
         }
+
+        // Initialize Supabase
+        initSupabase();
     });
 
 </script>
