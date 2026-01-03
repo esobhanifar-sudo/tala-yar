@@ -3,158 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پنل مدیریت کاربران</title>
+    <title>مدیریت سیستم رهدیس</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
-    <style>body { font-family: 'Vazirmatn', sans-serif; background-color: #f1f5f9; }</style>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
 </head>
-<body class="p-8">
+<body class="p-4 md:p-8">
+    <div class="max-w-5xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-white">پنل مدیریت اطلاع‌رسانی</h1>
+                <p class="text-slate-400 text-sm">تنظیمات هوشمند ارسال ایمیل یادآوری</p>
+            </div>
+            <a href="index.html" class="text-slate-400 hover:text-white transition">بازگشت به پرتال</a>
+        </header>
 
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-        <div class="bg-slate-800 p-4 flex justify-between items-center text-white">
-            <h1 class="text-xl font-bold">پنل مدیریت دسترسی</h1>
-            <button onclick="signOut()" class="text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition">خروج</button>
+        <!-- Notification Management Section -->
+        <div class="glass rounded-3xl overflow-hidden mb-8">
+            <div class="bg-slate-800/50 p-6 border-b border-slate-700">
+                <h2 class="text-lg font-bold flex items-center gap-2 text-amber-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    زمان‌بندی و تنظیمات ایمیل
+                </h2>
+            </div>
+            
+            <div id="settings-list" class="p-6 space-y-4">
+                <!-- Settings items will load here -->
+                <div class="flex justify-center p-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>
+            </div>
         </div>
 
-        <div class="p-6">
-            <table class="w-full text-right">
-                <thead>
-                    <tr class="border-b border-slate-200 text-slate-500 text-sm">
-                        <th class="pb-3">ایمیل کاربر</th>
-                        <th class="pb-3">تاریخ عضویت</th>
-                        <th class="pb-3">نقش</th>
-                        <th class="pb-3">وضعیت</th>
-                        <th class="pb-3">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTableBody" class="text-slate-700">
-                    <!-- Rows will be injected here -->
-                    <tr><td colspan="5" class="text-center py-4">در حال بارگذاری...</td></tr>
-                </tbody>
-            </table>
+        <!-- Info Card -->
+        <div class="bg-blue-900/20 border border-blue-500/20 rounded-2xl p-4 text-sm text-blue-300">
+            <p><strong>راهنما:</strong> زمان‌بندی باید با فرمت Cron باشد. مثلاً <code>0 12 * * *</code> یعنی هر روز ساعت ۱۲:۰۰ ظهر. در متن ایمیل می‌توانید از عبارت <code>{bank_name}</code> استفاده کنید تا نام بانک به صورت خودکار جایگزین شود.</p>
         </div>
     </div>
 
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50">
+        <div class="glass w-full max-w-lg rounded-3xl p-6">
+            <h3 class="text-xl font-bold mb-4" id="modal-title">ویرایش تنظیمات</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">زمان‌بندی (Cron)</label>
+                    <input id="edit-cron" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm ltr">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">عنوان ایمیل</label>
+                    <input id="edit-subject" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">قالب متن (HTML)</label>
+                    <textarea id="edit-template" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm ltr"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input id="edit-active" type="checkbox" class="w-4 h-4 rounded bg-slate-900 border-slate-700">
+                    <label for="edit-active" class="text-sm">وضعیت فعال</label>
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button onclick="saveSettings()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-xl transition">ذخیره تغییرات</button>
+                    <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-xl transition">انصراف</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script> <!-- فرض بر این است که فایل auth.js شما Supabase را معرفی کرده -->
     <script>
-        // --- CONFIGURATION ---
-        const SUPABASE_URL = 'https://otlechriihxznnoamzbx.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+        let currentEditingId = null;
 
-        // Initialize Supabase Client
-        const { createClient } = supabase;
-        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // --- HELPER: Safe Redirect ---
-        function safeRedirect(url) {
-            try {
-                window.location.href = url;
-            } catch (e) {
-                console.warn('Navigation blocked by environment:', e);
-                alert('امکان تغییر صفحه خودکار در این محیط وجود ندارد. لطفاً فایل ' + url + ' را باز کنید.');
-            }
-        }
-
-        // --- AUTH FUNCTIONS ---
-
-        async function checkAdminGuard() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session) {
-                safeRedirect('./index.html');
+        async function loadSettings() {
+            const container = document.getElementById('settings-list');
+            const { data, error } = await sb.from('notification_settings').select('*').order('id');
+            
+            if (error) {
+                container.innerHTML = `<p class="text-red-400 text-center">خطا در بارگذاری داده‌ها</p>`;
                 return;
             }
 
-            const { data: user, error } = await sb
-                .from('users')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-
-            if (error || !user || user.role !== 'admin') {
-                alert('شما اجازه دسترسی به این صفحه را ندارید.');
-                safeRedirect('./index.html');
-            }
+            container.innerHTML = data.map(s => `
+                <div class="bg-slate-900/50 border border-slate-700 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">${s.display_name}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+                                ${s.is_active ? 'فعال' : 'غیرفعال'}
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">
+                            ساعت: <code class="text-amber-400 ltr">${s.cron_schedule}</code> | عنوان: ${s.email_subject}
+                        </div>
+                    </div>
+                    <button onclick="openModal(${JSON.stringify(s).replace(/"/g, '&quot;')})" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-lg transition border border-slate-600">ویرایش</button>
+                </div>
+            `).join('');
         }
 
-        async function signOut() {
-            const { error } = await sb.auth.signOut();
-            if (!error) {
-                safeRedirect('./index.html');
+        function openModal(data) {
+            currentEditingId = data.id;
+            document.getElementById('edit-cron').value = data.cron_schedule;
+            document.getElementById('edit-subject').value = data.email_subject;
+            document.getElementById('edit-template').value = data.email_template;
+            document.getElementById('edit-active').checked = data.is_active;
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        async function saveSettings() {
+            const updates = {
+                cron_schedule: document.getElementById('edit-cron').value,
+                email_subject: document.getElementById('edit-subject').value,
+                email_template: document.getElementById('edit-template').value,
+                is_active: document.getElementById('edit-active').checked,
+                updated_at: new Date()
+            };
+
+            const { error } = await sb.from('notification_settings').update(updates).eq('id', currentEditingId);
+
+            if (error) {
+                alert('خطا در ذخیره‌سازی: ' + error.message);
             } else {
-                console.error('Logout error:', error);
-                alert('خطا در خروج');
+                closeModal();
+                loadSettings();
             }
         }
 
-        // --- ADMIN PANEL LOGIC ---
-
-        // Init Check
         document.addEventListener('DOMContentLoaded', async () => {
-            // We verify admin access first
-            await checkAdminGuard(); 
-            // If passed (or script continues), load users
-            loadUsers();
+            // چک کردن دسترسی ادمین قبل از لود (توسط auth.js یا مستقیماً)
+            const profile = await getUserProfile();
+            if (!profile || profile.role !== 'admin') {
+                window.location.href = 'index.html';
+                return;
+            }
+            loadSettings();
         });
-
-        async function loadUsers() {
-            const { data: users, error } = await sb
-                .from('users')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error(error);
-                // Don't alert immediately on load if it's just a permission error from guard
-                return;
-            }
-
-            const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = '';
-
-            if (!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">کاربری یافت نشد</td></tr>';
-                return;
-            }
-
-            users.forEach(user => {
-                const isActive = user.is_active;
-                const row = document.createElement('tr');
-                row.className = "border-b border-slate-100 hover:bg-slate-50 transition";
-                row.innerHTML = `
-                    <td class="py-3 px-1 ltr text-right font-mono text-sm">${user.email}</td>
-                    <td class="py-3 px-1 text-sm">${new Date(user.created_at).toLocaleDateString('fa-IR')}</td>
-                    <td class="py-3 px-1"><span class="text-xs font-bold px-2 py-1 rounded ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">${user.role}</span></td>
-                    <td class="py-3 px-1">
-                        <span class="text-xs font-bold px-2 py-1 rounded ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
-                            ${isActive ? 'فعال' : 'غیرفعال'}
-                        </span>
-                    </td>
-                    <td class="py-3 px-1">
-                        ${user.role !== 'admin' ? `
-                            <button onclick="toggleStatus('${user.id}', ${!isActive})" 
-                                class="text-xs px-3 py-1.5 rounded transition text-white shadow-sm ${isActive ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}">
-                                ${isActive ? 'مسدود کردن' : 'تایید دسترسی'}
-                            </button>
-                        ` : '<span class="text-xs text-slate-400">مدیر کل</span>'}
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function toggleStatus(userId, newStatus) {
-            const { error } = await sb
-                .from('users')
-                .update({ is_active: newStatus })
-                .eq('id', userId);
-
-            if (error) {
-                console.error(error);
-                alert('خطا در به‌روزرسانی وضعیت کاربر');
-            } else {
-                loadUsers(); // Refresh list
-            }
-        }
     </script>
 </body>
 </html>
