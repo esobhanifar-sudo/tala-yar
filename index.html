@@ -15,6 +15,7 @@
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col text-slate-200 hero-pattern">
@@ -52,7 +53,7 @@
                     </div>
                     <div class="h-8 w-px bg-slate-700"></div>
                     <div class="flex gap-2">
-                        <a href="admin.html" id="admin-link" class="hidden text-xs bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 px-3 py-1.5 rounded-lg transition border border-purple-500/30">مدیریت</a>
+                        <a href="admin.html" id="admin-link" class="hidden text-xs bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 px-3 py-1.5 rounded-lg transition border border-purple-500/30">تنظیمات ایمیل</a>
                         <button onclick="signOut()" class="text-xs text-red-400 hover:text-red-300 px-2 py-1.5 transition">خروج</button>
                     </div>
                 </div>
@@ -62,7 +63,7 @@
 
     <!-- Tools Grid (Protected) -->
     <main id="tools-grid" class="flex-grow p-6 hidden opacity-0 transition-opacity duration-700">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
 
             <!-- Card 1: Calculator -->
             <a href="calculator.html" class="block group h-full">
@@ -131,14 +132,47 @@
                     <div class="w-12 h-12 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-500 mb-4 group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </div>
-                    <h2 class="text-lg font-bold text-white mb-2">تنظیمات سیستمی</h2>
+                    <h2 class="text-lg font-bold text-white mb-2">تنظیمات ایمیل</h2>
                     <p class="text-slate-400 text-xs leading-relaxed mb-4 flex-grow">
-                        مدیریت زمان‌بندی ارسال ایمیل‌های یادآوری، ویرایش متون و کنترل دسترسی‌ها.
+                        مدیریت زمان‌بندی ارسال ایمیل‌های یادآوری، ویرایش متون و قالب‌های اطلاع‌رسانی.
                     </p>
-                    <span class="text-rose-500 text-xs font-bold flex items-center mt-auto">مدیریت سیستم <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg></span>
+                    <span class="text-rose-500 text-xs font-bold flex items-center mt-auto">مدیریت ایمیل <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg></span>
                 </div>
             </a>
+        </div>
 
+        <!-- User Management Section (Admins Only) -->
+        <div id="user-management-section" class="max-w-7xl mx-auto mt-8 hidden">
+            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-slate-700/50">
+                <div class="bg-slate-800/80 p-6 border-b border-slate-700 flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        مدیریت دسترسی کاربران
+                    </h2>
+                    <span id="user-count-badge" class="bg-indigo-500/20 text-indigo-400 text-xs px-3 py-1 rounded-full border border-indigo-500/30 font-mono">0 یوزر</span>
+                </div>
+                
+                <div class="p-0 overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/40 text-slate-400 text-xs uppercase tracking-wider">
+                                <th class="px-6 py-4 font-semibold">پست الکترونیک</th>
+                                <th class="px-6 py-4 font-semibold text-center">نقش</th>
+                                <th class="px-6 py-4 font-semibold text-center">وضعیت</th>
+                                <th class="px-6 py-4 font-semibold text-left">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-700/50">
+                            <!-- Users will load here -->
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
+                                    در حال بارگذاری لیست کاربران...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -156,6 +190,7 @@
             const userInfo = document.getElementById('user-info');
             const toolsGrid = document.getElementById('tools-grid');
             const adminCard = document.getElementById('admin-card');
+            const userMgmtSection = document.getElementById('user-management-section');
             
             // Check Session
             const { data: { session } } = await sb.auth.getSession();
@@ -175,8 +210,9 @@
                 
                 if (userProfile.role === 'admin') {
                     document.getElementById('admin-link').classList.remove('hidden');
-                    // Show Admin Card in the grid
                     adminCard.classList.remove('hidden');
+                    userMgmtSection.classList.remove('hidden');
+                    loadUsersManagement();
                 }
 
                 // Show Tools with fade in
@@ -198,6 +234,63 @@
                 loginBtn.classList.remove('hidden');
             }
         });
+
+        async function loadUsersManagement() {
+            const tableBody = document.getElementById('users-table-body');
+            const badge = document.getElementById('user-count-badge');
+            
+            // Fetch users from profiles table
+            const { data: profiles, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+            
+            if (error) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-400">خطا در بارگذاری: ${error.message}</td></tr>`;
+                return;
+            }
+
+            badge.innerText = `${profiles.length} یوزر`;
+
+            if (profiles.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">کاربری یافت نشد.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = profiles.map(p => `
+                <tr class="hover:bg-slate-800/30 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-indigo-400 border border-slate-600">
+                                ${p.email.substring(0, 1).toUpperCase()}
+                            </div>
+                            <span class="text-sm font-medium text-slate-300 ltr">${p.email}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 uppercase">${p.role || 'user'}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-medium ${p.is_active ? 'text-emerald-400' : 'text-rose-400'}">
+                            <span class="w-1.5 h-1.5 rounded-full ${p.is_active ? 'bg-emerald-400' : 'bg-rose-400'} animate-pulse"></span>
+                            ${p.is_active ? 'فعال' : 'غیرفعال'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-left">
+                        ${p.is_active ? 
+                            `<button onclick="toggleUserStatus('${p.id}', false)" class="text-xs bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-3 py-1.5 rounded-lg transition border border-rose-500/20">سلب دسترسی</button>` :
+                            `<button onclick="toggleUserStatus('${p.id}', true)" class="text-xs bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white px-3 py-1.5 rounded-lg transition border border-emerald-500/20">تأیید دسترسی</button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function toggleUserStatus(userId, newStatus) {
+            const { error } = await sb.from('profiles').update({ is_active: newStatus }).eq('id', userId);
+            if (error) {
+                alert('خطا در تغییر وضعیت: ' + error.message);
+            } else {
+                loadUsersManagement(); // Reload list
+            }
+        }
     </script>
 
 </body>
