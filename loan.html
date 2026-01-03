@@ -6,11 +6,18 @@
     <title>مدیریت هوشمند وام و نقطه سر به سر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- کتابخانه تاریخ شمسی -->
+    <!-- Jalaali Date Library -->
     <script src="https://cdn.jsdelivr.net/npm/jalaali-js/dist/jalaali.min.js"></script>
     
-    <!-- کتابخانه Supabase -->
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Protect this page
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthGuard();
+        });
+    </script>
 
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -20,7 +27,7 @@
         .input-group input:focus { border-color: #3b82f6; ring: 2px solid #93c5fd; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         
-        /* اسکرول بار سفارشی */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -29,7 +36,7 @@
         .status-bar-bg { background-color: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
         .status-bar-fill { height: 100%; transition: width 0.5s ease-in-out, background-color 0.3s; }
         
-        /* استایل‌های تقویم */
+        /* Calendar Specific Styles */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day { 
             aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
@@ -47,7 +54,7 @@
             display: flex; align-items: center; justify-content: center; font-weight: bold;
         }
         
-        /* استایل مودال */
+        /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; }
         .modal-content { background: white; border-radius: 1rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative; animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -70,17 +77,18 @@
         <div class="flex items-center gap-4 w-full md:w-auto bg-slate-800 p-2 rounded-xl border border-slate-700">
             <label class="text-sm text-amber-400 whitespace-nowrap font-bold pl-2">قیمت روز طلا (۱۸ عیار):</label>
             <div class="relative w-full md:w-48">
+                <!-- IMPORTANT: Calls window.updateAllLoans() defined in script -->
                 <input type="text" id="globalGoldPrice" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white font-mono text-left ltr focus:border-amber-500 outline-none" placeholder="در حال دریافت..." oninput="formatInput(this); window.updateAllLoans && window.updateAllLoans()">
                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">Toman</span>
             </div>
             
-            <!-- دکمه‌های ورود و خروج -->
+            <!-- Auth Buttons & Home -->
             <div class="flex gap-2">
                 <a href="index.html" class="text-xs bg-slate-600 hover:bg-slate-500 px-3 py-2 rounded text-white transition flex items-center gap-1" title="بازگشت به خانه">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                     <span class="hidden md:inline">خانه</span>
                 </a>
-                <button onclick="window.handleSignOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
+                <button onclick="signOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
             </div>
         </div>
     </div>
@@ -225,6 +233,12 @@
                         </div>
                     </div>
                     
+                    <!-- Only needed for periodic adjustments -->
+                    <div class="input-group hidden"> 
+                        <label>روز پرداخت قسط</label>
+                        <input type="number" id="dueDay" placeholder="مثلاً 5" min="1" max="31">
+                    </div>
+
                     <button type="submit" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2">
                         ثبت وام در سیستم
                     </button>
@@ -251,7 +265,9 @@
             <!-- Loan List -->
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-bold text-slate-800">لیست وام‌ها و وضعیت سر به سر</h2>
-                <button onclick="clearAllData()" class="text-xs text-red-500 hover:text-red-700 underline">حذف همه</button>
+                <div class="flex gap-2">
+                     <button onclick="fetchLoansDB()" class="text-xs text-blue-500 hover:text-blue-700">بروزرسانی لیست</button>
+                </div>
             </div>
             
             <div id="loansList" class="space-y-4"></div>
@@ -287,53 +303,8 @@
     </div>
 
 <script>
-    // --- SUPABASE CONFIGURATION (Integrated) ---
-    // اطلاعات اتصال مستقیم برای جلوگیری از تاخیر فایل جداگانه
-    const SUPABASE_URL = 'https://otlechriihxznnoamzbx.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
-    let sb = null; // کلاینت جهانی
-
-    // تابع راه‌اندازی دیتابیس با تلاش مجدد هوشمند
-    function initSupabase(attempts = 0) {
-        if (typeof supabase !== 'undefined') {
-            try {
-                sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log('✅ Supabase connected successfully.');
-                
-                // شروع دریافت اطلاعات
-                fetchLoansFromCloud();
-                fetchLiveGoldPrice();
-            } catch (error) {
-                console.error('❌ Supabase init failed:', error);
-            }
-        } else {
-            if (attempts < 20) { // تا 2 ثانیه تلاش کن
-                setTimeout(() => initSupabase(attempts + 1), 100);
-            } else {
-                console.error('CRITICAL: Supabase library failed to load.');
-            }
-        }
-    }
-
-    // خروج از حساب
-    window.handleSignOut = async function() {
-        if (sb) {
-            await sb.auth.signOut();
-            alert('خروج موفقیت‌آمیز بود.');
-            window.location.reload();
-        } else {
-            alert('ارتباط با دیتابیس برقرار نیست.');
-        }
-    }
-
     // --- State Management ---
     let loans = [];
-    try {
-        loans = JSON.parse(localStorage.getItem('arbitrage_loans_v2')) || [];
-    } catch (e) {
-        loans = [];
-    }
-    
     let editingLoanId = null;
     let calYear, calMonth;
     
@@ -382,6 +353,12 @@
     }
 
     function calculateInstallmentDateV2(firstPaymentDateStr, installmentNum, interval = 1) {
+        // Fallback if date is missing (db schema issue)
+        if (!firstPaymentDateStr) {
+            const today = getTodayJalali();
+            firstPaymentDateStr = formatJalaliDate(today);
+        }
+        
         const start = parseJalaliString(firstPaymentDateStr);
         const monthsToAdd = (installmentNum - 1) * parseInt(interval);
         return addMonthsToJalali(start, monthsToAdd);
@@ -402,6 +379,98 @@
         return ((d2.jy - d1.jy) * 12) + (d2.jm - d1.jm);
     }
 
+    // --- Live Price Fetching ---
+    async function fetchLiveGoldPrice() {
+        if (!sb) return; 
+        try {
+            const { data, error } = await sb
+                .from('Iran_Data')
+                .select('Gram_18K_Price')
+                .order('id', { ascending: false })
+                .limit(1)
+                .single();
+            if (data && data.Gram_18K_Price) {
+                const price = data.Gram_18K_Price / 10;
+                const inputEl = document.getElementById('globalGoldPrice');
+                if (inputEl) {
+                    inputEl.value = parseInt(price).toLocaleString('en-US');
+                    if (window.updateAllLoans) window.updateAllLoans();
+                }
+            }
+        } catch (err) { console.error('Fetch error:', err); }
+    }
+
+    // --- DB Operations (NEW) ---
+    async function fetchLoansDB() {
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await sb
+            .from('loans')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching loans:', error);
+            alert('خطا در دریافت اطلاعات وام‌ها');
+            return;
+        }
+
+        // Map DB columns to UI expected format (CamelCase)
+        // UPDATED: Now mapping real DB columns for weight, grace, etc.
+        loans = data.map(row => ({
+            id: row.id,
+            bank: row.bank_name,
+            borrower: row.borrower_name,
+            principal: row.principal_amount,
+            totalRepayment: row.total_repayment,
+            installmentsTotal: row.installments_total,
+            startDate: row.start_date,
+            repaymentInterval: row.repayment_interval || 1,
+            payments: row.payments || [],
+            
+            // New mappings
+            goldWeight: row.gold_weight || 0,
+            gracePeriod: row.grace_period || 0,
+            firstInstallmentDate: row.first_installment_date || row.start_date, 
+            repaymentType: row.repayment_type || 'monthly'
+        }));
+
+        window.updateAllLoans();
+    }
+
+    async function deleteLoanDB(id) {
+        if (!confirm('این وام حذف شود؟')) return;
+
+        const { error } = await sb
+            .from('loans')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert('خطا در حذف وام');
+            console.error(error);
+        } else {
+            fetchLoansDB();
+            if (editingLoanId === id) cancelEditMode();
+        }
+    }
+
+    async function updateLoanPaymentsDB(loanId, newPaymentsArray) {
+        const { error } = await sb
+            .from('loans')
+            .update({ payments: newPaymentsArray })
+            .eq('id', loanId);
+
+        if (error) {
+            console.error('Error updating payments:', error);
+            alert('خطا در ثبت وضعیت پرداخت');
+        } else {
+            fetchLoansDB(); // Refresh to sync everything
+        }
+    }
+
     // --- Core Logic ---
     function syncDates(source) {
         const startEl = document.getElementById('startDate');
@@ -415,17 +484,14 @@
         let duration = parseInt(intervalEl.value) || 0;
 
         if (source === 'start' || source === 'grace' || source === 'interval' || source === 'type') {
-            let offset = grace + 1; // Default
-            
+            let offset = grace + 1; 
             if (typeEl && typeEl.value === 'mudaraba') {
                 if (duration > 0) offset = duration;
             }
-
             const newDate = addMonthsToJalali(startDate, offset);
             firstEl.value = formatJalaliDate(newDate);
         } else if (source === 'first') {
             const monthsDiff = diffInMonths(startEl.value, firstEl.value);
-            
             if (typeEl && typeEl.value === 'mudaraba') {
                 intervalEl.value = monthsDiff > 0 ? monthsDiff : 1;
             } else {
@@ -436,364 +502,12 @@
         }
     }
 
-    // --- Rendering Functions ---
-
-    function renderOverdueSection() {
-        const container = document.getElementById('overdueList');
-        const section = document.getElementById('overdueSection');
-        const totalBadge = document.getElementById('overdueTotal');
-        const todayStr = formatJalaliDate(getTodayJalali());
-        const todayJ = getTodayJalali();
-        
-        container.innerHTML = '';
-        let overdueCount = 0;
-
-        loans.forEach(loan => {
-            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
-            for(let i=1; i<=loan.installmentsTotal; i++) {
-                if (loan.payments.find(p => p.num === i)) continue;
-                const dueDateObj = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
-                const dueDateStr = formatJalaliDate(dueDateObj);
-                if (compareJalaliDates(dueDateStr, todayStr) < 0) {
-                    overdueCount++;
-                    container.innerHTML += `
-                        <div class="flex justify-between items-center bg-white p-3 rounded border border-red-100 shadow-sm mb-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                                <div><div class="text-sm font-bold text-slate-700">${loan.bank}</div><div class="text-xs text-red-600">قسط ${i} - ${dueDateStr}</div></div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="font-mono text-sm font-bold text-slate-700">${formatNumber(installmentAmount)}</span>
-                                <button onclick="initiatePayment(${loan.id}, ${i})" class="bg-red-50 text-red-600 hover:bg-red-100 text-xs px-3 py-1.5 rounded font-bold transition">تایید</button>
-                            </div>
-                        </div>`;
-                }
-            }
-        });
-        
-        if(overdueCount > 0) { section.classList.remove('hidden'); totalBadge.innerText = `${overdueCount} قسط`; } 
-        else { section.classList.add('hidden'); }
-    }
-
-    function renderLoans() {
-        const container = document.getElementById('loansList');
-        const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
-        if (loans.length === 0) {
-            container.innerHTML = `<div class="text-center text-slate-400 py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200">هنوز وامی ثبت نشده است.</div>`;
-            return;
-        }
-        container.innerHTML = '';
-        loans.forEach(loan => {
-            const paidCount = loan.payments.length;
-            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
-            const paidAmount = paidCount * installmentAmount;
-            const remainingDebt = loan.totalRepayment - paidAmount;
-            const currentAssetValue = loan.goldWeight * globalPrice;
-            const breakEvenRatio = loan.totalRepayment > 0 ? (currentAssetValue / loan.totalRepayment) * 100 : 0;
-            const isBreakEven = currentAssetValue >= loan.totalRepayment;
-            const breakEvenColor = isBreakEven ? 'bg-emerald-500' : 'bg-red-500';
-            const breakEvenText = isBreakEven ? 'سودده' : 'ریسک';
-            const breakEvenTextColor = isBreakEven ? 'text-emerald-700' : 'text-red-700';
-
-            let nextDueStr = "تسویه";
-            for(let i=1; i<=loan.installmentsTotal; i++) {
-                if (!loan.payments.find(p => p.num === i)) {
-                    const next = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
-                    nextDueStr = formatJalaliDate(next);
-                    break;
-                }
-            }
-            
-            let typeStr = "ماهانه";
-            if (loan.repaymentType === 'mudaraba') typeStr = `مضاربه (${loan.repaymentInterval} ماه)`;
-            else if (loan.repaymentType === 'interval') typeStr = `هر ${loan.repaymentInterval} ماه`;
-
-            container.innerHTML += `
-                <div class="bg-white rounded-2xl p-5 card-shadow border ${loan.id===editingLoanId?'border-blue-400':'border-slate-100'} relative overflow-hidden transition hover:shadow-lg mb-4">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-blue-50 p-2 rounded-lg text-blue-700 font-bold text-xl w-12 h-12 flex items-center justify-center border border-blue-100">${loan.bank.substring(0,2)}</div>
-                            <div><h3 class="font-bold text-slate-800 text-lg">${loan.bank}</h3><p class="text-xs text-slate-500">${loan.borrower} | ${typeStr}</p></div>
-                        </div>
-                        <div class="text-left"><div class="text-xs text-slate-400">بعدی: <span class="text-indigo-600 font-bold">${nextDueStr}</span></div><div class="font-bold text-slate-700 font-mono text-lg mt-1">${formatNumber(installmentAmount)} <span class="text-[10px] font-normal">T</span></div></div>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <div><span class="block text-[10px] text-slate-400">کل بازپرداخت</span><span class="block font-bold text-slate-800 text-sm font-mono">${formatNumber(loan.totalRepayment)}</span></div>
-                        <div><span class="block text-[10px] text-slate-400">مانده بدهی</span><span class="block font-bold text-red-600 text-sm font-mono">${formatNumber(remainingDebt)}</span></div>
-                        <div><span class="block text-[10px] text-slate-400">وزن طلا</span><span class="block font-bold text-amber-600 text-sm ltr text-right font-mono">${loan.goldWeight} g</span></div>
-                        <div><span class="block text-[10px] text-slate-400">ارزش روز</span><span class="block font-bold text-emerald-600 text-sm font-mono">${formatNumber(currentAssetValue)}</span></div>
-                    </div>
-                    <div class="mb-5"><div class="flex justify-between text-xs mb-1"><span class="font-bold text-slate-600">پیشرفت (${paidCount}/${loan.installmentsTotal})</span></div><div class="status-bar-bg"><div class="status-bar-fill bg-blue-500" style="width: ${(paidCount/loan.installmentsTotal)*100}%"></div></div></div>
-                    <div class="mb-4"><div class="flex justify-between text-xs mb-1"><span class="font-bold text-slate-600">وضعیت سر به سر</span><span class="font-bold ${breakEvenTextColor}">${breakEvenText}</span></div><div class="status-bar-bg border border-slate-200"><div class="status-bar-fill ${breakEvenColor}" style="width: ${Math.min(breakEvenRatio, 100)}%"></div></div></div>
-                    <div class="flex justify-between items-center pt-3 border-t border-slate-100">
-                        <div class="flex gap-2"><button onclick="editLoan(${loan.id})" class="text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded transition">ویرایش</button><button onclick="deleteLoan(${loan.id})" class="text-xs text-red-400 hover:text-red-600 px-3 py-1">حذف</button></div>
-                        <button onclick="showHistory(${loan.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-2">مشاهده وضعیت</button>
-                    </div>
-                </div>`;
-        });
-    }
-
-    function updateSummary() {
-        const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
-        let totalDebt = 0;
-        let totalAssetValue = 0;
-        loans.forEach(loan => {
-            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
-            const paidAmount = loan.payments.length * installmentAmount;
-            totalDebt += (loan.totalRepayment - paidAmount);
-            totalAssetValue += (loan.goldWeight * globalPrice);
-        });
-        document.getElementById('sumRemainingDebt').innerText = formatNumber(totalDebt);
-        document.getElementById('sumAssetValue').innerText = formatNumber(totalAssetValue);
-    }
-
-    const MONTH_NAMES = ["", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
-    function changeMonth(delta) { 
-        calMonth += delta; 
-        if(calMonth>12){calMonth=1;calYear++} 
-        if(calMonth<1){calMonth=12;calYear--} 
-        renderCalendarWidget(); 
-    }
-
-    function selectDate(y, m, d) {
-        const grid = document.getElementById('calendarGrid');
-        grid.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-        
-        const dateStr = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
-        document.getElementById('selectedDateTitle').innerText = dateStr;
-        
-        let total = 0;
-        const list = document.getElementById('selectedDateList');
-        list.innerHTML = '';
-        
-        loans.forEach(loan => {
-            for(let i=1; i<=loan.installmentsTotal; i++) {
-                if (loan.payments.find(p => p.num === i)) continue; 
-                const date = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
-                const dStr = formatJalaliDate(date);
-                if (dStr === dateStr) {
-                    const amount = Math.round(loan.totalRepayment / loan.installmentsTotal);
-                    total += amount;
-                    list.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 mb-1">
-                            <div><div class="text-xs font-bold text-slate-700">${loan.bank}</div><div class="text-[10px] text-slate-500">${loan.borrower}</div></div>
-                            <div class="font-mono text-xs font-bold text-slate-600">${formatNumber(amount)}</div>
-                        </div>`;
-                }
-            }
-        });
-        
-        if (list.innerHTML === '') list.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">هیچ قسطی نیست.</div>`;
-        document.getElementById('selectedDateTotal').innerText = formatNumber(total) + " T";
-        document.getElementById('selectedDatePanel').classList.remove('hidden');
-    }
-
-    function renderCalendarWidget() {
-        document.getElementById('calendarMonthTitle').innerText = `${MONTH_NAMES[calMonth]} ${calYear}`;
-        document.getElementById('summaryMonthName').innerText = `${MONTH_NAMES[calMonth]} ${calYear}`;
-        const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
-        
-        let monthlyTotal = 0;
-        const eventsMap = {};
-        
-        loans.forEach(loan => {
-            for(let i=1; i<=loan.installmentsTotal; i++) {
-                if (loan.payments.find(p => p.num === i)) continue; 
-                const date = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
-                if (date.jy === calYear && date.jm === calMonth) {
-                    const dateStr = formatJalaliDate(date);
-                    if (!eventsMap[dateStr]) eventsMap[dateStr] = [];
-                    const amount = Math.round(loan.totalRepayment / loan.installmentsTotal);
-                    monthlyTotal += amount;
-                    eventsMap[dateStr].push({ ...loan, amount });
-                }
-            }
-        });
-        
-        document.getElementById('sumMonthlyDue').innerText = formatNumber(monthlyTotal) + " T";
-        
-        const daysInMonth = jalaali.jalaaliMonthLength(calYear, calMonth);
-        const gDate = jalaali.toGregorian(calYear, calMonth, 1);
-        let dayOfWeek = new Date(gDate.gy, gDate.gm-1, gDate.gd).getDay() + 1;
-        if(dayOfWeek===7) dayOfWeek=0;
-        
-        for(let i=0; i<dayOfWeek; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'calendar-day empty'}));
-        
-        const today = getTodayJalali();
-        for(let d=1; d<=daysInMonth; d++) {
-            const dateStr = `${calYear}/${String(calMonth).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
-            const events = eventsMap[dateStr] || [];
-            const dayEl = document.createElement('div');
-            dayEl.className = `calendar-day ${calYear===today.jy && calMonth===today.jm && d===today.jd ? 'today' : ''}`;
-            dayEl.onclick = () => selectDate(calYear, calMonth, d);
-            dayEl.innerHTML = `<span>${d}</span>${events.length ? `<div class="event-badge">${events.length}</div>` : ''}`;
-            grid.appendChild(dayEl);
-        }
-    }
-
-    function initCalendar() { 
-        const today = getTodayJalali();
-        calYear = today.jy; 
-        calMonth = today.jm; 
-        renderCalendarWidget(); 
-        selectDate(calYear, calMonth, today.jd); 
-    }
-
     window.updateAllLoans = function() {
         renderLoans();
         renderCalendarWidget();
         renderOverdueSection();
         updateSummary();
     };
-
-    // --- Live Price Fetching ---
-    async function fetchLiveGoldPrice() {
-        if (!sb) return; 
-        try {
-            const { data, error } = await sb
-                .from('Iran_Data')
-                .select('Gram_18K_Price')
-                .order('id', { ascending: false })
-                .limit(1)
-                .single();
-
-            if (data && data.Gram_18K_Price) {
-                const price = data.Gram_18K_Price / 10;
-                const inputEl = document.getElementById('globalGoldPrice');
-                if (inputEl) {
-                    inputEl.value = parseInt(price).toLocaleString('en-US');
-                    if (window.updateAllLoans) window.updateAllLoans();
-                    inputEl.parentElement.classList.add('ring-2', 'ring-emerald-400');
-                    setTimeout(() => inputEl.parentElement.classList.remove('ring-2', 'ring-emerald-400'), 1500);
-                }
-            }
-        } catch (err) {
-            console.error('Fetch error:', err);
-        }
-    }
-
-    // --- CLOUD SYNC ---
-    async function saveLoans() {
-        localStorage.setItem('arbitrage_loans_v2', JSON.stringify(loans));
-        if (typeof window.updateAllLoans === 'function') window.updateAllLoans();
-
-        if (!sb) {
-            console.log('Supabase client not connected. Saved locally.');
-            return;
-        }
-
-        try {
-            // FIXED: Using getUser() instead of getSession() for reliable user object
-            const { data: { user }, error } = await sb.auth.getUser();
-            
-            if (error) {
-                console.error("Auth error:", error);
-                return;
-            }
-
-            if (user) {
-                await sb.from('loans').delete().eq('user_id', user.id);
-                const dbData = loans.map(loan => {
-                    let nextDueDateGregorian = null;
-                    for(let i=1; i<=loan.installmentsTotal; i++) {
-                        if (!loan.payments.find(p => p.num === i)) {
-                            const dateJalali = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
-                            const g = jalaali.toGregorian(dateJalali.jy, dateJalali.jm, dateJalali.jd);
-                            nextDueDateGregorian = `${g.gy}-${String(g.gm).padStart(2, '0')}-${String(g.gd).padStart(2, '0')}`;
-                            break; 
-                        }
-                    }
-                    return {
-                        user_id: user.id,
-                        user_email: user.email,
-                        bank_name: loan.bank,
-                        borrower_name: loan.borrower,
-                        principal_amount: loan.principal,
-                        total_repayment: loan.totalRepayment,
-                        installments_total: loan.installmentsTotal,
-                        start_date: loan.startDate,
-                        repayment_interval: loan.repaymentInterval,
-                        grace_period: loan.gracePeriod,
-                        payments: loan.payments,
-                        next_due_date: nextDueDateGregorian
-                    };
-                });
-                if (dbData.length > 0) {
-                    const { error } = await sb.from('loans').insert(dbData);
-                    if (error) console.error("Insert error:", error);
-                    else console.log("Data saved to cloud successfully");
-                }
-            } else {
-                console.warn("User not logged in. Data saved locally only.");
-            }
-        } catch (err) {
-            console.error('Cloud Sync Error:', err);
-        }
-    }
-
-    async function fetchLoansFromCloud() {
-        if (!sb) return;
-
-        // FIXED: Using getUser() instead of getSession() for consistency
-        const { data: { user }, error: authError } = await sb.auth.getUser();
-        if (authError || !user) {
-             console.log("No user logged in, using local data.");
-             return;
-        }
-
-        const { data, error } = await sb
-            .from('loans')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (error) {
-            console.error("Fetch error:", error);
-            return;
-        }
-
-        if (data && data.length > 0) {
-            loans = data.map(dbLoan => ({
-                id: dbLoan.id || Date.now(),
-                bank: dbLoan.bank_name,
-                borrower: dbLoan.borrower_name,
-                principal: dbLoan.principal_amount,
-                totalRepayment: dbLoan.total_repayment,
-                goldWeight: 0, 
-                installmentsTotal: dbLoan.installments_total,
-                startDate: dbLoan.start_date,
-                repaymentInterval: dbLoan.repayment_interval,
-                gracePeriod: dbLoan.grace_period,
-                payments: dbLoan.payments,
-                firstInstallmentDate: '', 
-                repaymentType: dbLoan.repayment_interval > 1 ? 'interval' : 'monthly'
-            }));
-            
-             loans.forEach(loan => {
-                 if (!loan.firstInstallmentDate) {
-                     const start = parseJalaliString(loan.startDate);
-                     const offset = (loan.gracePeriod || 0) + 1;
-                     const newDate = addMonthsToJalali(start, offset);
-                     loan.firstInstallmentDate = formatJalaliDate(newDate);
-                 }
-                 if (loan.installmentsTotal === 1 && loan.repaymentInterval > 1) {
-                     loan.repaymentType = 'mudaraba';
-                 }
-             });
-
-            localStorage.setItem('arbitrage_loans_v2', JSON.stringify(loans));
-            if (typeof window.updateAllLoans === 'function') {
-                window.updateAllLoans();
-            }
-            console.log("Data fetched from cloud successfully");
-        }
-    }
-
-    function clearAllData() {
-        if(confirm('آیا مطمئن هستید؟ تمام اطلاعات پاک خواهد شد.')) {
-            loans = [];
-            saveLoans();
-        }
-    }
 
     // --- DOM Interaction ---
     function toggleRepaymentFields() {
@@ -860,51 +574,62 @@
         document.getElementById('btnCancelEdit').classList.add('hidden');
     }
 
-    function deleteLoan(id) {
-        if(confirm('این وام حذف شود؟')) {
-            loans = loans.filter(l => l.id !== id);
-            if (editingLoanId === id) cancelEditMode();
-            saveLoans();
-        }
-    }
-
-    function handleFormSubmit(e) {
+    async function handleFormSubmit(e) {
         e.preventDefault();
+        
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) { alert('لطفا وارد شوید'); return; }
+
         const type = document.getElementById('repaymentType').value;
         let installmentsTotal = parseInt(document.getElementById('installmentsTotal').value);
         let interval = parseInt(document.getElementById('repaymentInterval').value) || 1;
         if (type === 'mudaraba') installmentsTotal = 1; else if (type === 'monthly') interval = 1;
 
-        const loanData = {
-            bank: document.getElementById('bankName').value,
-            borrower: document.getElementById('borrower').value,
-            principal: getRawValue(document.getElementById('principalAmount').value),
-            totalRepayment: getRawValue(document.getElementById('totalRepayment').value),
-            goldWeight: parseFloat(document.getElementById('goldWeight').value) || 0,
-            installmentsTotal: installmentsTotal,
-            gracePeriod: parseInt(document.getElementById('gracePeriod').value) || 0,
-            startDate: document.getElementById('startDate').value || formatJalaliDate(getTodayJalali()),
-            firstInstallmentDate: document.getElementById('firstInstallmentDate').value,
-            repaymentType: type,
-            repaymentInterval: interval
+        // DB Object strictly matching provided schema and now including new fields
+        const loanDBData = {
+            user_id: user.id,
+            user_email: user.email,
+            bank_name: document.getElementById('bankName').value,
+            borrower_name: document.getElementById('borrower').value,
+            principal_amount: getRawValue(document.getElementById('principalAmount').value),
+            total_repayment: getRawValue(document.getElementById('totalRepayment').value),
+            installments_total: installmentsTotal,
+            start_date: document.getElementById('startDate').value || formatJalaliDate(getTodayJalali()),
+            repayment_interval: interval,
+            
+            // New Fields being saved
+            gold_weight: document.getElementById('goldWeight').value || 0,
+            first_installment_date: document.getElementById('firstInstallmentDate').value,
+            grace_period: parseInt(document.getElementById('gracePeriod').value) || 0,
+            repayment_type: document.getElementById('repaymentType').value
         };
 
+        let error = null;
+
         if (editingLoanId) {
-            const index = loans.findIndex(l => l.id === editingLoanId);
-            if (index !== -1) {
-                loans[index] = { ...loans[index], ...loanData };
-                cancelEditMode();
-            }
+            const res = await sb
+                .from('loans')
+                .update(loanDBData)
+                .eq('id', editingLoanId);
+            error = res.error;
         } else {
-            loans.push({ id: Date.now(), payments: [], ...loanData });
-            document.getElementById('loanForm').reset();
-            document.getElementById('startDate').value = formatJalaliDate(getTodayJalali());
-            syncDates('start');
-            toggleRepaymentFields();
+            // New loan
+            const res = await sb
+                .from('loans')
+                .insert([loanDBData]);
+            error = res.error;
         }
-        saveLoans();
+
+        if (error) {
+            console.error(error);
+            alert('خطا در ذخیره اطلاعات: ' + error.message);
+        } else {
+            fetchLoansDB();
+            cancelEditMode();
+        }
     }
 
+    // --- Modal & Payment Logic ---
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
@@ -915,34 +640,54 @@
         openModal('paymentDateModal');
     }
 
-    function confirmPayment() {
+    async function confirmPayment() {
         const loanId = parseInt(document.getElementById('pendingPaymentLoanId').value);
         const installmentNum = parseInt(document.getElementById('pendingPaymentInstallmentNum').value);
         const dateStr = document.getElementById('confirmPaymentDate').value;
+        
+        // Find local copy to append payment, then save whole array
         const loan = loans.find(l => l.id === loanId);
         if (loan) {
-            const existingIdx = loan.payments.findIndex(p => p.num === installmentNum);
+            const currentPayments = loan.payments || [];
+            const existingIdx = currentPayments.findIndex(p => p.num === installmentNum);
+            
             if (existingIdx === -1) {
-                loan.payments.push({ num: installmentNum, date: dateStr });
-                loan.payments.sort((a,b) => a.num - b.num);
-                saveLoans();
-                if (document.getElementById('historyModal').style.display === 'flex') showHistory(loanId);
+                currentPayments.push({ num: installmentNum, date: dateStr });
+                currentPayments.sort((a,b) => a.num - b.num);
+                
+                // Update DB
+                await updateLoanPaymentsDB(loanId, currentPayments);
+                
+                closeModal('paymentDateModal');
+                if (document.getElementById('historyModal').style.display === 'flex') {
+                    // Slight delay to allow fetch to complete
+                    setTimeout(() => showHistory(loanId), 500);
+                }
+            }
+        } else {
+            closeModal('paymentDateModal');
+        }
+    }
+
+    async function removePayment(loanId, installmentNum) {
+        if (!confirm('آیا از حذف وضعیت پرداخت این قسط اطمینان دارید؟')) return;
+        
+        const loan = loans.find(l => l.id === loanId);
+        if (loan) {
+            const currentPayments = loan.payments || [];
+            const newPayments = currentPayments.filter(p => p.num !== installmentNum);
+            
+            await updateLoanPaymentsDB(loanId, newPayments);
+            
+            if (document.getElementById('historyModal').style.display === 'flex') {
+                 setTimeout(() => showHistory(loanId), 500);
             }
         }
-        closeModal('paymentDateModal');
     }
 
-    function removePayment(loanId, installmentNum) {
-        if (!confirm('آیا از حذف وضعیت پرداخت این قسط اطمینان دارید؟')) return;
-        const loan = loans.find(l => l.id === loanId);
-        if (loan) {
-            loan.payments = loan.payments.filter(p => p.num !== installmentNum);
-            saveLoans();
-            showHistory(loanId);
-        }
-    }
-
+    // --- Rendering ---
     function showHistory(loanId) {
+        // Re-find loan from (potentially updated) loans array
         const loan = loans.find(l => l.id === loanId);
         if(!loan) return;
         const container = document.getElementById('historyModalContent');
@@ -953,7 +698,7 @@
         for(let i=1; i<=loan.installmentsTotal; i++) {
             const dueDateObj = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
             const dueDateStr = formatJalaliDate(dueDateObj);
-            const payment = loan.payments.find(p => p.num === i);
+            const payment = (loan.payments || []).find(p => p.num === i);
             const isPaid = !!payment;
             let statusClass = "bg-slate-50 border-slate-200";
             let statusText = "";
@@ -985,8 +730,209 @@
         openModal('historyModal');
     }
 
+    function renderOverdueSection() {
+        const container = document.getElementById('overdueList');
+        const section = document.getElementById('overdueSection');
+        const totalBadge = document.getElementById('overdueTotal');
+        const todayStr = formatJalaliDate(getTodayJalali());
+        const todayJ = getTodayJalali();
+        
+        container.innerHTML = '';
+        let overdueCount = 0;
+
+        loans.forEach(loan => {
+            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if ((loan.payments || []).find(p => p.num === i)) continue;
+                const dueDateObj = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                const dueDateStr = formatJalaliDate(dueDateObj);
+                if (compareJalaliDates(dueDateStr, todayStr) < 0) {
+                    overdueCount++;
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center bg-white p-3 rounded border border-red-100 shadow-sm mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                <div><div class="text-sm font-bold text-slate-700">${loan.bank}</div><div class="text-xs text-red-600">قسط ${i} - ${dueDateStr}</div></div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono text-sm font-bold text-slate-700">${formatNumber(installmentAmount)}</span>
+                                <button onclick="initiatePayment(${loan.id}, ${i})" class="bg-red-50 text-red-600 hover:bg-red-100 text-xs px-3 py-1.5 rounded font-bold transition">تایید</button>
+                            </div>
+                        </div>`;
+                }
+            }
+        });
+        
+        if(overdueCount > 0) { section.classList.remove('hidden'); totalBadge.innerText = `${overdueCount} قسط`; } 
+        else { section.classList.add('hidden'); }
+    }
+
+    function renderLoans() {
+        const container = document.getElementById('loansList');
+        const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
+        if (loans.length === 0) {
+            container.innerHTML = `<div class="text-center text-slate-400 py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200">هنوز وامی ثبت نشده است.</div>`;
+            return;
+        }
+        container.innerHTML = '';
+        loans.forEach(loan => {
+            const paidCount = (loan.payments || []).length;
+            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+            const paidAmount = paidCount * installmentAmount;
+            const remainingDebt = loan.totalRepayment - paidAmount;
+            const currentAssetValue = (loan.goldWeight || 0) * globalPrice;
+            const breakEvenRatio = loan.totalRepayment > 0 ? (currentAssetValue / loan.totalRepayment) * 100 : 0;
+            const isBreakEven = currentAssetValue >= loan.totalRepayment;
+            const breakEvenColor = isBreakEven ? 'bg-emerald-500' : 'bg-red-500';
+            const breakEvenText = isBreakEven ? 'سودده' : 'ریسک';
+            const breakEvenTextColor = isBreakEven ? 'text-emerald-700' : 'text-red-700';
+
+            let nextDueStr = "تسویه";
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if (!(loan.payments || []).find(p => p.num === i)) {
+                    const next = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                    nextDueStr = formatJalaliDate(next);
+                    break;
+                }
+            }
+            
+            let typeStr = "ماهانه";
+            if (loan.repaymentType === 'mudaraba') typeStr = `مضاربه (${loan.repaymentInterval} ماه)`;
+            else if (loan.repaymentType === 'interval') typeStr = `هر ${loan.repaymentInterval} ماه`;
+
+            container.innerHTML += `
+                <div class="bg-white rounded-2xl p-5 card-shadow border ${loan.id===editingLoanId?'border-blue-400':'border-slate-100'} relative overflow-hidden transition hover:shadow-lg mb-4">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-50 p-2 rounded-lg text-blue-700 font-bold text-xl w-12 h-12 flex items-center justify-center border border-blue-100">${(loan.bank || '').substring(0,2)}</div>
+                            <div><h3 class="font-bold text-slate-800 text-lg">${loan.bank}</h3><p class="text-xs text-slate-500">${loan.borrower} | ${typeStr}</p></div>
+                        </div>
+                        <div class="text-left"><div class="text-xs text-slate-400">بعدی: <span class="text-indigo-600 font-bold">${nextDueStr}</span></div><div class="font-bold text-slate-700 font-mono text-lg mt-1">${formatNumber(installmentAmount)} <span class="text-[10px] font-normal">T</span></div></div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div><span class="block text-[10px] text-slate-400">کل بازپرداخت</span><span class="block font-bold text-slate-800 text-sm font-mono">${formatNumber(loan.totalRepayment)}</span></div>
+                        <div><span class="block text-[10px] text-slate-400">مانده بدهی</span><span class="block font-bold text-red-600 text-sm font-mono">${formatNumber(remainingDebt)}</span></div>
+                        <div><span class="block text-[10px] text-slate-400">وزن طلا</span><span class="block font-bold text-amber-600 text-sm ltr text-right font-mono">${loan.goldWeight || 0} g</span></div>
+                        <div><span class="block text-[10px] text-slate-400">ارزش روز</span><span class="block font-bold text-emerald-600 text-sm font-mono">${formatNumber(currentAssetValue)}</span></div>
+                    </div>
+                    <div class="mb-5"><div class="flex justify-between text-xs mb-1"><span class="font-bold text-slate-600">پیشرفت (${paidCount}/${loan.installmentsTotal})</span></div><div class="status-bar-bg"><div class="status-bar-fill bg-blue-500" style="width: ${(paidCount/loan.installmentsTotal)*100}%"></div></div></div>
+                    <div class="mb-4"><div class="flex justify-between text-xs mb-1"><span class="font-bold text-slate-600">وضعیت سر به سر</span><span class="font-bold ${breakEvenTextColor}">${breakEvenText}</span></div><div class="status-bar-bg border border-slate-200"><div class="status-bar-fill ${breakEvenColor}" style="width: ${Math.min(breakEvenRatio, 100)}%"></div></div></div>
+                    <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                        <div class="flex gap-2"><button onclick="editLoan(${loan.id})" class="text-xs text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded transition">ویرایش</button><button onclick="deleteLoanDB(${loan.id})" class="text-xs text-red-400 hover:text-red-600 px-3 py-1">حذف</button></div>
+                        <button onclick="showHistory(${loan.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-2">مشاهده وضعیت</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function updateSummary() {
+        const globalPrice = getRawValue(document.getElementById('globalGoldPrice').value);
+        let totalDebt = 0;
+        let totalAssetValue = 0;
+        loans.forEach(loan => {
+            const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+            const paidAmount = (loan.payments || []).length * installmentAmount;
+            totalDebt += (loan.totalRepayment - paidAmount);
+            totalAssetValue += ((loan.goldWeight || 0) * globalPrice);
+        });
+        document.getElementById('sumRemainingDebt').innerText = formatNumber(totalDebt);
+        document.getElementById('sumAssetValue').innerText = formatNumber(totalAssetValue);
+    }
+
+    // --- Calendar ---
+    const MONTH_NAMES = ["", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+    function initCalendar() { 
+        const today = getTodayJalali();
+        calYear = today.jy; 
+        calMonth = today.jm; 
+        renderCalendarWidget(); 
+        selectDate(calYear, calMonth, today.jd); 
+    }
+    
+    function changeMonth(delta) { 
+        calMonth += delta; 
+        if(calMonth>12){calMonth=1;calYear++} 
+        if(calMonth<1){calMonth=12;calYear--} 
+        renderCalendarWidget(); 
+    }
+
+    function renderCalendarWidget() {
+        document.getElementById('calendarMonthTitle').innerText = `${MONTH_NAMES[calMonth]} ${calYear}`;
+        document.getElementById('summaryMonthName').innerText = `${MONTH_NAMES[calMonth]} ${calYear}`;
+        const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+        
+        let monthlyTotal = 0;
+        const eventsMap = {};
+        
+        loans.forEach(loan => {
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if ((loan.payments || []).find(p => p.num === i)) continue; 
+                const date = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                if (date.jy === calYear && date.jm === calMonth) {
+                    const dateStr = formatJalaliDate(date);
+                    if (!eventsMap[dateStr]) eventsMap[dateStr] = [];
+                    const amount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+                    monthlyTotal += amount;
+                    eventsMap[dateStr].push({ ...loan, amount });
+                }
+            }
+        });
+        
+        document.getElementById('sumMonthlyDue').innerText = formatNumber(monthlyTotal) + " T";
+        
+        const daysInMonth = jalaali.jalaaliMonthLength(calYear, calMonth);
+        const gDate = jalaali.toGregorian(calYear, calMonth, 1);
+        let dayOfWeek = new Date(gDate.gy, gDate.gm-1, gDate.gd).getDay() + 1;
+        if(dayOfWeek===7) dayOfWeek=0;
+        
+        for(let i=0; i<dayOfWeek; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'calendar-day empty'}));
+        
+        const today = getTodayJalali();
+        for(let d=1; d<=daysInMonth; d++) {
+            const dateStr = `${calYear}/${String(calMonth).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+            const events = eventsMap[dateStr] || [];
+            const dayEl = document.createElement('div');
+            dayEl.className = `calendar-day ${calYear===today.jy && calMonth===today.jm && d===today.jd ? 'today' : ''}`;
+            dayEl.onclick = () => selectDate(calYear, calMonth, d);
+            dayEl.innerHTML = `<span>${d}</span>${events.length ? `<div class="event-badge">${events.length}</div>` : ''}`;
+            grid.appendChild(dayEl);
+        }
+    }
+
+    function selectDate(y, m, d) {
+        const grid = document.getElementById('calendarGrid');
+        grid.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+        const dateStr = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+        document.getElementById('selectedDateTitle').innerText = dateStr;
+        
+        let total = 0;
+        const list = document.getElementById('selectedDateList');
+        list.innerHTML = '';
+        
+        loans.forEach(loan => {
+            for(let i=1; i<=loan.installmentsTotal; i++) {
+                if ((loan.payments || []).find(p => p.num === i)) continue; 
+                const date = calculateInstallmentDateV2(loan.firstInstallmentDate, i, loan.repaymentInterval);
+                const dStr = formatJalaliDate(date);
+                if (dStr === dateStr) {
+                    const amount = Math.round(loan.totalRepayment / loan.installmentsTotal);
+                    total += amount;
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100 mb-1">
+                            <div><div class="text-xs font-bold text-slate-700">${loan.bank}</div><div class="text-[10px] text-slate-500">${loan.borrower}</div></div>
+                            <div class="font-mono text-xs font-bold text-slate-600">${formatNumber(amount)}</div>
+                        </div>`;
+                }
+            }
+        });
+        
+        if (list.innerHTML === '') list.innerHTML = `<div class="text-xs text-slate-400 text-center py-2">هیچ قسطی نیست.</div>`;
+        document.getElementById('selectedDateTotal').innerText = formatNumber(total) + " T";
+        document.getElementById('selectedDatePanel').classList.remove('hidden');
+    }
+
     // --- Boot ---
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
         if (typeof jalaali === 'undefined') {
             alert('خطا: کتابخانه تاریخ بارگذاری نشد.');
             return;
@@ -1000,14 +946,10 @@
         const form = document.getElementById('loanForm');
         if(form) form.addEventListener('submit', handleFormSubmit);
         
+        // Initial Fetch
+        fetchLoansDB();
         initCalendar();
-        
-        if (typeof window.updateAllLoans === 'function') {
-            window.updateAllLoans();
-        }
-
-        // Initialize Supabase
-        initSupabase();
+        fetchLiveGoldPrice();
     });
 
 </script>
