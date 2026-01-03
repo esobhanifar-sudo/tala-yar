@@ -10,104 +10,447 @@
     <style>
         body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; color: #e2e8f0; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        /* استایل تب‌سوییچ */
+        .toggle-checkbox:checked { right: 0; border-color: #f59e0b; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #f59e0b; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-8">
+<body class="p-4 md:p-8 min-h-screen bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBmaWxsPSIjMWUyOTNiIiBmaWxsLW9wYWNpdHk9IjAuNCI+PHBhdGggZD0iTTM2IDM0di00aC0ydjRoLTR2MmgydjRoMnYtNGg0di0yaC00em0wLTMwVjBoLTJ2NGgtNHYyaDR2NGgyVjZoNFY0aC00ek02IDM0di00SDR2NEgwdjJoNHY0aDJ2LTRoNHYtMkg2ek02IDRWMEg0djRIMHYyaDR2NGgyVjZoNFY0SDZ6Ii8+PC9nPjwvZz48L3N2Zz4=')]">
+    
+    <div class="max-w-4xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-white">پنل مدیریت اطلاع‌رسانی</h1>
-                <p class="text-slate-400 text-sm">تنظیمات هوشمند ارسال ایمیل یادآوری</p>
+                <p class="text-slate-400 text-sm mt-1">مدیریت زمان‌بندی و محتوای ایمیل‌های سیستمی</p>
             </div>
-            <a href="index.html" class="text-slate-400 hover:text-white transition">بازگشت به پرتال</a>
+            <a href="index.html" class="flex items-center gap-2 text-slate-400 hover:text-white transition bg-slate-800 px-4 py-2 rounded-xl border border-slate-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                <span>بازگشت به داشبورد</span>
+            </a>
         </header>
 
-        <!-- Notification Management Section -->
-        <div class="glass rounded-3xl overflow-hidden mb-8">
-            <div class="bg-slate-800/50 p-6 border-b border-slate-700">
+        <!-- لیست زمان‌بندی‌ها -->
+        <div class="glass rounded-3xl overflow-hidden mb-8 shadow-2xl">
+            <div class="bg-slate-800/80 p-6 border-b border-slate-700 flex justify-between items-center">
                 <h2 class="text-lg font-bold flex items-center gap-2 text-amber-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                    زمان‌بندی و تنظیمات ایمیل
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>زمان‌بندی‌های فعال</span>
                 </h2>
+                <button onclick="openAddModal()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    تعریف یادآوری جدید
+                </button>
             </div>
             
-            <div id="settings-list" class="p-6 space-y-4">
-                <!-- Settings items will load here -->
-                <div class="flex justify-center p-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>
+            <div id="settings-list" class="p-6 space-y-4 min-h-[200px]">
+                <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                    <span class="text-xs">در حال دریافت تنظیمات...</span>
+                </div>
             </div>
         </div>
 
-        <!-- Info Card -->
-        <div class="bg-blue-900/20 border border-blue-500/20 rounded-2xl p-4 text-sm text-blue-300">
-            <p><strong>راهنما:</strong> زمان‌بندی باید با فرمت Cron باشد. مثلاً <code>0 12 * * *</code> یعنی هر روز ساعت ۱۲:۰۰ ظهر. در متن ایمیل می‌توانید از عبارت <code>{bank_name}</code> استفاده کنید تا نام بانک به صورت خودکار جایگزین شود.</p>
-        </div>
-    </div>
-
-    <!-- Edit Modal -->
-    <div id="edit-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50">
-        <div class="glass w-full max-w-lg rounded-3xl p-6">
-            <h3 class="text-xl font-bold mb-4" id="modal-title">ویرایش تنظیمات</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">زمان‌بندی (Cron)</label>
-                    <input id="edit-cron" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm ltr">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">عنوان ایمیل</label>
-                    <input id="edit-subject" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">قالب متن (HTML)</label>
-                    <textarea id="edit-template" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm ltr"></textarea>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input id="edit-active" type="checkbox" class="w-4 h-4 rounded bg-slate-900 border-slate-700">
-                    <label for="edit-active" class="text-sm">وضعیت فعال</label>
-                </div>
-                <div class="flex gap-2 pt-4">
-                    <button onclick="saveSettings()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-xl transition">ذخیره تغییرات</button>
-                    <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-xl transition">انصراف</button>
-                </div>
+        <!-- راهنما -->
+        <div class="bg-indigo-900/20 border border-indigo-500/20 rounded-2xl p-4 flex items-start gap-3">
+            <svg class="w-6 h-6 text-indigo-400 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="text-sm text-indigo-200 leading-relaxed">
+                <p class="font-bold mb-1">راهنمای هوشمند:</p>
+                <ul class="list-disc list-inside space-y-1 text-xs opacity-80">
+                    <li>زمان‌ها را به <strong>وقت تهران</strong> وارد کنید؛ سیستم خودکار آن را برای سرور تنظیم می‌کند.</li>
+                    <li>در متن ایمیل، هرجا بنویسید <code>{bank_name}</code>، نام بانک کاربر جایگزین می‌شود.</li>
+                    <li>از حالت «متن ساده» استفاده کنید تا نیازی به کدنویسی HTML نداشته باشید.</li>
+                </ul>
             </div>
         </div>
     </div>
 
-    <script src="auth.js"></script> <!-- فرض بر این است که فایل auth.js شما Supabase را معرفی کرده -->
+    <!-- مودال ویرایش/افزودن -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-700 flex flex-col max-h-[90vh]">
+            
+            <!-- هدر مودال -->
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <span id="modal-icon" class="bg-amber-500/10 text-amber-500 p-2 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></span>
+                    <span id="modal-title">ویرایش تنظیمات</span>
+                </h3>
+                <button onclick="closeModal()" class="text-slate-500 hover:text-white transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+
+            <!-- بدنه مودال (اسکرول) -->
+            <div class="p-6 overflow-y-auto space-y-8 custom-scrollbar">
+                
+                <!-- بخش ۱: اطلاعات پایه -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1.5">شناسه سیستمی (غیرقابل تغییر)</label>
+                        <input id="edit-job-name" type="text" placeholder="مثال: loan_reminder_1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm ltr placeholder-slate-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1.5">نام نمایشی (برای مدیریت)</label>
+                        <input id="edit-display-name" type="text" placeholder="مثال: یادآوری هفتگی شنبه‌ها" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition">
+                    </div>
+                </div>
+
+                <!-- بخش ۲: زمان‌بندی هوشمند -->
+                <div class="bg-slate-800/30 p-5 rounded-2xl border border-slate-700/50">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="text-sm font-bold text-white">تنظیم زمان ارسال (به وقت تهران)</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- انتخاب نوع تکرار -->
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1.5">تکرار</label>
+                            <select id="schedule-type" onchange="toggleScheduleInputs()" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-500">
+                                <option value="daily">هر روز</option>
+                                <option value="weekly">هفتگی</option>
+                            </select>
+                        </div>
+
+                        <!-- انتخاب روز هفته (فقط در حالت هفتگی) -->
+                        <div id="weekday-container" class="hidden">
+                            <label class="block text-[10px] text-slate-400 mb-1.5">روز هفته</label>
+                            <select id="schedule-weekday" onchange="generateCron()" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-500">
+                                <option value="6">شنبه</option>
+                                <option value="0">یک‌شنبه</option>
+                                <option value="1">دوشنبه</option>
+                                <option value="2">سه‌شنبه</option>
+                                <option value="3">چهارشنبه</option>
+                                <option value="4">پنج‌شنبه</option>
+                                <option value="5">جمعه</option>
+                            </select>
+                        </div>
+
+                        <!-- انتخاب ساعت -->
+                        <div class="md:col-span-1">
+                            <label class="block text-[10px] text-slate-400 mb-1.5">ساعت اجرا</label>
+                            <input id="edit-time-tehran" type="time" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-lg text-center ltr text-white focus:border-amber-500 outline-none" onchange="generateCron()">
+                        </div>
+                    </div>
+                    
+                    <!-- نمایش کد کرون تولید شده -->
+                    <div class="mt-4 flex justify-between items-center border-t border-slate-700/50 pt-3">
+                        <span class="text-[10px] text-slate-500">کد استاندارد تولید شده (UTC):</span>
+                        <code id="cron-preview" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">-- -- * * *</code>
+                        <input id="edit-cron" type="hidden">
+                    </div>
+                </div>
+
+                <!-- بخش ۳: محتوای ایمیل -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-xs text-slate-400">محتوای ایمیل</label>
+                        
+                        <!-- سوییچ حالت ساده/پیشرفته -->
+                        <div class="flex items-center bg-slate-950 rounded-lg p-1 border border-slate-800">
+                            <button onclick="setEditorMode('simple')" id="btn-mode-simple" class="px-3 py-1 text-[10px] rounded-md transition bg-slate-700 text-white">متن ساده</button>
+                            <button onclick="setEditorMode('advanced')" id="btn-mode-advanced" class="px-3 py-1 text-[10px] rounded-md transition text-slate-400 hover:text-white">HTML پیشرفته</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <input id="edit-subject" type="text" placeholder="عنوان ایمیل (مثلا: یادآوری سررسید)" class="w-full bg-slate-950 border border-slate-800 rounded-t-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none border-b-0">
+                        
+                        <!-- ویرایشگر ساده -->
+                        <textarea id="edit-body-simple" rows="5" placeholder="متن پیام خود را اینجا بنویسید..." class="w-full bg-slate-950 border border-slate-800 rounded-b-xl px-4 py-3 text-sm leading-relaxed focus:border-indigo-500 outline-none resize-none"></textarea>
+                        
+                        <!-- ویرایشگر پیشرفته (مخفی) -->
+                        <textarea id="edit-body-html" rows="5" class="hidden w-full bg-slate-900 border border-slate-800 rounded-b-xl px-4 py-3 text-xs ltr font-mono text-indigo-300 focus:border-indigo-500 outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- وضعیت فعال -->
+                <label class="flex items-center gap-3 cursor-pointer group w-max">
+                    <div class="relative">
+                        <input id="edit-active" type="checkbox" class="sr-only peer">
+                        <div class="w-10 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    </div>
+                    <span class="text-sm text-slate-300 group-hover:text-white transition">وضعیت این یادآوری فعال باشد</span>
+                </label>
+
+            </div>
+
+            <!-- فوتر مودال -->
+            <div class="p-6 border-t border-slate-800 flex gap-3 bg-slate-900/50 rounded-b-3xl">
+                <button onclick="saveSettings()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/20 active:scale-95 flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    ذخیره تغییرات
+                </button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition active:scale-95">
+                    انصراف
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
     <script>
         let currentEditingId = null;
+        let editorMode = 'simple'; // simple | advanced
+
+        // ==========================================
+        // بخش منطق تبدیل زمان (NLP Logic)
+        // ==========================================
+
+        function generateCron() {
+            const timeStr = document.getElementById('edit-time-tehran').value;
+            if (!timeStr) return;
+
+            const type = document.getElementById('schedule-type').value;
+            const [h, m] = timeStr.split(':').map(Number);
+            
+            // تبدیل ساعت تهران به UTC
+            // تهران: UTC+3:30 (یعنی ۲۱۰ دقیقه جلوتر)
+            // فرمول: UTC = Tehran - 210 min
+            let totalMinutesTehran = h * 60 + m;
+            let totalMinutesUTC = totalMinutesTehran - 210;
+            
+            let dayShift = 0; // آیا روز عوض می‌شود؟ (مثلا ۲ شب تهران، میشه ۱۰:۳۰ شب قبل UTC)
+
+            if (totalMinutesUTC < 0) {
+                totalMinutesUTC += 1440; // +24 hours
+                dayShift = -1; // یک روز برو عقب
+            } else if (totalMinutesUTC >= 1440) {
+                totalMinutesUTC -= 1440;
+                dayShift = 1;
+            }
+
+            const cronH = Math.floor(totalMinutesUTC / 60);
+            const cronM = totalMinutesUTC % 60;
+
+            let cronString = "";
+
+            if (type === 'daily') {
+                // فرمت روزانه: m h * * *
+                cronString = `${cronM} ${cronH} * * *`;
+            } else {
+                // فرمت هفتگی: m h * * dow
+                let tehranDay = parseInt(document.getElementById('schedule-weekday').value); // 0-6 (Sat-Fri in UI logic, actually depends on cron std)
+                
+                // نگاشت UI (شنبه=6...جمعه=5) به استاندارد Cron (یکشنبه=0...شنبه=6)
+                // فرض ما: UI Value: 6=Sat, 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+                // استاندارد Cron: 0=Sun, 1=Mon... 6=Sat
+                
+                let cronDay = tehranDay; // خوشبختانه مپینگ ما یکی است (شنبه در کرون ۶ است، یکشنبه ۰)
+                
+                // اعمال شیفت روز
+                cronDay += dayShift;
+                if (cronDay < 0) cronDay = 6; // شنبه
+                if (cronDay > 6) cronDay = 0; // یکشنبه
+
+                cronString = `${cronM} ${cronH} * * ${cronDay}`;
+            }
+
+            document.getElementById('edit-cron').value = cronString;
+            document.getElementById('cron-preview').innerText = cronString;
+        }
+
+        function parseCronToUI(cronStr) {
+            // معکوس کردن منطق بالا برای نمایش در UI هنگام ویرایش
+            try {
+                const parts = cronStr.split(' ');
+                const m = parseInt(parts[0]);
+                const h = parseInt(parts[1]);
+                const dow = parts[4];
+
+                // تبدیل UTC به تهران
+                let totalMinutesUTC = h * 60 + m;
+                let totalMinutesTehran = totalMinutesUTC + 210;
+                
+                let dayShift = 0;
+                if (totalMinutesTehran >= 1440) {
+                    totalMinutesTehran -= 1440;
+                    dayShift = 1; // تهران رفت روز بعد
+                }
+
+                const tehranH = Math.floor(totalMinutesTehran / 60);
+                const tehranM = totalMinutesTehran % 60;
+                const timeStr = `${String(tehranH).padStart(2,'0')}:${String(tehranM).padStart(2,'0')}`;
+
+                // تشخیص نوع
+                if (dow === '*') {
+                    return { type: 'daily', time: timeStr, day: null };
+                } else {
+                    let cronDay = parseInt(dow);
+                    // معکوس شیفت روز
+                    // TehranDay = CronDay + (DayShift معکوس؟ نه، اختلاف روز)
+                    // اگر در تبدیل رفت به تهران، روز رفت جلو، پس روز تهران یکی جلوتر از کرون است
+                    let tehranDay = cronDay + dayShift; 
+                    if (tehranDay > 6) tehranDay = 0;
+                    
+                    return { type: 'weekly', time: timeStr, day: tehranDay };
+                }
+            } catch (e) {
+                return { type: 'daily', time: '12:00', day: null };
+            }
+        }
+
+        function toggleScheduleInputs() {
+            const type = document.getElementById('schedule-type').value;
+            const weekContainer = document.getElementById('weekday-container');
+            if (type === 'weekly') {
+                weekContainer.classList.remove('hidden');
+                // کلاس گرید والد را اصلاح کنیم
+                weekContainer.parentElement.classList.remove('md:grid-cols-3');
+                weekContainer.parentElement.classList.add('md:grid-cols-3'); 
+            } else {
+                weekContainer.classList.add('hidden');
+            }
+            generateCron();
+        }
+
+        // ==========================================
+        // بخش ویرایشگر متن (HTML Logic)
+        // ==========================================
+
+        function setEditorMode(mode) {
+            editorMode = mode;
+            const simple = document.getElementById('edit-body-simple');
+            const html = document.getElementById('edit-body-html');
+            const btnSimple = document.getElementById('btn-mode-simple');
+            const btnAdv = document.getElementById('btn-mode-advanced');
+
+            if (mode === 'simple') {
+                simple.classList.remove('hidden');
+                html.classList.add('hidden');
+                btnSimple.classList.replace('text-slate-400', 'text-white');
+                btnSimple.classList.replace('bg-transparent', 'bg-slate-700'); // استایل دکمه فعال
+                btnSimple.classList.add('bg-slate-700');
+                
+                btnAdv.classList.remove('bg-slate-700', 'text-white');
+                btnAdv.classList.add('text-slate-400');
+                
+                // اگر قبلا کدی بود، سعی کنیم متنش رو در بیاریم (ساده سازی)
+                // برای الان فرض می‌کنیم سینک یه طرفه است یا مدیر میدونه چیکار میکنه
+            } else {
+                simple.classList.add('hidden');
+                html.classList.remove('hidden');
+                
+                btnAdv.classList.add('bg-slate-700', 'text-white');
+                btnAdv.classList.remove('text-slate-400');
+                
+                btnSimple.classList.remove('bg-slate-700', 'text-white');
+                btnSimple.classList.add('text-slate-400');
+
+                // انتقال متن ساده به اچ تی ام ال اگر خالی بود
+                if (!html.value && simple.value) {
+                    html.value = `<div style="direction:rtl; font-family: Tahoma, sans-serif; line-height:1.6;">\n  <p>${simple.value.replace(/\n/g, '<br>')}</p>\n</div>`;
+                }
+            }
+        }
+
+        // ==========================================
+        // عملیات CRUD
+        // ==========================================
 
         async function loadSettings() {
             const container = document.getElementById('settings-list');
             const { data, error } = await sb.from('notification_settings').select('*').order('id');
             
             if (error) {
-                container.innerHTML = `<p class="text-red-400 text-center">خطا در بارگذاری داده‌ها</p>`;
+                container.innerHTML = `<p class="text-red-400 text-center">خطا: ${error.message}</p>`;
                 return;
             }
 
-            container.innerHTML = data.map(s => `
-                <div class="bg-slate-900/50 border border-slate-700 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-white">${s.display_name}</span>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}">
+            container.innerHTML = data.map(s => {
+                const info = parseCronToUI(s.cron_schedule);
+                const dayNames = ['یک‌شنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه']; 
+                // نگاشت آرایه UI: 0=Sun ...
+                // UI Value ما: 6=Sat, 0=Sun...
+                // بیایید نام روز را درست پیدا کنیم.
+                let dayLabel = '';
+                if(info.type === 'weekly') {
+                     // تبدیل کد عددی روز به متن فارسی
+                     // نگاشت ما: 6=شنبه, 0=یک, 1=دو...
+                     const map = {6:'شنبه', 0:'یک‌شنبه', 1:'دوشنبه', 2:'سه‌شنبه', 3:'چهارشنبه', 4:'پنج‌شنبه', 5:'جمعه'};
+                     dayLabel = map[info.day] + '‌ها، ';
+                }
+
+                return `
+                <div class="bg-slate-800/50 border border-slate-700 hover:border-amber-500/50 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 transition group">
+                    <div class="flex-1 w-full">
+                        <div class="flex items-center justify-between md:justify-start gap-3 mb-2">
+                            <span class="font-bold text-white text-lg">${s.display_name}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full border ${s.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700 text-slate-400'}">
                                 ${s.is_active ? 'فعال' : 'غیرفعال'}
                             </span>
                         </div>
-                        <div class="text-xs text-slate-400 mt-1">
-                            ساعت: <code class="text-amber-400 ltr">${s.cron_schedule}</code> | عنوان: ${s.email_subject}
+                        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                            <div class="flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                                <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span class="text-slate-200">${dayLabel}ساعت ${info.time}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 truncate max-w-[250px]">
+                                <span class="text-slate-500">موضوع:</span>
+                                <span class="text-slate-300">${s.email_subject}</span>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="openModal(${JSON.stringify(s).replace(/"/g, '&quot;')})" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-lg transition border border-slate-600">ویرایش</button>
+                    <button onclick="openEditModal(${JSON.stringify(s).replace(/"/g, '&quot;')})" class="w-full md:w-auto bg-slate-700 group-hover:bg-amber-500 group-hover:text-white text-slate-300 text-xs font-bold px-5 py-2.5 rounded-xl transition flex justify-center items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        ویرایش تنظیمات
+                    </button>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
-        function openModal(data) {
+        function openAddModal() {
+            currentEditingId = null;
+            document.getElementById('modal-title').innerText = "افزودن یادآوری جدید";
+            
+            document.getElementById('edit-job-name').value = '';
+            document.getElementById('edit-job-name').disabled = false; 
+            document.getElementById('edit-display-name').value = '';
+            
+            // پیش‌فرض‌ها
+            document.getElementById('schedule-type').value = 'daily';
+            toggleScheduleInputs();
+            document.getElementById('edit-time-tehran').value = '12:00';
+            generateCron();
+            
+            document.getElementById('edit-subject').value = '';
+            document.getElementById('edit-body-simple').value = '';
+            document.getElementById('edit-body-html').value = '';
+            setEditorMode('simple');
+            
+            document.getElementById('edit-active').checked = true;
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function openEditModal(data) {
             currentEditingId = data.id;
-            document.getElementById('edit-cron').value = data.cron_schedule;
+            document.getElementById('modal-title').innerText = "ویرایش یادآوری";
+            
+            document.getElementById('edit-job-name').value = data.job_name;
+            document.getElementById('edit-job-name').disabled = true;
+            document.getElementById('edit-display-name').value = data.display_name;
+            
+            // بازیابی زمان
+            const info = parseCronToUI(data.cron_schedule);
+            document.getElementById('schedule-type').value = info.type;
+            toggleScheduleInputs();
+            if (info.type === 'weekly') {
+                document.getElementById('schedule-weekday').value = info.day;
+            }
+            document.getElementById('edit-time-tehran').value = info.time;
+            generateCron(); // Refresh preview
+
+            // بازیابی محتوا
             document.getElementById('edit-subject').value = data.email_subject;
-            document.getElementById('edit-template').value = data.email_template;
+            document.getElementById('edit-body-html').value = data.email_template;
+            
+            // تلاش برای استخراج متن ساده از HTML (خیلی ساده)
+            let simpleText = data.email_template.replace(/<[^>]*>/g, '').trim(); 
+            // پاکسازی فاصله‌های اضافی
+            simpleText = simpleText.replace(/\s+/g, ' ');
+            document.getElementById('edit-body-simple').value = simpleText;
+            
+            setEditorMode('simple'); // پیش فرض روی ساده باز شود برای راحتی
+            
             document.getElementById('edit-active').checked = data.is_active;
             document.getElementById('edit-modal').classList.remove('hidden');
         }
@@ -117,18 +460,41 @@
         }
 
         async function saveSettings() {
+            // ساخت بدنه نهایی
+            let finalBody = '';
+            if (editorMode === 'simple') {
+                const txt = document.getElementById('edit-body-simple').value;
+                // تبدیل متن ساده به استاندارد HTML
+                finalBody = `<div style="direction:rtl; font-family: Tahoma, 'Vazirmatn', sans-serif; padding: 20px; line-height: 1.8; color: #333;">
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                        ${txt.split('\n').map(line => `<p style="margin: 0 0 10px;">${line}</p>`).join('')}
+                    </div>
+                </div>`;
+            } else {
+                finalBody = document.getElementById('edit-body-html').value;
+            }
+
             const updates = {
+                job_name: document.getElementById('edit-job-name').value,
+                display_name: document.getElementById('edit-display-name').value,
                 cron_schedule: document.getElementById('edit-cron').value,
                 email_subject: document.getElementById('edit-subject').value,
-                email_template: document.getElementById('edit-template').value,
+                email_template: finalBody,
                 is_active: document.getElementById('edit-active').checked,
                 updated_at: new Date()
             };
 
-            const { error } = await sb.from('notification_settings').update(updates).eq('id', currentEditingId);
+            let error;
+            if (currentEditingId) {
+                const res = await sb.from('notification_settings').update(updates).eq('id', currentEditingId);
+                error = res.error;
+            } else {
+                const res = await sb.from('notification_settings').insert([updates]);
+                error = res.error;
+            }
 
             if (error) {
-                alert('خطا در ذخیره‌سازی: ' + error.message);
+                alert('خطا: ' + error.message);
             } else {
                 closeModal();
                 loadSettings();
@@ -136,7 +502,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // چک کردن دسترسی ادمین قبل از لود (توسط auth.js یا مستقیماً)
             const profile = await getUserProfile();
             if (!profile || profile.role !== 'admin') {
                 window.location.href = 'index.html';
