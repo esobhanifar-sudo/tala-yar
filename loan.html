@@ -36,6 +36,31 @@
         .status-bar-bg { background-color: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
         .status-bar-fill { height: 100%; transition: width 0.5s ease-in-out, background-color 0.3s; }
         
+        /* Validation Icons CSS - Updated for Animation */
+        .validation-icon {
+            display: none;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #10b981; /* Emerald 500 */
+            pointer-events: none;
+            transition: all 0.2s ease-in-out;
+        }
+        .input-wrapper.valid .validation-icon { 
+            display: block; 
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .input-wrapper.valid input { 
+            border-color: #10b981; 
+            background-color: #f0fdf4; 
+            padding-right: 2.5rem; /* Make space for icon */
+        }
+        @keyframes popIn {
+            0% { transform: translateY(-50%) scale(0); opacity: 0; }
+            100% { transform: translateY(-50%) scale(1); opacity: 1; }
+        }
+
         /* Calendar Specific Styles */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day { 
@@ -174,21 +199,29 @@
                         </div>
                     </div>
                     
-                    <!-- NEW FIELDS -->
+                    <!-- NEW FIELDS WITH FORMATTING -->
                     <div class="grid grid-cols-2 gap-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
                         <div class="input-group">
                             <label>شماره تسهیلات</label>
-                            <input type="text" id="loanNumber" placeholder="شماره قرارداد" class="ltr text-left font-mono text-sm">
+                            <input type="text" id="loanNumber" placeholder="شماره قرارداد" class="ltr text-left font-mono text-sm" inputmode="numeric">
                         </div>
                         <div class="input-group">
                             <label>شماره کارت تسهیلات</label>
-                            <input type="text" id="loanCardNumber" placeholder="شماره کارت" class="ltr text-left font-mono text-sm">
+                            <div class="relative input-wrapper" id="cardWrapper">
+                                <input type="text" id="loanCardNumber" maxlength="19" placeholder="____-____-____-____" class="ltr text-left font-mono text-sm" oninput="formatCardNumber(this)" inputmode="numeric">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="validation-icon h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
                         </div>
                         <div class="input-group col-span-2">
                             <label>شماره شبای تسهیلات (بدون IR)</label>
-                            <div class="relative">
-                                <input type="text" id="loanShabaNumber" placeholder="...000000" class="ltr text-left font-mono text-sm pl-8">
+                            <div class="relative input-wrapper" id="shabaWrapper">
+                                <input type="text" id="loanShabaNumber" maxlength="30" placeholder="__-____-____-____-____-____-__" class="ltr text-left font-mono text-sm pl-8" oninput="formatShabaNumber(this)" inputmode="numeric">
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">IR</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="validation-icon h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
                             </div>
                         </div>
                     </div>
@@ -336,6 +369,68 @@
         let val = el.value.replace(/,/g, '').replace(/\D/g, '');
         if (val) el.value = parseInt(val).toLocaleString('en-US');
         else el.value = '';
+    }
+
+    // --- Formatting & Validation Functions ---
+    function formatCardNumber(input) {
+        let val = input.value.replace(/\D/g, ''); // remove non-digits
+        if (val.length > 16) val = val.substring(0, 16);
+        
+        // Format for display: 1234-1234...
+        let formatted = val.match(/.{1,4}/g)?.join('-') || val;
+        input.value = formatted;
+        
+        // Validation visual
+        const wrapper = input.parentElement;
+        if (val.length === 16) wrapper.classList.add('valid');
+        else wrapper.classList.remove('valid');
+    }
+
+    function validateShebaChecksum(shebaWithoutIR) {
+        if (shebaWithoutIR.length !== 24) return false;
+        
+        // Standard IBAN Validation for Iran:
+        // 1. Move "IR" + CheckDigits to the end.
+        // IR in numeric: I=18, R=27.
+        // Input: [CheckDigits][BBAN]
+        // Rearranged: [BBAN] + "1827" + [CheckDigits]
+        
+        const checkDigits = shebaWithoutIR.substring(0, 2);
+        const bban = shebaWithoutIR.substring(2);
+        
+        const numericStr = bban + "1827" + checkDigits;
+        
+        // Mod 97 Algorithm using BigInt (supported in modern browsers)
+        if (typeof BigInt !== 'undefined') {
+            return BigInt(numericStr) % 97n === 1n;
+        }
+        return false;
+    }
+
+    function formatShabaNumber(input) {
+        let val = input.value.replace(/\D/g, ''); // remove non-digits
+        if (val.length > 24) val = val.substring(0, 24);
+        
+        // Format: xx-xxxx-xxxx-xxxx-xxxx-xxxx-xx
+        // Indices to split: 2, 6, 10, 14, 18, 22
+        
+        let formatted = '';
+        for (let i = 0; i < val.length; i++) {
+            if (i === 2 || i === 6 || i === 10 || i === 14 || i === 18 || i === 22) {
+                formatted += '-';
+            }
+            formatted += val[i];
+        }
+        input.value = formatted;
+        
+        const wrapper = input.parentElement;
+        
+        // Validate checksum
+        if (validateShebaChecksum(val)) {
+            wrapper.classList.add('valid'); 
+        } else {
+            wrapper.classList.remove('valid');
+        }
     }
 
     // --- Date Helpers ---
@@ -580,8 +675,15 @@
         
         // Populate new fields
         document.getElementById('loanNumber').value = loan.loanNumber || '';
-        document.getElementById('loanCardNumber').value = loan.loanCardNumber || '';
-        document.getElementById('loanShabaNumber').value = loan.loanShabaNumber || '';
+        
+        // Apply value AND format
+        const cardEl = document.getElementById('loanCardNumber');
+        cardEl.value = loan.loanCardNumber || '';
+        formatCardNumber(cardEl);
+        
+        const shabaEl = document.getElementById('loanShabaNumber');
+        shabaEl.value = loan.loanShabaNumber || '';
+        formatShabaNumber(shabaEl);
 
         if(!document.getElementById('firstInstallmentDate').value) syncDates('start');
 
@@ -599,6 +701,11 @@
         document.getElementById('repaymentType').value = 'monthly';
         toggleRepaymentFields();
         syncDates('start');
+        
+        // Reset validation styles
+        document.getElementById('cardWrapper').classList.remove('valid');
+        document.getElementById('shabaWrapper').classList.remove('valid');
+
         document.getElementById('formCard').classList.remove('border-blue-300', 'bg-blue-50');
         document.getElementById('formTitle').innerText = 'ثبت تسهیلات جدید';
         document.getElementById('btnSubmit').innerText = 'ثبت وام در سیستم';
@@ -634,10 +741,10 @@
             grace_period: parseInt(document.getElementById('gracePeriod').value) || 0,
             repayment_type: document.getElementById('repaymentType').value,
 
-            // NEW DB COLUMNS
+            // NEW DB COLUMNS - STRIP DASHES
             loan_number: document.getElementById('loanNumber').value,
-            loan_card_number: document.getElementById('loanCardNumber').value,
-            loan_shaba_number: document.getElementById('loanShabaNumber').value
+            loan_card_number: document.getElementById('loanCardNumber').value.replace(/-/g, ''),
+            loan_shaba_number: document.getElementById('loanShabaNumber').value.replace(/-/g, '')
         };
 
         let error = null;
