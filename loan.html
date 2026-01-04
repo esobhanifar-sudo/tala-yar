@@ -173,6 +173,26 @@
                             <input type="text" id="borrower" placeholder="نام شخص" required>
                         </div>
                     </div>
+                    
+                    <!-- NEW FIELDS -->
+                    <div class="grid grid-cols-2 gap-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <div class="input-group">
+                            <label>شماره تسهیلات</label>
+                            <input type="text" id="loanNumber" placeholder="شماره قرارداد" class="ltr text-left font-mono text-sm">
+                        </div>
+                        <div class="input-group">
+                            <label>شماره کارت تسهیلات</label>
+                            <input type="text" id="loanCardNumber" placeholder="شماره کارت" class="ltr text-left font-mono text-sm">
+                        </div>
+                        <div class="input-group col-span-2">
+                            <label>شماره شبای تسهیلات (بدون IR)</label>
+                            <div class="relative">
+                                <input type="text" id="loanShabaNumber" placeholder="...000000" class="ltr text-left font-mono text-sm pl-8">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">IR</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- END NEW FIELDS -->
 
                     <div class="input-group">
                         <label>مبلغ اصل وام (تومان)</label>
@@ -434,7 +454,12 @@
             goldWeight: row.gold_weight || 0,
             gracePeriod: row.grace_period || 0,
             firstInstallmentDate: row.first_installment_date || row.start_date, 
-            repaymentType: row.repayment_type || 'monthly'
+            repaymentType: row.repayment_type || 'monthly',
+
+            // NEW FIELDS ADDED HERE
+            loanNumber: row.loan_number || '',
+            loanCardNumber: row.loan_card_number || '',
+            loanShabaNumber: row.loan_shaba_number || ''
         }));
 
         window.updateAllLoans();
@@ -552,6 +577,12 @@
         document.getElementById('startDate').value = loan.startDate;
         document.getElementById('gracePeriod').value = loan.gracePeriod;
         document.getElementById('firstInstallmentDate').value = loan.firstInstallmentDate || '';
+        
+        // Populate new fields
+        document.getElementById('loanNumber').value = loan.loanNumber || '';
+        document.getElementById('loanCardNumber').value = loan.loanCardNumber || '';
+        document.getElementById('loanShabaNumber').value = loan.loanShabaNumber || '';
+
         if(!document.getElementById('firstInstallmentDate').value) syncDates('start');
 
         document.getElementById('formCard').classList.add('border-blue-300', 'bg-blue-50');
@@ -601,7 +632,12 @@
             gold_weight: document.getElementById('goldWeight').value || 0,
             first_installment_date: document.getElementById('firstInstallmentDate').value,
             grace_period: parseInt(document.getElementById('gracePeriod').value) || 0,
-            repayment_type: document.getElementById('repaymentType').value
+            repayment_type: document.getElementById('repaymentType').value,
+
+            // NEW DB COLUMNS
+            loan_number: document.getElementById('loanNumber').value,
+            loan_card_number: document.getElementById('loanCardNumber').value,
+            loan_shaba_number: document.getElementById('loanShabaNumber').value
         };
 
         let error = null;
