@@ -15,11 +15,15 @@
         /* استایل تب‌سوییچ */
         .toggle-checkbox:checked { right: 0; border-color: #f59e0b; }
         .toggle-checkbox:checked + .toggle-label { background-color: #f59e0b; }
+        
+        /* مخفی کردن محتوا تا زمان بارگذاری کامل */
+        body.loading > * { opacity: 0; }
+        body.loading { pointer-events: none; }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBmaWxsPSIjMWUyOTNiIiBmaWxsLW9wYWNpdHk9IjAuNCI+PHBhdGggZD0iTTM2IDM0di00aC0ydjRoLTR2MmgydjRoMnYtNGg0di0yaC00em0wLTMwVjBoLTJ2NGgtNHYyaDR2NGgyVjZoNFY0aC00ek02IDM0di00SDR2NEgwdjJoNHY0aDJ2LTRoNHYtMkg2ek02IDRWMEg0djRIMHYyaDR2NGgyVjZoNFY0SDZ6Ii8+PC9nPjwvZz48L3N2Zz4=')]">
+<body class="p-4 md:p-8 min-h-screen bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBmaWxsPSIjMWUyOTNiIiBmaWxsLW9wYWNpdHk9IjAuNCI+PHBhdGggZD0iTTM2IDM0di00aC0ydjRoLTR2MmgydjRoMnYtNGg0di0yaC00em0wLTMwVjBoLTJ2NGgtNHYyaDR2NGgyVjZoNFY0aC00ek02IDM0di00SDR2NEgwdjJoNHY0aDJ2LTRoNHYtMkg2ek02IDRWMEg0djRIMHYyaDR2NGgyVjZoNFY0SDZ6Ii8+PC9nPjwvZz48L3N2Zz4=')] loading">
     
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-4xl mx-auto transition-opacity duration-500 ease-in-out">
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-white">پنل مدیریت اطلاع‌رسانی</h1>
@@ -58,7 +62,7 @@
             <div class="text-sm text-indigo-200 leading-relaxed">
                 <p class="font-bold mb-1">راهنمای هوشمند:</p>
                 <ul class="list-disc list-inside space-y-1 text-xs opacity-80">
-                    <li>متغیرهای زیر دقیقاً با نام ستون‌های دیتابیس هماهنگ شده‌اند تا اطلاعات به درستی نمایش داده شوند:</li>
+                    <li>متغیرهای زیر دقیقاً با نام ستون‌های دیتابیس هماهنگ شده‌اند:</li>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 bg-slate-900/50 p-3 rounded border border-slate-700 font-mono text-[11px] text-amber-300 ltr">
                         <div class="text-right">{bank_name} : نام بانک</div>
                         <div class="text-right">{borrower_name} : نام وام‌گیرنده</div>
@@ -195,8 +199,56 @@
         </div>
     </div>
 
-    <script src="auth.js"></script>
     <script>
+        // ==========================================
+        // تنظیمات اتصال به Supabase 
+        // ==========================================
+        
+        // مقادیر زیر را حتماً با اطلاعات واقعی پروژه خود جایگزین کنید
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+        let sb;
+
+        try {
+            if (typeof supabase !== 'undefined') {
+                sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else {
+                console.error('کتابخانه Supabase بارگذاری نشده است.');
+            }
+        } catch (e) {
+            console.error('خطا در راه‌اندازی Supabase:', e);
+        }
+
+        // بررسی لاگین و دسترسی ادمین
+        async function checkAdminAuth() {
+            if (!sb) {
+                alert('اتصال به دیتابیس برقرار نیست.');
+                return null;
+            }
+            
+            const { data: { session }, error } = await sb.auth.getSession();
+            
+            if (error || !session) {
+                // اگر کاربر لاگین نباشد، هدایت به صفحه لاگین
+                window.location.href = 'index.html'; 
+                return null;
+            }
+
+            // در اینجا می‌توانید چک کنید که آیا کاربر ادمین است یا خیر
+            // مثال: چک کردن جدول profiles
+            /*
+            const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+            if (profile?.role !== 'admin') {
+                alert('شما اجازه دسترسی به این صفحه را ندارید.');
+                window.location.href = 'index.html';
+                return null;
+            }
+            */
+            
+            return session.user;
+        }
+
         let currentEditingId = null;
         let editorMode = 'simple'; // simple | advanced
 
@@ -357,6 +409,12 @@
 
         async function loadSettings() {
             const container = document.getElementById('settings-list');
+            
+            if (!sb) {
+                container.innerHTML = `<p class="text-red-400 text-center">خطا: اتصال به دیتابیس برقرار نیست. لطفا کلیدهای API را در کد وارد کنید.</p>`;
+                return;
+            }
+
             const { data, error } = await sb.from('notification_settings').select('*').order('id');
             
             if (error) {
@@ -489,8 +547,8 @@
         async function saveSettings() {
             try {
                 // Check DB Connection
-                if (typeof sb === 'undefined') {
-                    alert('خطا: ارتباط با سرور برقرار نیست. لطفا صفحه را رفرش کنید یا از اتصال اینترنت خود مطمئن شوید.');
+                if (!sb) {
+                    alert('خطا: ارتباط با سرور برقرار نیست. لطفا کلیدهای API را در کد وارد کنید.');
                     return;
                 }
 
@@ -570,13 +628,13 @@
             }
         }
 
+        // بررسی ورود کاربر هنگام لود صفحه
         document.addEventListener('DOMContentLoaded', async () => {
-            const profile = await getUserProfile();
-            if (!profile || profile.role !== 'admin') {
-                window.location.href = 'index.html';
-                return;
+            const user = await checkAdminAuth();
+            if (user) {
+                document.body.classList.remove('loading'); // نمایش صفحه بعد از تایید هویت
+                loadSettings();
             }
-            loadSettings();
         });
     </script>
 </body>
