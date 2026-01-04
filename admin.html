@@ -58,9 +58,17 @@
             <div class="text-sm text-indigo-200 leading-relaxed">
                 <p class="font-bold mb-1">راهنمای هوشمند:</p>
                 <ul class="list-disc list-inside space-y-1 text-xs opacity-80">
-                    <li>زمان‌ها را به <strong>وقت تهران</strong> وارد کنید؛ سیستم خودکار آن را برای سرور تنظیم می‌کند.</li>
-                    <li>در متن ایمیل، هرجا بنویسید <code>{bank_name}</code>، نام بانک کاربر جایگزین می‌شود.</li>
-                    <li>از حالت «متن ساده» استفاده کنید تا نیازی به کدنویسی HTML نداشته باشید.</li>
+                    <li>متغیرهای زیر دقیقاً با نام ستون‌های دیتابیس هماهنگ شده‌اند تا اطلاعات به درستی نمایش داده شوند:</li>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 bg-slate-900/50 p-3 rounded border border-slate-700 font-mono text-[11px] text-amber-300 ltr">
+                        <div class="text-right">{bank_name} : نام بانک</div>
+                        <div class="text-right">{borrower_name} : نام وام‌گیرنده</div>
+                        <div class="text-right">{loan_number} : شماره تسهیلات</div>
+                        <div class="text-right">{loan_card_number} : شماره کارت</div>
+                        <div class="text-right">{loan_shaba_number} : شماره شبا</div>
+                        <div class="text-right">{amount} : مبلغ (محاسباتی)</div>
+                        <div class="text-right">{due_date} : سررسید (محاسباتی)</div>
+                    </div>
+                    <li class="mt-2 text-amber-500">نکته: اگر هنوز فیلدی خالی است، بررسی کنید که در فرم «ثبت وام» آن را پر کرده باشید.</li>
                 </ul>
             </div>
         </div>
@@ -86,11 +94,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs text-slate-400 mb-1.5">شناسه سیستمی (غیرقابل تغییر)</label>
-                        <input id="edit-job-name" type="text" placeholder="مثال: loan_reminder_1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm ltr placeholder-slate-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition">
+                        <input id="edit-job-name" type="text" placeholder="مثال: loan_reminder_1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm ltr placeholder-slate-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition" required>
                     </div>
                     <div>
                         <label class="block text-xs text-slate-400 mb-1.5">نام نمایشی (برای مدیریت)</label>
-                        <input id="edit-display-name" type="text" placeholder="مثال: یادآوری هفتگی شنبه‌ها" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition">
+                        <input id="edit-display-name" type="text" placeholder="مثال: یادآوری هفتگی شنبه‌ها" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition" required>
                     </div>
                 </div>
 
@@ -364,10 +372,10 @@
                 // بیایید نام روز را درست پیدا کنیم.
                 let dayLabel = '';
                 if(info.type === 'weekly') {
-                     // تبدیل کد عددی روز به متن فارسی
-                     // نگاشت ما: 6=شنبه, 0=یک, 1=دو...
-                     const map = {6:'شنبه', 0:'یک‌شنبه', 1:'دوشنبه', 2:'سه‌شنبه', 3:'چهارشنبه', 4:'پنج‌شنبه', 5:'جمعه'};
-                     dayLabel = map[info.day] + '‌ها، ';
+                      // تبدیل کد عددی روز به متن فارسی
+                      // نگاشت ما: 6=شنبه, 0=یک, 1=دو...
+                      const map = {6:'شنبه', 0:'یک‌شنبه', 1:'دوشنبه', 2:'سه‌شنبه', 3:'چهارشنبه', 4:'پنج‌شنبه', 5:'جمعه'};
+                      dayLabel = map[info.day] + '‌ها، ';
                 }
 
                 return `
@@ -412,8 +420,27 @@
             document.getElementById('edit-time-tehran').value = '12:00';
             generateCron();
             
-            document.getElementById('edit-subject').value = '';
-            document.getElementById('edit-body-simple').value = '';
+            document.getElementById('edit-subject').value = 'یادآوری پرداخت قسط - {bank_name}';
+            
+            // متن پیش‌فرض با متغیرهای صحیح
+            const defaultTemplate = `سلام {borrower_name} عزیز،
+
+یادآوری سررسید پرداخت قسط تسهیلات شما فرا رسیده است.
+
+اطلاعات تسهیلات:
+• بانک: {bank_name}
+• مبلغ قسط: {amount} تومان
+• تاریخ سررسید: {due_date}
+
+اطلاعات حساب جهت واریز:
+• شماره تسهیلات: {loan_number}
+• شماره کارت: {loan_card_number}
+• شماره شبا: {loan_shaba_number}
+
+لطفاً در اسرع وقت نسبت به پرداخت اقدام نمایید.
+با تشکر، سیستم مدیریت رهدیس`;
+
+            document.getElementById('edit-body-simple').value = defaultTemplate;
             document.getElementById('edit-body-html').value = '';
             setEditorMode('simple');
             
@@ -460,44 +487,86 @@
         }
 
         async function saveSettings() {
-            // ساخت بدنه نهایی
-            let finalBody = '';
-            if (editorMode === 'simple') {
-                const txt = document.getElementById('edit-body-simple').value;
-                // تبدیل متن ساده به استاندارد HTML
-                finalBody = `<div style="direction:rtl; font-family: Tahoma, 'Vazirmatn', sans-serif; padding: 20px; line-height: 1.8; color: #333;">
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                        ${txt.split('\n').map(line => `<p style="margin: 0 0 10px;">${line}</p>`).join('')}
-                    </div>
-                </div>`;
-            } else {
-                finalBody = document.getElementById('edit-body-html').value;
-            }
+            try {
+                // Check DB Connection
+                if (typeof sb === 'undefined') {
+                    alert('خطا: ارتباط با سرور برقرار نیست. لطفا صفحه را رفرش کنید یا از اتصال اینترنت خود مطمئن شوید.');
+                    return;
+                }
 
-            const updates = {
-                job_name: document.getElementById('edit-job-name').value,
-                display_name: document.getElementById('edit-display-name').value,
-                cron_schedule: document.getElementById('edit-cron').value,
-                email_subject: document.getElementById('edit-subject').value,
-                email_template: finalBody,
-                is_active: document.getElementById('edit-active').checked,
-                updated_at: new Date()
-            };
+                // Basic Validation
+                const jobName = document.getElementById('edit-job-name').value.trim();
+                const displayName = document.getElementById('edit-display-name').value.trim();
+                const cron = document.getElementById('edit-cron').value;
 
-            let error;
-            if (currentEditingId) {
-                const res = await sb.from('notification_settings').update(updates).eq('id', currentEditingId);
-                error = res.error;
-            } else {
-                const res = await sb.from('notification_settings').insert([updates]);
-                error = res.error;
-            }
+                if (!jobName || !displayName || !cron) {
+                    alert('لطفاً تمام فیلدهای ضروری (شناسه سیستمی، نام نمایشی و زمان‌بندی) را پر کنید.');
+                    return;
+                }
 
-            if (error) {
-                alert('خطا: ' + error.message);
-            } else {
-                closeModal();
-                loadSettings();
+                // ساخت بدنه نهایی
+                let finalBody = '';
+                if (editorMode === 'simple') {
+                    const txt = document.getElementById('edit-body-simple').value;
+                    // تبدیل متن ساده به استاندارد HTML حرفه‌ای و ریسپانسیو
+                    finalBody = `
+<div style="direction: rtl; font-family: 'Vazirmatn', Tahoma, sans-serif; background-color: #f3f4f6; margin: 0; padding: 40px 0;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
+        <!-- Header -->
+        <tr>
+            <td style="background-color: #1e293b; padding: 24px; text-align: center; border-bottom: 4px solid #f59e0b;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold; font-family: 'Vazirmatn', sans-serif;">سیستم هوشمند رهدیس</h1>
+            </td>
+        </tr>
+        <!-- Content -->
+        <tr>
+            <td style="padding: 32px 24px; color: #334155; font-size: 16px; line-height: 1.8;">
+                ${txt.split('\n').filter(l => l.trim()).map(line => `<p style="margin: 0 0 16px;">${line}</p>`).join('')}
+            </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+            <td style="background-color: #f8fafc; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+                <p style="margin: 0; font-size: 12px; color: #94a3b8;">این ایمیل به صورت خودکار ارسال شده است.<br>لطفاً به این پیام پاسخ ندهید.</p>
+            </td>
+        </tr>
+    </table>
+</div>`;
+                } else {
+                    finalBody = document.getElementById('edit-body-html').value;
+                }
+
+                const updates = {
+                    job_name: jobName,
+                    display_name: displayName,
+                    cron_schedule: cron,
+                    email_subject: document.getElementById('edit-subject').value,
+                    email_template: finalBody,
+                    is_active: document.getElementById('edit-active').checked,
+                    updated_at: new Date()
+                };
+
+                let error;
+                if (currentEditingId) {
+                    const res = await sb.from('notification_settings').update(updates).eq('id', currentEditingId);
+                    error = res.error;
+                } else {
+                    // For new records, let DB handle created_at, or if needed:
+                    // updates.created_at = new Date(); 
+                    const res = await sb.from('notification_settings').insert([updates]);
+                    error = res.error;
+                }
+
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    alert('خطا در ذخیره‌سازی: ' + error.message + '\n(See console for details)');
+                } else {
+                    closeModal();
+                    loadSettings();
+                }
+            } catch (err) {
+                console.error('Application Error:', err);
+                alert('خطای سیستمی رخ داد: ' + err.message);
             }
         }
 
