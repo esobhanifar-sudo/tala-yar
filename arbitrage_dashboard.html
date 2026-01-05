@@ -21,20 +21,48 @@
             } else {
                 console.log("Standalone mode: skipping auth check.");
             }
+            // Load saved font scale
+            const savedScale = localStorage.getItem('numScale');
+            if (savedScale) {
+                updateNumberScale(parseFloat(savedScale));
+                document.getElementById('fontScaleSlider').value = savedScale;
+            }
         });
     </script>
 
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
+        :root {
+            --num-scale: 1;
+        }
         body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; color: #e2e8f0; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .chart-container { position: relative; height: 300px; width: 100%; }
         .ticker-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #334155; transition: background 0.2s; }
         .ticker-item:hover { background: rgba(255,255,255,0.05); }
-        .bubble-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 99px; font-weight: bold; min-width: 50px; text-align: center; }
+        .bubble-badge { font-size: calc(0.75rem * var(--num-scale)); padding: 2px 8px; border-radius: 99px; font-weight: bold; min-width: 50px; text-align: center; transition: font-size 0.2s; }
         .bubble-high { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; } /* Sell Signal */
         .bubble-low { background-color: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; } /* Buy Signal */
         .bubble-mid { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+
+        /* Dynamic Font Size Classes for Numbers */
+        .num-xxs { font-size: calc(0.625rem * var(--num-scale)); line-height: 1.2; transition: font-size 0.2s; } /* ~10px base */
+        .num-xs  { font-size: calc(0.75rem * var(--num-scale)); line-height: 1.3; transition: font-size 0.2s; }  /* ~12px base */
+        .num-sm  { font-size: calc(0.875rem * var(--num-scale)); line-height: 1.4; transition: font-size 0.2s; } /* ~14px base */
+        .num-base{ font-size: calc(1rem * var(--num-scale)); line-height: 1.5; transition: font-size 0.2s; }     /* ~16px base */
+        .num-lg  { font-size: calc(1.125rem * var(--num-scale)); line-height: 1.5; transition: font-size 0.2s; } /* ~18px base */
+        .num-xl  { font-size: calc(1.5rem * var(--num-scale)); line-height: 1.5; transition: font-size 0.2s; }   /* ~24px base */
+        
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #fbbf24; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20 selection:bg-amber-500 selection:text-white">
@@ -92,6 +120,23 @@
 
             <!-- Settings -->
             <div class="glass-panel rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-slate-300 mb-3 border-b border-slate-700 pb-2">تنظیمات نمایش</h3>
+                
+                <!-- Font Size Slider -->
+                <div class="mb-4">
+                    <label class="text-xs text-slate-400 block mb-2 font-medium flex justify-between">
+                        <span>بزرگ‌نمایی اعداد</span>
+                        <span id="scaleValueDisplay" class="text-amber-400 font-mono">1.0x</span>
+                    </label>
+                    <input type="range" id="fontScaleSlider" min="0.8" max="1.6" step="0.1" value="1" 
+                           oninput="updateNumberScale(this.value)" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                        <span>کوچک</span>
+                        <span>استاندارد</span>
+                        <span>بزرگ</span>
+                    </div>
+                </div>
+
                 <label class="text-xs text-slate-400 block mb-3 font-medium">فیلتر بازه زمانی</label>
                 <div class="flex bg-slate-800/50 rounded-lg p-1 border border-slate-700">
                     <button onclick="fetchHistory(7)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-slate-600 hover:text-white focus:bg-slate-600 focus:text-white text-slate-400 shadow-sm transition">7 روز</button>
@@ -215,9 +260,31 @@
     let halfAnalysisChartInstance = null;
     let quarterChartInstance = null;
     let supabaseClient = null;
+    let globalFontScale = 1;
 
     // --- Helpers ---
     
+    function updateNumberScale(val) {
+        globalFontScale = parseFloat(val);
+        document.documentElement.style.setProperty('--num-scale', val);
+        document.getElementById('scaleValueDisplay').innerText = val + 'x';
+        localStorage.setItem('numScale', val);
+        
+        // Update Chart Font Sizes dynamically
+        const newSize = Math.round(12 * globalFontScale);
+        Chart.defaults.font.size = newSize;
+        
+        const charts = [bubbleChartInstance, priceChartInstance, fullAnalysisChartInstance, halfAnalysisChartInstance, quarterChartInstance];
+        charts.forEach(chart => {
+            if (chart) {
+                chart.options.scales.x.ticks.font = { size: Math.max(10, newSize - 2), family: 'Vazirmatn' };
+                chart.options.scales.y.ticks.font = { size: Math.max(10, newSize - 2), family: 'Vazirmatn' };
+                // Update Tooltip font if needed, though Chart.js defaults might handle it
+                chart.update('none'); // Update without animation for performance
+            }
+        });
+    }
+
     function parsePrice(value) {
         if (typeof value === 'number') return value;
         if (typeof value === 'string') {
@@ -476,7 +543,7 @@
                     </div>
                     <div class="mt-1 text-center">
                         <span class="text-[10px] text-slate-400">سود احتمالی جابجایی:</span>
-                        <span class="text-amber-400 font-bold text-md ltr font-mono ml-1">${gap.toFixed(1)}%</span>
+                        <span class="num-lg text-amber-400 font-bold ltr font-mono ml-1">${gap.toFixed(1)}%</span>
                     </div>
                 </div>
             `;
@@ -490,7 +557,7 @@
         const displayOrder = ['full', 'half', 'quarter'];
         
         let html = `<div class="text-[10px] text-slate-500 mb-3 text-center bg-slate-800/50 rounded py-1 border border-slate-700/50">
-            قیمت طلای ۱۸ عیار: <span class="font-mono text-slate-300 text-xs">${baseGold.toLocaleString()}</span> تومان
+            قیمت طلای ۱۸ عیار: <span class="font-mono text-slate-300 num-xs">${baseGold.toLocaleString()}</span> تومان
         </div>`;
 
         displayOrder.forEach(key => {
@@ -505,11 +572,11 @@
                 <div class="ticker-item group">
                     <div>
                         <div class="text-sm text-slate-200 font-bold group-hover:text-white transition">${item.name}</div>
-                        <div class="text-[10px] text-slate-500 font-mono mt-0.5">${item.price.toLocaleString()} T</div>
+                        <div class="num-xxs text-slate-500 font-mono mt-0.5">${item.price.toLocaleString()} T</div>
                     </div>
                     <div class="text-right flex flex-col items-end">
                         <div class="${badgeClass} bubble-badge ltr font-mono">${item.bubblePercent.toFixed(1)}%</div>
-                        <div class="text-[10px] text-slate-500 mt-1 ltr font-mono opacity-70">Gap: ${(item.bubbleAmount/1000000).toFixed(2)} M</div>
+                        <div class="num-xxs text-slate-500 mt-1 ltr font-mono opacity-70">Gap: ${(item.bubbleAmount/1000000).toFixed(2)} M</div>
                     </div>
                 </div>
             `;
@@ -522,6 +589,8 @@
     function initCharts() {
         Chart.defaults.font.family = 'Vazirmatn';
         Chart.defaults.color = '#64748b';
+        // Base Font Size, will be updated by slider
+        Chart.defaults.font.size = 12;
 
         // 1. Bubble Chart
         const ctxBubble = document.getElementById('bubbleChart').getContext('2d');
