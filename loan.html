@@ -357,6 +357,14 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 translate-y-24 opacity-0 z-[100] border border-slate-700 pointer-events-none">
+        <div id="toastIcon" class="bg-emerald-500 rounded-full p-1 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <span id="toastMessage" class="font-bold text-sm">عملیات موفقیت‌آمیز بود</span>
+    </div>
+
 <script>
     // --- State Management ---
     let loans = [];
@@ -371,6 +379,31 @@
         let val = el.value.replace(/,/g, '').replace(/\D/g, '');
         if (val) el.value = parseInt(val).toLocaleString('en-US');
         else el.value = '';
+    }
+
+    // --- Toast Logic ---
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        const msg = document.getElementById('toastMessage');
+        const icon = document.getElementById('toastIcon');
+        
+        msg.innerText = message;
+        
+        if(type === 'success') {
+            icon.className = 'bg-emerald-500 rounded-full p-1 shrink-0';
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+        } else {
+             icon.className = 'bg-red-500 rounded-full p-1 shrink-0';
+             icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>';
+        }
+
+        // Show
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        
+        // Hide after 3s
+        setTimeout(() => {
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3000);
     }
 
     // --- Formatting & Validation Functions ---
@@ -767,9 +800,11 @@
 
         if (error) {
             console.error(error);
-            alert('خطا در ذخیره اطلاعات: ' + error.message);
+            showToast('خطا در ذخیره اطلاعات: ' + error.message, 'error');
         } else {
             fetchLoansDB();
+            const action = editingLoanId ? 'ویرایش' : 'ثبت';
+            showToast(`وام با موفقیت ${action} شد`);
             cancelEditMode();
         }
     }
