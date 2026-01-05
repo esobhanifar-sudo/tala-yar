@@ -304,17 +304,32 @@
         <!-- Right Column -->
         <div class="lg:col-span-8">
             
-            <!-- Overdue Alert Section -->
-            <div id="overdueSection" class="hidden mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 md:p-5 shadow-sm relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-1 h-full bg-red-500"></div>
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-                    <h2 class="text-red-700 font-bold flex items-center gap-2 text-sm md:text-base">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
-                        اقساط سررسید گذشته (نیاز به اقدام فوری)
-                    </h2>
-                    <span id="overdueTotal" class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold self-end sm:self-auto">0 مورد</span>
+            <!-- Overdue Alert Section (Accordion) -->
+            <div id="overdueSection" class="hidden mb-6 bg-white border border-red-100 rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
+                <!-- Header / Summary -->
+                <div onclick="toggleOverdue()" class="bg-red-50 p-4 md:p-5 flex justify-between items-center cursor-pointer hover:bg-red-100 transition relative">
+                    <div class="absolute top-0 right-0 w-1 h-full bg-red-500"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-red-100 text-red-600 p-2 rounded-full shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-red-800 font-bold text-sm md:text-base">اقساط سررسید گذشته (نیاز به اقدام)</h2>
+                            <p id="overdueSummaryText" class="text-xs text-red-600 mt-1">در حال محاسبه...</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                         <span id="overdueTotalBadge" class="bg-red-200 text-red-800 text-xs px-2 py-1 rounded-full font-bold">0</span>
+                         <svg id="overdueChevron" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
+                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                         </svg>
+                    </div>
                 </div>
-                <div id="overdueList" class="space-y-2"></div>
+
+                <!-- Body / Details -->
+                <div id="overdueBody" class="max-h-0 overflow-hidden transition-all duration-500 ease-in-out bg-white">
+                    <div id="overdueList" class="p-4 space-y-2 border-t border-red-100"></div>
+                </div>
             </div>
 
             <!-- Loan List -->
@@ -404,6 +419,20 @@
         setTimeout(() => {
             toast.classList.add('translate-y-24', 'opacity-0');
         }, 3000);
+    }
+
+    // --- Accordion Logic ---
+    function toggleOverdue() {
+        const body = document.getElementById('overdueBody');
+        const chevron = document.getElementById('overdueChevron');
+        
+        if (body.style.maxHeight) {
+            body.style.maxHeight = null;
+            chevron.style.transform = 'rotate(0deg)';
+        } else {
+            body.style.maxHeight = body.scrollHeight + "px";
+            chevron.style.transform = 'rotate(180deg)';
+        }
     }
 
     // --- Formatting & Validation Functions ---
@@ -913,12 +942,14 @@
     function renderOverdueSection() {
         const container = document.getElementById('overdueList');
         const section = document.getElementById('overdueSection');
-        const totalBadge = document.getElementById('overdueTotal');
+        const totalBadge = document.getElementById('overdueTotalBadge');
+        const summaryText = document.getElementById('overdueSummaryText');
+        
         const todayStr = formatJalaliDate(getTodayJalali());
-        const todayJ = getTodayJalali();
         
         container.innerHTML = '';
         let overdueCount = 0;
+        let totalOverdueAmount = 0;
 
         loans.forEach(loan => {
             const installmentAmount = Math.round(loan.totalRepayment / loan.installmentsTotal);
@@ -928,6 +959,7 @@
                 const dueDateStr = formatJalaliDate(dueDateObj);
                 if (compareJalaliDates(dueDateStr, todayStr) < 0) {
                     overdueCount++;
+                    totalOverdueAmount += installmentAmount;
                     container.innerHTML += `
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-3 rounded border border-red-100 shadow-sm mb-2 gap-2">
                             <div class="flex items-center gap-3">
@@ -943,8 +975,14 @@
             }
         });
         
-        if(overdueCount > 0) { section.classList.remove('hidden'); totalBadge.innerText = `${overdueCount} قسط`; } 
-        else { section.classList.add('hidden'); }
+        if(overdueCount > 0) { 
+            section.classList.remove('hidden'); 
+            totalBadge.innerText = `${overdueCount} مورد`;
+            summaryText.innerText = `${overdueCount} قسط به مبلغ کل ${formatNumber(totalOverdueAmount)} تومان`;
+        } 
+        else { 
+            section.classList.add('hidden'); 
+        }
     }
 
     function renderLoans() {
