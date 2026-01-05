@@ -123,7 +123,43 @@
                 </div>
             </div>
 
-            <!-- Chart 2: Quarter Coin Specific Analysis -->
+            <!-- Chart 2: Full Coin Specific Analysis (NEW) -->
+            <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-amber-500/30">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        آنالیز اختصاصی تمام سکه: قیمت بازار vs ارزش ذاتی
+                    </h2>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>قیمت بازار</span>
+                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-200"></span>ارزش ذاتی (طلا)</span>
+                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="fullAnalysisChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Half Coin Specific Analysis (NEW) -->
+            <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-blue-500/30">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold text-blue-400 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12a8 8 0 00-8-8v8l5.5 5.5" /></svg>
+                        آنالیز اختصاصی نیم سکه: قیمت بازار vs ارزش ذاتی
+                    </h2>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span>قیمت بازار</span>
+                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>ارزش ذاتی (طلا)</span>
+                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="halfAnalysisChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Quarter Coin Specific Analysis -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-emerald-500/30">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-bold text-emerald-400 flex items-center gap-2">
@@ -141,7 +177,7 @@
                 </div>
             </div>
 
-            <!-- Chart 3: Price Trends -->
+            <!-- Chart 5: Price Trends -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
@@ -175,6 +211,8 @@
     // --- State ---
     let bubbleChartInstance = null;
     let priceChartInstance = null;
+    let fullAnalysisChartInstance = null;
+    let halfAnalysisChartInstance = null;
     let quarterChartInstance = null;
     let supabaseClient = null;
 
@@ -275,6 +313,8 @@
         // Clear current data
         if (bubbleChartInstance) { bubbleChartInstance.data.datasets.forEach(ds => ds.data = []); bubbleChartInstance.update(); }
         if (priceChartInstance) { priceChartInstance.data.datasets.forEach(ds => ds.data = []); priceChartInstance.update(); }
+        if (fullAnalysisChartInstance) { fullAnalysisChartInstance.data.datasets.forEach(ds => ds.data = []); fullAnalysisChartInstance.update(); }
+        if (halfAnalysisChartInstance) { halfAnalysisChartInstance.data.datasets.forEach(ds => ds.data = []); halfAnalysisChartInstance.update(); }
         if (quarterChartInstance) { quarterChartInstance.data.datasets.forEach(ds => ds.data = []); quarterChartInstance.update(); }
 
         try {
@@ -302,7 +342,11 @@
                 const halfPrice = [];
                 const quarterPrice = [];
 
-                // Quarter Analysis specific
+                // Analysis Specific Arrays
+                const fullIntrinsic = [];
+                const fullBubblePct = [];
+                const halfIntrinsic = [];
+                const halfBubblePct = [];
                 const quarterIntrinsic = [];
                 const quarterBubblePct = [];
 
@@ -319,11 +363,13 @@
                     const pHalfRials = parseFloat(day.Avg_Half);
                     const pQuarterRials = parseFloat(day.Avg_Quarter);
 
-                    // Calc bubbles
+                    // Calculate Metrics
+                    const fullMetrics = calculateMetrics(pFullRials, COIN_SPECS.full.weight, gram18kRials);
+                    const halfMetrics = calculateMetrics(pHalfRials, COIN_SPECS.half.weight, gram18kRials);
                     const quarterMetrics = calculateMetrics(pQuarterRials, COIN_SPECS.quarter.weight, gram18kRials);
                     
-                    fullBubble.push(calculateMetrics(pFullRials, COIN_SPECS.full.weight, gram18kRials).bubblePercent);
-                    halfBubble.push(calculateMetrics(pHalfRials, COIN_SPECS.half.weight, gram18kRials).bubblePercent);
+                    fullBubble.push(fullMetrics.bubblePercent);
+                    halfBubble.push(halfMetrics.bubblePercent);
                     quarterBubble.push(quarterMetrics.bubblePercent);
                     goldPrice.push(gram18kToman);
 
@@ -332,7 +378,13 @@
                     halfPrice.push(pHalfRials / 10);
                     quarterPrice.push(pQuarterRials / 10);
 
-                    // Quarter Analysis Data (Tomans)
+                    // Populate Analysis Data
+                    fullIntrinsic.push(fullMetrics.intrinsicValue / 10);
+                    fullBubblePct.push(fullMetrics.bubblePercent);
+                    
+                    halfIntrinsic.push(halfMetrics.intrinsicValue / 10);
+                    halfBubblePct.push(halfMetrics.bubblePercent);
+
                     quarterIntrinsic.push(quarterMetrics.intrinsicValue / 10);
                     quarterBubblePct.push(quarterMetrics.bubblePercent);
                 });
@@ -354,6 +406,24 @@
                     priceChartInstance.data.datasets[1].data = halfPrice;
                     priceChartInstance.data.datasets[2].data = quarterPrice;
                     priceChartInstance.update();
+                }
+
+                // Update Full Coin Analysis
+                if (fullAnalysisChartInstance) {
+                    fullAnalysisChartInstance.data.labels = labels;
+                    fullAnalysisChartInstance.data.datasets[0].data = fullIntrinsic;
+                    fullAnalysisChartInstance.data.datasets[1].data = fullPrice;
+                    fullAnalysisChartInstance.data.datasets[2].data = fullBubblePct;
+                    fullAnalysisChartInstance.update();
+                }
+
+                // Update Half Coin Analysis
+                if (halfAnalysisChartInstance) {
+                    halfAnalysisChartInstance.data.labels = labels;
+                    halfAnalysisChartInstance.data.datasets[0].data = halfIntrinsic;
+                    halfAnalysisChartInstance.data.datasets[1].data = halfPrice;
+                    halfAnalysisChartInstance.data.datasets[2].data = halfBubblePct;
+                    halfAnalysisChartInstance.update();
                 }
 
                 // Update Quarter Analysis Chart
@@ -480,78 +550,82 @@
             }
         });
 
-        // 2. Quarter Analysis Chart (NEW)
+        // Helper for Shared Options
+        const sharedAnalysisOptions = {
+            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6 } },
+                tooltip: { 
+                    rtl: true, 
+                    callbacks: { 
+                        label: (ctx) => {
+                            if (ctx.dataset.yAxisID === 'y1') return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
+                            return ` ${ctx.dataset.label}: ${parseInt(ctx.parsed.y).toLocaleString()} T`; 
+                        } 
+                    } 
+                }
+            },
+            scales: {
+                y: { 
+                    type: 'linear', display: true, position: 'left', grid: { color: '#1e293b' }, 
+                    ticks: { callback: (val) => (val/1000000).toFixed(1) + 'M' } 
+                },
+                y1: { 
+                    type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'درصد حباب', color: '#ef4444' },
+                    ticks: { color: '#ef4444' },
+                    suggestedMax: 100 // Keep bars somewhat low
+                },
+                x: { grid: { display: false } }
+            }
+        };
+
+        // 2. Full Coin Analysis Chart (NEW)
+        const ctxFull = document.getElementById('fullAnalysisChart').getContext('2d');
+        fullAnalysisChartInstance = new Chart(ctxFull, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'ارزش ذاتی (طلا)', data: [], borderColor: '#fef08a', backgroundColor: 'rgba(254, 240, 138, 0.1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.4, pointRadius: 0, yAxisID: 'y' },
+                    { label: 'قیمت بازار', data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 2, fill: '-1', tension: 0.4, pointRadius: 3, yAxisID: 'y' },
+                    { label: 'شدت حباب (%)', data: [], type: 'bar', backgroundColor: 'rgba(239, 68, 68, 0.3)', borderColor: 'rgba(239, 68, 68, 0.8)', borderWidth: 1, yAxisID: 'y1' }
+                ]
+            },
+            options: sharedAnalysisOptions
+        });
+
+        // 3. Half Coin Analysis Chart (NEW)
+        const ctxHalf = document.getElementById('halfAnalysisChart').getContext('2d');
+        halfAnalysisChartInstance = new Chart(ctxHalf, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'ارزش ذاتی (طلا)', data: [], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.4, pointRadius: 0, yAxisID: 'y' },
+                    { label: 'قیمت بازار', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, fill: '-1', tension: 0.4, pointRadius: 3, yAxisID: 'y' },
+                    { label: 'شدت حباب (%)', data: [], type: 'bar', backgroundColor: 'rgba(239, 68, 68, 0.3)', borderColor: 'rgba(239, 68, 68, 0.8)', borderWidth: 1, yAxisID: 'y1' }
+                ]
+            },
+            options: sharedAnalysisOptions
+        });
+
+        // 4. Quarter Analysis Chart
         const ctxQuarter = document.getElementById('quarterChart').getContext('2d');
         quarterChartInstance = new Chart(ctxQuarter, {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [
-                    { 
-                        label: 'ارزش ذاتی (طلا)', 
-                        data: [], 
-                        borderColor: '#eab308', // Yellow-500
-                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                        borderWidth: 2, 
-                        borderDash: [5, 5],
-                        fill: false,
-                        tension: 0.4, 
-                        pointRadius: 0,
-                        yAxisID: 'y'
-                    },
-                    { 
-                        label: 'قیمت بازار', 
-                        data: [], 
-                        borderColor: '#10b981', // Emerald-500
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)', // Fill color for bubble area
-                        borderWidth: 2, 
-                        fill: '-1', // Fill to previous dataset (Intrinsic)
-                        tension: 0.4, 
-                        pointRadius: 3,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'شدت حباب (%)',
-                        data: [],
-                        type: 'bar',
-                        backgroundColor: 'rgba(239, 68, 68, 0.3)', // Red-500 low opacity
-                        borderColor: 'rgba(239, 68, 68, 0.8)',
-                        borderWidth: 1,
-                        yAxisID: 'y1'
-                    }
+                    { label: 'ارزش ذاتی (طلا)', data: [], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.4, pointRadius: 0, yAxisID: 'y' },
+                    { label: 'قیمت بازار', data: [], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 2, fill: '-1', tension: 0.4, pointRadius: 3, yAxisID: 'y' },
+                    { label: 'شدت حباب (%)', data: [], type: 'bar', backgroundColor: 'rgba(239, 68, 68, 0.3)', borderColor: 'rgba(239, 68, 68, 0.8)', borderWidth: 1, yAxisID: 'y1' }
                 ]
             },
-            options: {
-                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6 } },
-                    tooltip: { 
-                        rtl: true, 
-                        callbacks: { 
-                            label: (ctx) => {
-                                if (ctx.dataset.yAxisID === 'y1') return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
-                                return ` ${ctx.dataset.label}: ${parseInt(ctx.parsed.y).toLocaleString()} T`; 
-                            } 
-                        } 
-                    }
-                },
-                scales: {
-                    y: { 
-                        type: 'linear', display: true, position: 'left', grid: { color: '#1e293b' }, 
-                        ticks: { callback: (val) => (val/1000000).toFixed(1) + 'M' } 
-                    },
-                    y1: { 
-                        type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false },
-                        title: { display: true, text: 'درصد حباب', color: '#ef4444' },
-                        ticks: { color: '#ef4444' },
-                        suggestedMax: 100 // Keep bars somewhat low
-                    },
-                    x: { grid: { display: false } }
-                }
-            }
+            options: sharedAnalysisOptions
         });
 
-        // 3. Price Chart
+        // 5. Price Chart
         const ctxPrice = document.getElementById('priceChart').getContext('2d');
         priceChartInstance = new Chart(ctxPrice, {
             type: 'line',
