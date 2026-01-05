@@ -129,26 +129,35 @@
 
         /* Table Styles */
         .comparison-table th {
-            font-weight: 500;
-            font-size: 0.75rem;
-            opacity: 0.7;
-            padding: 0.5rem;
+            font-weight: 700; /* Bold headers */
+            font-size: 0.85rem; /* Larger font */
+            opacity: 0.8;
+            padding: 1rem 0.75rem; /* More padding */
             text-align: center;
+            white-space: nowrap; /* Prevent wrap */
         }
         .comparison-table td {
-            padding: 0.5rem;
+            padding: 0.75rem; /* More padding */
             text-align: center;
             border-top: 1px solid var(--border-color);
+            white-space: nowrap;
         }
         .comparison-table tr:hover td {
             background-color: var(--item-hover);
         }
+        /* Sticky Column (Optional, if needed for mobile) */
+        /* .comparison-table td:first-child, .comparison-table th:first-child {
+            position: sticky;
+            right: 0;
+            background: var(--panel-bg);
+            z-index: 10;
+        } */
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20 selection:bg-amber-500 selection:text-white transition-colors duration-300">
 
     <!-- Header -->
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div class="text-center md:text-right">
             <h1 class="text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
                 <div class="p-2 bg-amber-500/10 rounded-full">
@@ -167,30 +176,34 @@
         </div>
     </div>
 
+    <!-- MAIN SECTION: Live Prices & Bubbles Comparison (Full Width) -->
+    <div class="max-w-7xl mx-auto mb-6">
+        <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-amber-500/20">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-gray-500/20 pb-3 gap-2">
+                <h3 class="text-xl font-bold text-amber-400 flex items-center gap-2">
+                     <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                     تابلوی جامع مقایسه زنده قیمت و حباب (تومان)
+                </h3>
+                <span id="connectionStatus" class="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">در حال اتصال...</span>
+            </div>
+            
+            <div id="marketList" class="overflow-x-auto">
+                 <!-- Table injected by JS -->
+                 <div class="text-center text-sm opacity-50 py-8">در انتظار داده‌ها...</div>
+            </div>
+            
+            <!-- Error Log Area -->
+            <div id="errorLog" class="mt-4 p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-xs text-red-300 font-mono hidden break-all"></div>
+        </div>
+    </div>
+
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        <!-- Sidebar: Market Overview -->
+        <!-- Sidebar: Settings & Controls -->
         <div class="lg:col-span-1 space-y-4">
-            <!-- Recommendation Card Removed -->
-
-            <!-- Live Prices & Bubbles Comparison Table -->
-            <div class="glass-panel rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-end mb-4 border-b border-gray-500/20 pb-3">
-                    <h3 class="text-xs font-bold opacity-60 uppercase">مقایسه زنده حباب (تومان)</h3>
-                    <span id="connectionStatus" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">در حال اتصال...</span>
-                </div>
-                
-                <div id="marketList" class="overflow-x-auto">
-                    <!-- Table injected by JS -->
-                    <div class="text-center text-xs opacity-50 py-4">در انتظار داده‌ها...</div>
-                </div>
-                
-                <!-- Error Log Area -->
-                <div id="errorLog" class="mt-4 p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-[10px] text-red-300 font-mono hidden break-all"></div>
-            </div>
-
+            
             <!-- Settings -->
-            <div class="glass-panel rounded-2xl p-5">
+            <div class="glass-panel rounded-2xl p-5 sticky top-4">
                 <h3 class="text-sm font-bold opacity-80 mb-3 border-b border-gray-500/20 pb-2">تنظیمات و راحتی چشم</h3>
                 
                 <!-- Visual Comfort: Theme & Eye Care -->
@@ -498,7 +511,7 @@
         
         // UI Feedback
         statusEl.innerText = "درحال دریافت...";
-        statusEl.className = "text-[10px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 animate-pulse";
+        statusEl.className = "text-[10px] px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-500 animate-pulse border border-yellow-500/30";
         
         const client = getSupabaseClient();
         if (!client) return;
@@ -596,7 +609,7 @@
             }
 
             statusEl.innerText = "آنلاین";
-            statusEl.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400";
+            statusEl.className = "text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
             errorLog.classList.add('hidden');
 
             // --- Render Table ---
@@ -610,12 +623,13 @@
                 { id: 'quarter', label: 'ربع سکه', weight: COIN_SPECS.quarter.weight }
             ];
 
+            // Added min-w for better scrolling on mobile
             let tableHTML = `
-                <table class="w-full text-right comparison-table border-collapse">
+                <table class="w-full min-w-[600px] text-right comparison-table border-collapse">
                     <thead>
-                        <tr class="text-xs text-slate-400 border-b border-gray-500/20">
-                            <th class="p-2 w-1/4">شاخص</th>
-                            ${sources.map(s => `<th class="p-2 w-1/4">${s.name}</th>`).join('')}
+                        <tr class="text-sm text-slate-300 border-b border-gray-500/20">
+                            <th class="p-3 w-1/4">شاخص</th>
+                            ${sources.map(s => `<th class="p-3 w-1/4">${s.name}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
@@ -623,26 +637,26 @@
 
             // Row for Update Time
             tableHTML += `<tr class="bg-gray-500/5">`;
-            tableHTML += `<td class="text-xs font-bold opacity-60 text-amber-500">ساعت به‌روزرسانی</td>`;
+            tableHTML += `<td class="text-xs font-bold opacity-60 text-amber-500 p-3">ساعت به‌روزرسانی</td>`;
             sources.forEach(source => {
-                tableHTML += `<td class="text-[10px] font-mono opacity-60 ltr">${source.time}</td>`;
+                tableHTML += `<td class="text-xs font-mono opacity-60 ltr p-3">${source.time}</td>`;
             });
             tableHTML += `</tr>`;
 
             assets.forEach(asset => {
                 tableHTML += `<tr>`;
-                tableHTML += `<td class="text-xs font-bold opacity-80">${asset.label}</td>`;
+                tableHTML += `<td class="text-sm font-bold opacity-90 p-3">${asset.label}</td>`;
                 
                 sources.forEach(source => {
                     if (!source.valid) {
-                        tableHTML += `<td class="text-xs text-red-400/50">-</td>`;
+                        tableHTML += `<td class="text-sm text-red-400/50 p-3">-</td>`;
                         return;
                     }
 
                     const price = source[asset.id];
                     
                     if (!price || price === 0) {
-                        tableHTML += `<td class="text-xs opacity-30">-</td>`;
+                        tableHTML += `<td class="text-sm opacity-30 p-3">-</td>`;
                     } else {
                         let displayValue = price.toLocaleString();
                         let suffix = '';
@@ -651,7 +665,7 @@
                             displayValue = '$' + price.toLocaleString(); // Add $ for Ounce
                         }
 
-                        let cellContent = `<div class="num-xs font-mono">${displayValue}</div>`;
+                        let cellContent = `<div class="num-sm font-mono font-bold">${displayValue}</div>`;
                         
                         // Calculate Bubble ONLY for coins (not dollar/ounce/gold itself)
                         // And only if we have gold price for this source
@@ -663,7 +677,7 @@
                             if (m.bubblePercent < 8) badgeClass = 'text-emerald-400';
                             
                             cellContent += `
-                                <div class="${badgeClass} text-[10px] font-bold ltr font-mono mt-0.5">
+                                <div class="${badgeClass} text-xs font-bold ltr font-mono mt-1 opacity-80">
                                     ${m.bubblePercent.toFixed(1)}%
                                 </div>
                             `;
@@ -678,12 +692,10 @@
             tableHTML += `</tbody></table>`;
             listContainer.innerHTML = tableHTML;
 
-            // --- Update Analysis for Recommendation (Removed) ---
-
         } catch (e) {
             console.error(e);
             statusEl.innerText = "خطا";
-            statusEl.className = "text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-400";
+            statusEl.className = "text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30";
             errorLog.innerText = e.message;
             errorLog.classList.remove('hidden');
         }
