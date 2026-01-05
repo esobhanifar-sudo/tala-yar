@@ -13,7 +13,9 @@
     <script>
         // Protect this page
         document.addEventListener('DOMContentLoaded', () => {
-            checkAuthGuard();
+            if (typeof checkAuthGuard === 'function') {
+                checkAuthGuard();
+            }
         });
     </script>
 
@@ -50,7 +52,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                     <span class="hidden sm:inline">خانه</span>
                 </a>
-                <button onclick="signOut()" class="text-xs bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg transition backdrop-blur-sm border border-red-500/50 flex items-center gap-1">
+                <button onclick="if(typeof signOut === 'function') signOut()" class="text-xs bg-red-600/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg transition backdrop-blur-sm border border-red-500/50 flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                     خروج
                 </button>
@@ -272,6 +274,44 @@
         return parseFloat(val) || 0;
     }
 
+    // --- Storage Logic (NEW) ---
+    function saveData() {
+        const inputIds = [
+            'qtyFull', 'priceFull', 
+            'qtyHalf', 'priceHalf', 
+            'qtyQuarter', 'priceQuarter', 
+            'qtyMelted', 'priceMelted', 
+            'buyType', 'buyPrice'
+        ];
+        
+        const data = {};
+        inputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                data[id] = el.value;
+            }
+        });
+        
+        localStorage.setItem('goldArbitrageData', JSON.stringify(data));
+    }
+
+    function loadData() {
+        const savedData = localStorage.getItem('goldArbitrageData');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                for (const [key, value] of Object.entries(data)) {
+                    const el = document.getElementById(key);
+                    if (el) {
+                        el.value = value;
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading saved data", e);
+            }
+        }
+    }
+
     // --- Core Logic ---
     function calculate() {
         // --- 1. Calculate SELL Side (The Basket) ---
@@ -421,6 +461,9 @@
 
 
         updateChart(totalSoldWeightCoinBasis, totalBoughtWeightCoinBasis);
+        
+        // Save data to Local Storage
+        saveData();
     }
 
     function updateChart(sold, bought) {
@@ -480,7 +523,10 @@
     }
 
     // Initialize
-    window.addEventListener('load', calculate);
+    window.addEventListener('load', () => {
+        loadData();
+        calculate();
+    });
 
 </script>
 </body>
