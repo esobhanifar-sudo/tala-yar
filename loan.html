@@ -109,9 +109,14 @@
             
             <!-- Auth Buttons & Home -->
             <div class="flex gap-2 w-full md:w-auto justify-end mt-2 md:mt-0">
+                <button onclick="document.getElementById('formCard').scrollIntoView({behavior: 'smooth'})" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded text-white transition flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    <span class="hidden md:inline">ثبت وام</span>
+                    <span class="md:hidden">جدید</span>
+                </button>
                 <a href="index.html" class="text-xs bg-slate-600 hover:bg-slate-500 px-3 py-2 rounded text-white transition flex items-center gap-1" title="بازگشت به خانه">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    <span class="">خانه</span>
+                    <span class="hidden md:inline">خانه</span>
                 </a>
                 <button onclick="signOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
             </div>
@@ -274,7 +279,12 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
                         <div class="input-group sm:col-span-2">
                             <label>تاریخ دریافت وام (شروع محاسبه)</label>
-                            <input type="text" id="startDate" placeholder="1403/10/01" class="ltr text-center font-mono" onchange="syncDates('start')">
+                            <div class="relative">
+                                <input type="text" id="startDate" placeholder="1403/10/01" class="ltr text-center font-mono w-full pl-10" onchange="syncDates('start')">
+                                <button type="button" onclick="openDatePicker('startDate')" class="absolute left-1 top-1/2 -translate-y-1/2 text-indigo-500 hover:bg-indigo-100 p-1.5 rounded transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="input-group">
@@ -284,7 +294,12 @@
                         
                         <div class="input-group">
                             <label>تاریخ اولین قسط</label>
-                            <input type="text" id="firstInstallmentDate" placeholder="1403/11/01" class="ltr text-center font-mono border-indigo-200 focus:border-indigo-500 bg-white" onchange="syncDates('first')">
+                            <div class="relative">
+                                <input type="text" id="firstInstallmentDate" placeholder="1403/11/01" class="ltr text-center font-mono border-indigo-200 focus:border-indigo-500 bg-white w-full pl-10" onchange="syncDates('first')">
+                                <button type="button" onclick="openDatePicker('firstInstallmentDate')" class="absolute left-1 top-1/2 -translate-y-1/2 text-indigo-500 hover:bg-indigo-100 p-1.5 rounded transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -364,11 +379,34 @@
             <p class="text-sm text-slate-600 mb-4">لطفاً تاریخ واقعی پرداخت را تایید یا اصلاح کنید:</p>
             <div class="input-group mb-4">
                 <label>تاریخ پرداخت (شمسی)</label>
-                <input type="text" id="confirmPaymentDate" class="ltr text-center font-mono text-lg border-blue-300 focus:ring-blue-200">
+                <div class="relative">
+                    <input type="text" id="confirmPaymentDate" class="ltr text-center font-mono text-lg border-blue-300 focus:ring-blue-200 w-full pl-10">
+                    <button type="button" onclick="openDatePicker('confirmPaymentDate')" class="absolute left-1 top-1/2 -translate-y-1/2 text-blue-500 hover:bg-blue-100 p-2 rounded transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </button>
+                </div>
             </div>
             <input type="hidden" id="pendingPaymentLoanId">
             <input type="hidden" id="pendingPaymentInstallmentNum">
             <button onclick="confirmPayment()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow">تایید و ثبت پرداخت</button>
+        </div>
+    </div>
+
+    <!-- Date Picker Modal -->
+    <div id="datePickerModal" class="modal-overlay" style="z-index: 200;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <div class="flex items-center gap-2">
+                    <button onclick="changePickerMonth(-1)" class="p-1 hover:bg-slate-100 rounded text-slate-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                    <span id="pickerTitle" class="text-sm font-bold text-slate-700 w-24 text-center">...</span>
+                    <button onclick="changePickerMonth(1)" class="p-1 hover:bg-slate-100 rounded text-slate-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                </div>
+                <button onclick="closeModal('datePickerModal')" class="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+            <div class="calendar-grid mb-2 text-center text-[10px] text-slate-400 font-bold">
+                <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
+            </div>
+            <div id="pickerGrid" class="calendar-grid"></div>
         </div>
     </div>
 
@@ -1172,6 +1210,75 @@
         initCalendar();
         fetchLiveGoldPrice();
     });
+
+    // --- Date Picker Logic (New) ---
+    let pickerTargetId = null;
+    let pickerYear = 1403;
+    let pickerMonth = 1;
+
+    function openDatePicker(inputId) {
+        pickerTargetId = inputId;
+        const currentVal = document.getElementById(inputId).value;
+        const today = getTodayJalali();
+        
+        if(currentVal && currentVal.length >= 8) {
+            const parts = parseJalaliString(currentVal);
+            pickerYear = parts.jy;
+            pickerMonth = parts.jm;
+        } else {
+            pickerYear = today.jy;
+            pickerMonth = today.jm;
+        }
+        
+        renderDatePicker();
+        document.getElementById('datePickerModal').style.display = 'flex';
+    }
+
+    function changePickerMonth(delta) {
+        pickerMonth += delta;
+        if(pickerMonth > 12) { pickerMonth = 1; pickerYear++; }
+        if(pickerMonth < 1) { pickerMonth = 12; pickerYear--; }
+        renderDatePicker();
+    }
+
+    function renderDatePicker() {
+        document.getElementById('pickerTitle').innerText = `${MONTH_NAMES[pickerMonth]} ${pickerYear}`;
+        const grid = document.getElementById('pickerGrid'); 
+        grid.innerHTML = '';
+        
+        const daysInMonth = jalaali.jalaaliMonthLength(pickerYear, pickerMonth);
+        const gDate = jalaali.toGregorian(pickerYear, pickerMonth, 1);
+        let dayOfWeek = new Date(gDate.gy, gDate.gm-1, gDate.gd).getDay() + 1;
+        if(dayOfWeek === 7) dayOfWeek = 0;
+        
+        for(let i=0; i<dayOfWeek; i++) grid.appendChild(Object.assign(document.createElement('div'), {className:'calendar-day empty'}));
+        
+        const today = getTodayJalali();
+        const currentVal = document.getElementById(pickerTargetId).value;
+        const currentParts = (currentVal && currentVal.length >= 8) ? parseJalaliString(currentVal) : null;
+
+        for(let d=1; d<=daysInMonth; d++) {
+            const dayEl = document.createElement('div');
+            const isToday = (pickerYear===today.jy && pickerMonth===today.jm && d===today.jd);
+            const isSelected = (currentParts && pickerYear===currentParts.jy && pickerMonth===currentParts.jm && d===currentParts.jd);
+            
+            dayEl.className = `calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`;
+            dayEl.onclick = () => selectPickerDate(pickerYear, pickerMonth, d);
+            dayEl.innerHTML = `<span>${d}</span>`;
+            grid.appendChild(dayEl);
+        }
+    }
+
+    function selectPickerDate(y, m, d) {
+        const formatted = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+        const input = document.getElementById(pickerTargetId);
+        input.value = formatted;
+        
+        // Trigger change event manually so syncDates works
+        input.dispatchEvent(new Event('change'));
+        
+        closeModal('datePickerModal');
+    }
 
 </script>
 </body>
