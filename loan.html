@@ -641,7 +641,7 @@
         if (source === 'start' || source === 'grace' || source === 'interval' || source === 'type') {
             let offset = grace + 1; 
             if (typeEl && typeEl.value === 'mudaraba') {
-                if (duration > 0) offset = duration;
+                if (duration > 0) offset = duration + grace;
             }
             const newDate = addMonthsToJalali(startDate, offset);
             firstEl.value = formatJalaliDate(newDate);
