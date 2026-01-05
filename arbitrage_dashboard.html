@@ -21,12 +21,9 @@
             } else {
                 console.log("Standalone mode: skipping auth check.");
             }
-            // Load saved font scale
-            const savedScale = localStorage.getItem('numScale');
-            if (savedScale) {
-                updateNumberScale(parseFloat(savedScale));
-                document.getElementById('fontScaleSlider').value = savedScale;
-            }
+            
+            // Load Settings
+            loadSettings();
         });
     </script>
 
@@ -34,16 +31,70 @@
     <style>
         :root {
             --num-scale: 1;
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --panel-border: rgba(255, 255, 255, 0.1);
+            --item-hover: rgba(255,255,255,0.05);
+            --border-color: #334155;
+            --chart-grid: #1e293b;
+            --chart-text: #64748b;
         }
-        body { font-family: 'Vazirmatn', sans-serif; background-color: #0f172a; color: #e2e8f0; }
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+
+        /* Light Mode Variables */
+        body.light-mode {
+            --bg-color: #f1f5f9;
+            --text-color: #334155;
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --panel-border: rgba(0, 0, 0, 0.05);
+            --item-hover: rgba(0,0,0,0.03);
+            --border-color: #e2e8f0;
+            --chart-grid: #e2e8f0;
+            --chart-text: #64748b;
+        }
+
+        /* Eye Care Filter */
+        body.eye-care-mode {
+            filter: sepia(0.25) contrast(0.95) brightness(0.95);
+        }
+
+        body { 
+            font-family: 'Vazirmatn', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            transition: background-color 0.3s, color 0.3s, filter 0.3s;
+        }
+
+        .glass-panel { 
+            background: var(--panel-bg); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--panel-border); 
+            transition: background 0.3s, border 0.3s;
+        }
+        
+        /* Light Mode Shadow Adjustment */
+        body.light-mode .glass-panel {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
         .chart-container { position: relative; height: 300px; width: 100%; }
-        .ticker-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #334155; transition: background 0.2s; }
-        .ticker-item:hover { background: rgba(255,255,255,0.05); }
+        
+        .ticker-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0.75rem; border-bottom: 1px solid var(--border-color); 
+            transition: background 0.2s, border-color 0.3s; 
+        }
+        .ticker-item:hover { background: var(--item-hover); }
+        
         .bubble-badge { font-size: calc(0.75rem * var(--num-scale)); padding: 2px 8px; border-radius: 99px; font-weight: bold; min-width: 50px; text-align: center; transition: font-size 0.2s; }
         .bubble-high { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; } /* Sell Signal */
+        body.light-mode .bubble-high { background-color: rgba(239, 68, 68, 0.1); color: #dc2626; }
+        
         .bubble-low { background-color: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; } /* Buy Signal */
+        body.light-mode .bubble-low { background-color: rgba(16, 185, 129, 0.1); color: #059669; }
+
         .bubble-mid { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+        body.light-mode .bubble-mid { background-color: rgba(245, 158, 11, 0.1); color: #d97706; }
 
         /* Dynamic Font Size Classes for Numbers */
         .num-xxs { font-size: calc(0.625rem * var(--num-scale)); line-height: 1.2; transition: font-size 0.2s; } /* ~10px base */
@@ -63,9 +114,21 @@
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px;
         }
+        body.light-mode input[type=range]::-webkit-slider-runnable-track {
+            background: #cbd5e1;
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #f59e0b;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #f59e0b;
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-6 pb-20 selection:bg-amber-500 selection:text-white">
+<body class="min-h-screen p-4 md:p-6 pb-20 selection:bg-amber-500 selection:text-white transition-colors duration-300">
 
     <!-- Header -->
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -76,7 +139,7 @@
                 </div>
                 رهدیس آنالیز
             </h1>
-            <p class="text-sm text-slate-400 mt-1 mr-14">رصد لحظه‌ای حباب و فرصت‌های آربیتراژ طلا</p>
+            <p class="text-sm opacity-60 mt-1 mr-14">رصد لحظه‌ای حباب و فرصت‌های آربیتراژ طلا</p>
         </div>
         <div class="flex gap-3">
             <a href="#" onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-5 py-2.5 rounded-xl text-sm transition font-medium">بازنشانی</a>
@@ -94,19 +157,19 @@
             <!-- Recommendation Card -->
             <div class="glass-panel rounded-2xl p-6 border-r-4 border-amber-500 shadow-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-50"></div>
-                <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                <h3 class="text-sm font-bold opacity-80 mb-4 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                     سیگنال هوشمند آربیتراژ
                 </h3>
                 <div id="recommendationBox" class="min-h-[100px] flex items-center justify-center">
-                    <p class="text-xs text-slate-500 animate-pulse">در حال تحلیل بازار...</p>
+                    <p class="text-xs opacity-60 animate-pulse">در حال تحلیل بازار...</p>
                 </div>
             </div>
 
             <!-- Live Prices & Bubbles -->
             <div class="glass-panel rounded-2xl p-5 shadow-lg">
-                <div class="flex justify-between items-end mb-4 border-b border-slate-700/50 pb-3">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase">وضعیت حباب سکه‌ها</h3>
+                <div class="flex justify-between items-end mb-4 border-b border-gray-500/20 pb-3">
+                    <h3 class="text-xs font-bold opacity-60 uppercase">وضعیت حباب سکه‌ها</h3>
                     <span id="connectionStatus" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">در حال اتصال...</span>
                 </div>
                 
@@ -120,28 +183,43 @@
 
             <!-- Settings -->
             <div class="glass-panel rounded-2xl p-5">
-                <h3 class="text-sm font-bold text-slate-300 mb-3 border-b border-slate-700 pb-2">تنظیمات نمایش</h3>
+                <h3 class="text-sm font-bold opacity-80 mb-3 border-b border-gray-500/20 pb-2">تنظیمات و راحتی چشم</h3>
                 
+                <!-- Visual Comfort: Theme & Eye Care -->
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                     <!-- Theme Toggle -->
+                    <button onclick="toggleTheme()" id="themeBtn" class="flex flex-col items-center justify-center p-2 rounded-lg bg-gray-500/10 hover:bg-gray-500/20 transition border border-gray-500/10">
+                        <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                        <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1 text-amber-500 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        <span class="text-[10px] opacity-70">تم رنگی</span>
+                    </button>
+                    <!-- Eye Care Toggle -->
+                    <button onclick="toggleEyeCare()" id="eyeCareBtn" class="flex flex-col items-center justify-center p-2 rounded-lg bg-gray-500/10 hover:bg-gray-500/20 transition border border-gray-500/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        <span class="text-[10px] opacity-70">محافظ چشم</span>
+                    </button>
+                </div>
+
                 <!-- Font Size Slider -->
                 <div class="mb-4">
-                    <label class="text-xs text-slate-400 block mb-2 font-medium flex justify-between">
+                    <label class="text-xs opacity-60 block mb-2 font-medium flex justify-between">
                         <span>بزرگ‌نمایی اعداد</span>
-                        <span id="scaleValueDisplay" class="text-amber-400 font-mono">1.0x</span>
+                        <span id="scaleValueDisplay" class="text-amber-500 font-mono">1.0x</span>
                     </label>
                     <input type="range" id="fontScaleSlider" min="0.8" max="1.6" step="0.1" value="1" 
                            oninput="updateNumberScale(this.value)" class="w-full">
-                    <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                    <div class="flex justify-between text-[10px] opacity-50 mt-1">
                         <span>کوچک</span>
                         <span>استاندارد</span>
                         <span>بزرگ</span>
                     </div>
                 </div>
 
-                <label class="text-xs text-slate-400 block mb-3 font-medium">فیلتر بازه زمانی</label>
-                <div class="flex bg-slate-800/50 rounded-lg p-1 border border-slate-700">
-                    <button onclick="fetchHistory(7)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-slate-600 hover:text-white focus:bg-slate-600 focus:text-white text-slate-400 shadow-sm transition">7 روز</button>
-                    <button onclick="fetchHistory(30)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-slate-600 hover:text-white focus:bg-slate-600 focus:text-white text-slate-400 transition">30 روز</button>
-                    <button onclick="fetchHistory(90)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-slate-600 hover:text-white focus:bg-slate-600 focus:text-white text-slate-400 transition">90 روز</button>
+                <label class="text-xs opacity-60 block mb-3 font-medium">فیلتر بازه زمانی</label>
+                <div class="flex bg-gray-500/10 rounded-lg p-1 border border-gray-500/10">
+                    <button onclick="fetchHistory(7)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-gray-500/20 text-gray-400 focus:bg-gray-500/30 focus:text-amber-500 shadow-sm transition">7 روز</button>
+                    <button onclick="fetchHistory(30)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-gray-500/20 text-gray-400 focus:bg-gray-500/30 focus:text-amber-500 transition">30 روز</button>
+                    <button onclick="fetchHistory(90)" class="flex-1 text-xs py-1.5 rounded-md hover:bg-gray-500/20 text-gray-400 focus:bg-gray-500/30 focus:text-amber-500 transition">90 روز</button>
                 </div>
             </div>
         </div>
@@ -152,15 +230,15 @@
             <!-- Chart 1: Bubble Percentage -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                    <h2 class="text-lg font-bold opacity-90 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                         روند حباب سکه و طلای ۱۸ (Bubble %)
                     </h2>
                     <div class="flex flex-wrap gap-3">
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>تمام</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span>نیم</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>ربع</span>
-                        <span class="flex items-center text-[10px] text-purple-400 gap-1 border-r border-slate-700 pr-2 mr-1"><span class="w-3 h-0.5 bg-purple-500"></span>طلای ۱۸</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>تمام</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span>نیم</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>ربع</span>
+                        <span class="flex items-center text-[10px] text-purple-400 gap-1 border-r border-gray-500/30 pr-2 mr-1"><span class="w-3 h-0.5 bg-purple-500"></span>طلای ۱۸</span>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -171,14 +249,14 @@
             <!-- Chart 2: Full Coin Specific Analysis (NEW) -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-amber-500/30">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-amber-500 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         آنالیز اختصاصی تمام سکه: قیمت بازار vs ارزش ذاتی
                     </h2>
                     <div class="flex flex-wrap gap-3">
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>قیمت بازار</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-200"></span>ارزش ذاتی (طلا)</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>قیمت بازار</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span>ارزش ذاتی (طلا)</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -189,14 +267,14 @@
             <!-- Chart 3: Half Coin Specific Analysis (NEW) -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-blue-500/30">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold text-blue-400 flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-blue-500 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12a8 8 0 00-8-8v8l5.5 5.5" /></svg>
                         آنالیز اختصاصی نیم سکه: قیمت بازار vs ارزش ذاتی
                     </h2>
                     <div class="flex flex-wrap gap-3">
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span>قیمت بازار</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>ارزش ذاتی (طلا)</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span>قیمت بازار</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span>ارزش ذاتی (طلا)</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -207,14 +285,14 @@
             <!-- Chart 4: Quarter Coin Specific Analysis -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-emerald-500/30">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-emerald-500 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                         آنالیز اختصاصی ربع سکه: قیمت بازار vs ارزش ذاتی
                     </h2>
                     <div class="flex flex-wrap gap-3">
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>قیمت بازار</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>ارزش ذاتی (طلا)</span>
-                        <span class="flex items-center text-[10px] text-slate-400 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>قیمت بازار</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span>ارزش ذاتی (طلا)</span>
+                        <span class="flex items-center text-[10px] opacity-60 gap-1"><span class="w-2 h-2 rounded bg-red-500/50"></span>شدت حباب (%)</span>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -225,8 +303,8 @@
             <!-- Chart 5: Price Trends -->
             <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <h2 class="text-lg font-bold opacity-90 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         روند کلی قیمت سکه‌ها (Price Toman)
                     </h2>
                 </div>
@@ -261,16 +339,101 @@
     let quarterChartInstance = null;
     let supabaseClient = null;
     let globalFontScale = 1;
+    let isLightMode = false;
 
     // --- Helpers ---
     
+    function loadSettings() {
+        // Load saved font scale
+        const savedScale = localStorage.getItem('numScale');
+        if (savedScale) {
+            updateNumberScale(parseFloat(savedScale));
+            document.getElementById('fontScaleSlider').value = savedScale;
+        }
+
+        // Load Theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            setTheme(true);
+        }
+
+        // Load Eye Care
+        const savedEyeCare = localStorage.getItem('eyeCare');
+        if (savedEyeCare === 'true') {
+            toggleEyeCareUI(true);
+        }
+    }
+
+    // --- Theme & Visual Comfort Logic ---
+    function toggleTheme() {
+        setTheme(!isLightMode);
+    }
+
+    function setTheme(light) {
+        isLightMode = light;
+        const body = document.body;
+        const iconMoon = document.getElementById('themeIconMoon');
+        const iconSun = document.getElementById('themeIconSun');
+
+        if (light) {
+            body.classList.add('light-mode');
+            iconMoon.classList.add('hidden');
+            iconSun.classList.remove('hidden');
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.classList.remove('light-mode');
+            iconMoon.classList.remove('hidden');
+            iconSun.classList.add('hidden');
+            localStorage.setItem('theme', 'dark');
+        }
+        
+        updateChartTheme();
+    }
+
+    function toggleEyeCare() {
+        const body = document.body;
+        const active = body.classList.toggle('eye-care-mode');
+        toggleEyeCareUI(active);
+        localStorage.setItem('eyeCare', active);
+    }
+
+    function toggleEyeCareUI(active) {
+        const body = document.body;
+        const btn = document.getElementById('eyeCareBtn');
+        if (active) {
+            body.classList.add('eye-care-mode');
+            btn.classList.add('ring-2', 'ring-amber-500', 'bg-amber-500/10');
+        } else {
+            body.classList.remove('eye-care-mode');
+            btn.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-500/10');
+        }
+    }
+
+    function updateChartTheme() {
+        // Update Chart Defaults based on CSS Variables
+        const style = getComputedStyle(document.body);
+        const gridColor = style.getPropertyValue('--chart-grid').trim();
+        const textColor = style.getPropertyValue('--chart-text').trim();
+
+        Chart.defaults.color = textColor;
+        Chart.defaults.borderColor = gridColor;
+
+        const charts = [bubbleChartInstance, priceChartInstance, fullAnalysisChartInstance, halfAnalysisChartInstance, quarterChartInstance];
+        charts.forEach(chart => {
+            if (chart) {
+                chart.options.scales.x.grid.color = gridColor;
+                chart.options.scales.y.grid.color = gridColor;
+                chart.update('none');
+            }
+        });
+    }
+
     function updateNumberScale(val) {
         globalFontScale = parseFloat(val);
         document.documentElement.style.setProperty('--num-scale', val);
         document.getElementById('scaleValueDisplay').innerText = val + 'x';
         localStorage.setItem('numScale', val);
         
-        // Update Chart Font Sizes dynamically
         const newSize = Math.round(12 * globalFontScale);
         Chart.defaults.font.size = newSize;
         
@@ -279,8 +442,7 @@
             if (chart) {
                 chart.options.scales.x.ticks.font = { size: Math.max(10, newSize - 2), family: 'Vazirmatn' };
                 chart.options.scales.y.ticks.font = { size: Math.max(10, newSize - 2), family: 'Vazirmatn' };
-                // Update Tooltip font if needed, though Chart.js defaults might handle it
-                chart.update('none'); // Update without animation for performance
+                chart.update('none');
             }
         });
     }
@@ -505,6 +667,9 @@
                     quarterChartInstance.update();
                 }
                 
+                // Ensure charts pick up the correct theme initially
+                updateChartTheme();
+
             } else {
                 console.warn("History fetch failed:", error);
             }
@@ -531,24 +696,24 @@
             container.innerHTML = `
                 <div class="w-full flex flex-col gap-3">
                     <div class="flex justify-between items-center p-2 rounded bg-red-500/10 border border-red-500/30">
-                        <span class="text-xs text-red-300">فروش (حباب زیاد)</span>
+                        <span class="text-xs text-red-400/80">فروش (حباب زیاد)</span>
                         <span class="text-sm font-black text-red-400">${highest.name}</span>
                     </div>
                     <div class="flex justify-center text-slate-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                     </div>
                     <div class="flex justify-between items-center p-2 rounded bg-emerald-500/10 border border-emerald-500/30">
-                        <span class="text-xs text-emerald-300">خرید (حباب کم)</span>
+                        <span class="text-xs text-emerald-400/80">خرید (حباب کم)</span>
                         <span class="text-sm font-black text-emerald-400">${lowest.name}</span>
                     </div>
                     <div class="mt-1 text-center">
-                        <span class="text-[10px] text-slate-400">سود احتمالی جابجایی:</span>
-                        <span class="num-lg text-amber-400 font-bold ltr font-mono ml-1">${gap.toFixed(1)}%</span>
+                        <span class="text-[10px] opacity-60">سود احتمالی جابجایی:</span>
+                        <span class="num-lg text-amber-500 font-bold ltr font-mono ml-1">${gap.toFixed(1)}%</span>
                     </div>
                 </div>
             `;
         } else {
-            container.innerHTML = `<div class="text-center text-slate-400 text-xs leading-5">بازار در تعادل نسبی است.<br>اختلاف حباب‌ها ناچیز (${gap.toFixed(1)}%) است.</div>`;
+            container.innerHTML = `<div class="text-center opacity-60 text-xs leading-5">بازار در تعادل نسبی است.<br>اختلاف حباب‌ها ناچیز (${gap.toFixed(1)}%) است.</div>`;
         }
     }
 
@@ -556,8 +721,8 @@
         const list = document.getElementById('marketList');
         const displayOrder = ['full', 'half', 'quarter'];
         
-        let html = `<div class="text-[10px] text-slate-500 mb-3 text-center bg-slate-800/50 rounded py-1 border border-slate-700/50">
-            قیمت طلای ۱۸ عیار: <span class="font-mono text-slate-300 num-xs">${baseGold.toLocaleString()}</span> تومان
+        let html = `<div class="text-[10px] opacity-70 mb-3 text-center bg-gray-500/10 rounded py-1 border border-gray-500/10">
+            قیمت طلای ۱۸ عیار: <span class="font-mono text-amber-500/90 num-xs">${baseGold.toLocaleString()}</span> تومان
         </div>`;
 
         displayOrder.forEach(key => {
@@ -571,12 +736,12 @@
             html += `
                 <div class="ticker-item group">
                     <div>
-                        <div class="text-sm text-slate-200 font-bold group-hover:text-white transition">${item.name}</div>
-                        <div class="num-xxs text-slate-500 font-mono mt-0.5">${item.price.toLocaleString()} T</div>
+                        <div class="text-sm font-bold opacity-90 group-hover:opacity-100 transition">${item.name}</div>
+                        <div class="num-xxs opacity-60 font-mono mt-0.5">${item.price.toLocaleString()} T</div>
                     </div>
                     <div class="text-right flex flex-col items-end">
                         <div class="${badgeClass} bubble-badge ltr font-mono">${item.bubblePercent.toFixed(1)}%</div>
-                        <div class="num-xxs text-slate-500 mt-1 ltr font-mono opacity-70">Gap: ${(item.bubbleAmount/1000000).toFixed(2)} M</div>
+                        <div class="num-xxs opacity-50 mt-1 ltr font-mono">Gap: ${(item.bubbleAmount/1000000).toFixed(2)} M</div>
                     </div>
                 </div>
             `;
