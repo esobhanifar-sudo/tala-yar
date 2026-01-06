@@ -405,6 +405,8 @@
     let supabaseClient = null;
     let globalFontScale = 1;
     let isLightMode = false;
+    // New global to store live data for charts
+    let latestLiveData = { gold: 0, full: 0, half: 0, quarter: 0, valid: false };
 
     // --- Helpers ---
     
@@ -587,8 +589,8 @@
                 iranSource.half = parsePrice(d.Half_Coin_Price) / 10;
                 iranSource.quarter = parsePrice(d.Quarter_Coin_Price) / 10;
                 
-                // TGJU Dollar: User requested scaling change (e.g. 141,300 -> 14,300,000 implies * 100)
-                iranSource.dollar = parsePrice(d.USD_AZAD_Exchange) * 100;
+                // TGJU Dollar: Adjusted to remove extra zeros (Rials / 10 to Tomans)
+                iranSource.dollar = parsePrice(d.USD_AZAD_Exchange) / 10;
                 
                 // Ounce might not be in the user's specific table schema for Iran_Data, set to 0 if missing
                 iranSource.ounce = 0; 
@@ -620,8 +622,8 @@
                 currencySource.full = (d.emami_coin || 0) * 1000;
                 currencySource.half = (d.half_coin || 0) * 1000;
                 currencySource.quarter = (d.quarter_coin || 0) * 1000;
-                // Applying * 1000 for dollar as well based on previous scaling logic
-                currencySource.dollar = (d.dollar || 0) * 1000;
+                // Dollar: Removed multiplier to fix 000 issue
+                currencySource.dollar = (d.dollar || 0);
                 // Ounce usually comes as raw value (e.g. 2650), no scaling needed usually
                 currencySource.ounce = (d.ouns || 0);
 
@@ -652,6 +654,25 @@
                     : (d.time || '-');
                     
                 milliSource.valid = true;
+            }
+
+            // Capture Best Source for Charts
+            // Priority: Iran Data > Currency > Milli (if coins exist)
+            let bestSource = null;
+            if (iranSource.valid && iranSource.gold > 0 && iranSource.full > 0) {
+                bestSource = iranSource;
+            } else if (currencySource.valid && currencySource.gold > 0 && currencySource.full > 0) {
+                bestSource = currencySource;
+            }
+
+            if (bestSource) {
+                latestLiveData = {
+                    gold: bestSource.gold,
+                    full: bestSource.full,
+                    half: bestSource.half,
+                    quarter: bestSource.quarter,
+                    valid: true
+                };
             }
 
             statusEl.innerText = "آنلاین";
@@ -760,56 +781,116 @@
         if (quarterChartInstance) { quarterChartInstance.data.datasets.forEach(ds => ds.data = []); quarterChartInstance.update(); }
 
         try {
-            // Fetch aggregated history
-            // FIXED: Get newest data (descending), then reverse for display
-            const { data, error } = await client
+            // 1. Fetch Aggregated Summary (Historical)
+            const { data: summaryData, error } = await client
                 .from('Iran_Data_Daily_Summary')
                 .select('Date, Avg_Gram_18K, Avg_Emami, Avg_Half, Avg_Quarter')
                 .order('Date', { ascending: false }) // Newest First
                 .limit(days);
 
-            if (data && !error) {
-                // Reverse to make it Oldest -> Newest (Left to Right)
-                data.reverse();
+            // 2. Fetch Raw Data (to fill gaps in the last few days if Summary job failed)
+            const { data: rawData, error: rawError } = await client
+                .from('Iran_Data')
+                .select('Gram_18K_Price, Emami_Coin_Price, Half_Coin_Price, Quarter_Coin_Price, Timestamp, created_at')
+                .order('id', { ascending: false })
+                .limit(1500); // Fetch enough back to cover ~5-7 days
 
+            if ((summaryData && !error) || (rawData && !rawError)) {
+                const combinedDataMap = new Map();
+
+                // Helper to get Persian Date String
+                const getPDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return null;
+                    return d.toLocaleDateString('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                };
+
+                // A. Process Summary Data
+                if (summaryData) {
+                    summaryData.forEach(item => {
+                        const pDate = getPDate(item.Date);
+                        if (pDate) {
+                            combinedDataMap.set(pDate, {
+                                sortDate: new Date(item.Date).getTime(),
+                                pDateLabel: pDate,
+                                gram: parseFloat(item.Avg_Gram_18K),
+                                full: parseFloat(item.Avg_Emami),
+                                half: parseFloat(item.Avg_Half),
+                                quarter: parseFloat(item.Avg_Quarter)
+                            });
+                        }
+                    });
+                }
+
+                // B. Process Raw Data (Gap Fill)
+                if (rawData) {
+                    const dailyGroups = {};
+                    rawData.forEach(row => {
+                        const ts = row.Timestamp || row.created_at;
+                        const pDate = getPDate(ts);
+                        if (!pDate) return;
+
+                        // Only process if NOT in Summary (Summary is authoritative/cleaner)
+                        // AND not Today (Live point handles Today)
+                        const todayP = new Date().toLocaleDateString('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                        
+                        if (!combinedDataMap.has(pDate) && pDate !== todayP) {
+                            if (!dailyGroups[pDate]) {
+                                dailyGroups[pDate] = { count: 0, gram: 0, full: 0, half: 0, quarter: 0, ts: new Date(ts).getTime() };
+                            }
+                            dailyGroups[pDate].count++;
+                            dailyGroups[pDate].gram += parsePrice(row.Gram_18K_Price);
+                            dailyGroups[pDate].full += parsePrice(row.Emami_Coin_Price);
+                            dailyGroups[pDate].half += parsePrice(row.Half_Coin_Price);
+                            dailyGroups[pDate].quarter += parsePrice(row.Quarter_Coin_Price);
+                        }
+                    });
+
+                    // Add aggregated raw days to map
+                    Object.keys(dailyGroups).forEach(pDate => {
+                        const g = dailyGroups[pDate];
+                        if (g.count > 0) {
+                            combinedDataMap.set(pDate, {
+                                sortDate: g.ts, // Approximate timestamp for sorting
+                                pDateLabel: pDate,
+                                gram: g.gram / g.count,
+                                full: g.full / g.count,
+                                half: g.half / g.count,
+                                quarter: g.quarter / g.count
+                            });
+                        }
+                    });
+                }
+
+                // C. Convert Map to Array and Sort
+                const finalHistory = Array.from(combinedDataMap.values())
+                    .sort((a, b) => a.sortDate - b.sortDate);
+
+                // D. Prepare Chart Arrays
                 const labels = [];
-                // Bubble Datasets
-                const fullBubble = [];
-                const halfBubble = [];
-                const quarterBubble = [];
-                const goldPrice = [];
-                
-                // Price Datasets (Tomans)
-                const fullPrice = [];
-                const halfPrice = [];
-                const quarterPrice = [];
+                const fullBubble = [], halfBubble = [], quarterBubble = [], goldPrice = [];
+                const fullPrice = [], halfPrice = [], quarterPrice = [];
+                const fullIntrinsic = [], fullBubblePct = [];
+                const halfIntrinsic = [], halfBubblePct = [];
+                const quarterIntrinsic = [], quarterBubblePct = [];
 
-                // Analysis Specific Arrays
-                const fullIntrinsic = [];
-                const fullBubblePct = [];
-                const halfIntrinsic = [];
-                const halfBubblePct = [];
-                const quarterIntrinsic = [];
-                const quarterBubblePct = [];
-
-                data.forEach(day => {
-                    // Convert Gregorian string to Persian Date for display
-                    const dateObj = new Date(day.Date);
-                    const label = dateObj.toLocaleDateString('fa-IR', { month: '2-digit', day: '2-digit' });
-                    labels.push(label);
-
-                    const gram18kRials = parseFloat(day.Avg_Gram_18K);
+                finalHistory.forEach(day => {
+                    labels.push(day.pDateLabel);
+                    
+                    const gram18kRials = day.gram;
                     const gram18kToman = gram18kRials / 10;
                     
-                    const pFullRials = parseFloat(day.Avg_Emami);
-                    const pHalfRials = parseFloat(day.Avg_Half);
-                    const pQuarterRials = parseFloat(day.Avg_Quarter);
+                    const pFullRials = day.full;
+                    const pHalfRials = day.half;
+                    const pQuarterRials = day.quarter;
 
                     // Calculate Metrics
                     const fullMetrics = calculateMetrics(pFullRials, COIN_SPECS.full.weight, gram18kRials);
                     const halfMetrics = calculateMetrics(pHalfRials, COIN_SPECS.half.weight, gram18kRials);
                     const quarterMetrics = calculateMetrics(pQuarterRials, COIN_SPECS.quarter.weight, gram18kRials);
                     
+                    // Push to arrays
                     fullBubble.push(fullMetrics.bubblePercent);
                     halfBubble.push(halfMetrics.bubblePercent);
                     quarterBubble.push(quarterMetrics.bubblePercent);
@@ -830,6 +911,37 @@
                     quarterIntrinsic.push(quarterMetrics.intrinsicValue / 10);
                     quarterBubblePct.push(quarterMetrics.bubblePercent);
                 });
+
+                // --- APPEND LIVE DATA POINT ---
+                if (latestLiveData && latestLiveData.valid && latestLiveData.full > 0) {
+                    labels.push('لحظه‌ای'); // Label: Live/Current
+
+                    const lFullM = calculateMetrics(latestLiveData.full, COIN_SPECS.full.weight, latestLiveData.gold);
+                    const lHalfM = calculateMetrics(latestLiveData.half, COIN_SPECS.half.weight, latestLiveData.gold);
+                    const lQuarterM = calculateMetrics(latestLiveData.quarter, COIN_SPECS.quarter.weight, latestLiveData.gold);
+
+                    // Push Metrics
+                    fullBubble.push(lFullM.bubblePercent);
+                    halfBubble.push(lHalfM.bubblePercent);
+                    quarterBubble.push(lQuarterM.bubblePercent);
+                    goldPrice.push(latestLiveData.gold);
+
+                    // Push Prices
+                    fullPrice.push(latestLiveData.full);
+                    halfPrice.push(latestLiveData.half);
+                    quarterPrice.push(latestLiveData.quarter);
+
+                    // Push Analysis
+                    fullIntrinsic.push(lFullM.intrinsicValue);
+                    fullBubblePct.push(lFullM.bubblePercent);
+
+                    halfIntrinsic.push(lHalfM.intrinsicValue);
+                    halfBubblePct.push(lHalfM.bubblePercent);
+
+                    quarterIntrinsic.push(lQuarterM.intrinsicValue);
+                    quarterBubblePct.push(lQuarterM.bubblePercent);
+                }
+                // ------------------------------
 
                 // Update Bubble Chart
                 if (bubbleChartInstance) {
@@ -884,15 +996,15 @@
                 updateChartTheme();
 
             } else {
-                console.warn("History fetch failed:", error);
+                console.warn("History fetch failed:", error || rawError);
             }
         } catch (e) {
             console.error("History Error:", e);
         }
     }
 
-    function fetchAllData() {
-        fetchLiveTicker();
+    async function fetchAllData() {
+        await fetchLiveTicker(); // Wait for live data to populate latestLiveData
         fetchHistory(30);
     }
 
