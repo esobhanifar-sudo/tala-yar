@@ -509,7 +509,11 @@
             percentElem.className = "font-bold text-yellow-700 text-sm ltr";
         }
 
-        updateChartSimple(totalSoldWeightCoinBasis, totalBoughtWeightCoinBasis);
+        // --- UPDATE CHART TO SHOW 750 WEIGHT ---
+        const totalSoldWeight750 = totalSoldWeightCoinBasis * RATIO_COIN_TO_18K;
+        const totalBoughtWeight750 = totalBoughtWeightCoinBasis * RATIO_COIN_TO_18K;
+        updateChartSimple(totalSoldWeight750, totalBoughtWeight750);
+        
         saveData();
     }
 
@@ -528,7 +532,7 @@
                 data: {
                     labels: ['وزن قبلی', 'وزن جدید'],
                     datasets: [{
-                        label: 'گرم (معادل سکه)',
+                        label: 'گرم (معادل ۷۵۰)',
                         data: [sold, bought],
                         backgroundColor: ['#94a3b8', boughtColor],
                         borderRadius: 6,
@@ -538,7 +542,18 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            bodyFont: { family: 'Vazirmatn' },
+                            titleFont: { family: 'Vazirmatn' },
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toFixed(3) + " گرم (۷۵۰)";
+                                }
+                            }
+                        }
+                    },
                     scales: {
                         y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Vazirmatn' } } },
                         x: { grid: { display: false }, ticks: { font: { family: 'Vazirmatn' } } }
