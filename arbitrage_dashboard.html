@@ -566,12 +566,12 @@
 
         try {
             // Fetch data from all sources simultaneously
-            // Now including price_logs and prices
-            const [iranDataRes, currencyRes, milliRes, logsRes, pricesRes] = await Promise.all([
+            // Now including Toofan_Harirod and prices
+            const [iranDataRes, currencyRes, milliRes, toofanRes, pricesRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('Milli_Price').select('*').order('id', { ascending: false }).limit(1),
-                client.from('price_logs').select('*').order('id', { ascending: false }).limit(1), // Herat Log
+                client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1), // Herat from Toofan_Harirod
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1) // DHS/Prices
             ]);
 
@@ -579,11 +579,11 @@
             if (iranDataRes.error) console.warn("Supabase Iran Data Error:", iranDataRes.error);
             if (currencyRes.error) console.warn("Supabase Currency Error:", currencyRes.error);
             if (milliRes.error) console.warn("Supabase Milli Error:", milliRes.error);
-            if (logsRes.error) console.warn("Supabase Price Logs Error:", logsRes.error);
+            if (toofanRes.error) console.warn("Supabase Toofan_Harirod Error:", toofanRes.error);
             if (pricesRes.error) console.warn("Supabase Prices Error:", pricesRes.error);
 
             // Check for critical failures (only if ALL requests failed with actual errors, not just empty data)
-            if (iranDataRes.error && currencyRes.error && milliRes.error && logsRes.error && pricesRes.error) {
+            if (iranDataRes.error && currencyRes.error && milliRes.error && toofanRes.error && pricesRes.error) {
                 throw new Error("All data sources failed (Connection or Auth Error).");
             }
 
@@ -642,11 +642,11 @@
                 // Ounce
                 currencySource.ounce = (d.ouns || 0);
 
-                // Additional Currencies (Assuming columns or similar naming, apply thousand scale if needed)
-                // usually these are in thousands too if others are
-                currencySource.euro = (d.euro || d.eur || 0) * 1000;
-                currencySource.dirham = (d.dirham || d.aed || 0) * 1000;
-                currencySource.pound = (d.pound || d.gbp || 0) * 1000;
+                // Additional Currencies (Assuming columns or similar naming)
+                // Removed * 1000 multiplier as requested
+                currencySource.euro = (d.euro || d.eur || 0);
+                currencySource.dirham = (d.dirham || d.aed || 0);
+                currencySource.pound = (d.pound || d.gbp || 0);
                 
                 // Safe fix: If *1000 makes it huge (e.g. 50,000,000 for Dirham), likely it was already full price.
                 // Heuristic: Dirham ~40,000 T. If val > 10,000,000, divide by 1000? No, let's assume consisteny.
@@ -683,10 +683,10 @@
                 milliSource.valid = true;
             }
 
-            // 4. Price Logs (Herat)
+            // 4. Toofan Harirod (Herat)
             let heratLogSource = { name: "logs", herat: 0, valid: false, time: '-' };
-            if (!logsRes.error && logsRes.data && logsRes.data.length > 0) {
-                const d = logsRes.data[0];
+            if (!toofanRes.error && toofanRes.data && toofanRes.data.length > 0) {
+                const d = toofanRes.data[0];
                 let price = parsePrice(d.price);
                 // Heuristic: Herat Dollar ~150,000 T. 
                 // If < 1000, maybe thousands? unlikely. 
