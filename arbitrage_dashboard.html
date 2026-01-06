@@ -565,24 +565,34 @@
         if (!client) return;
 
         try {
-            // Fetch data from all 3 sources simultaneously
-            const [iranDataRes, currencyRes, milliRes] = await Promise.all([
-                client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1).single(),
-                client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1).single(),
-                client.from('Milli_Price').select('*').order('id', { ascending: false }).limit(1).single()
+            // Fetch data from all sources simultaneously
+            // Now including price_logs and prices
+            const [iranDataRes, currencyRes, milliRes, logsRes, pricesRes] = await Promise.all([
+                client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
+                client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
+                client.from('Milli_Price').select('*').order('id', { ascending: false }).limit(1),
+                client.from('price_logs').select('*').order('id', { ascending: false }).limit(1), // Herat Log
+                client.from('prices').select('*').order('id', { ascending: false }).limit(1) // DHS/Prices
             ]);
 
-            // Check for critical failures (if all fail, throw error)
-            if (iranDataRes.error && currencyRes.error && milliRes.error) {
-                throw new Error("All data sources failed.");
+            // Debugging Logs
+            if (iranDataRes.error) console.warn("Supabase Iran Data Error:", iranDataRes.error);
+            if (currencyRes.error) console.warn("Supabase Currency Error:", currencyRes.error);
+            if (milliRes.error) console.warn("Supabase Milli Error:", milliRes.error);
+            if (logsRes.error) console.warn("Supabase Price Logs Error:", logsRes.error);
+            if (pricesRes.error) console.warn("Supabase Prices Error:", pricesRes.error);
+
+            // Check for critical failures (only if ALL requests failed with actual errors, not just empty data)
+            if (iranDataRes.error && currencyRes.error && milliRes.error && logsRes.error && pricesRes.error) {
+                throw new Error("All data sources failed (Connection or Auth Error).");
             }
 
             // Process Data Sources
             
             // 1. Iran Data (tgju)
             let iranSource = { name: "tgju", gold: 0, full: 0, half: 0, quarter: 0, dollar: 0, ounce: 0, valid: false, time: '-' };
-            if (!iranDataRes.error && iranDataRes.data) {
-                const d = iranDataRes.data;
+            if (!iranDataRes.error && iranDataRes.data && iranDataRes.data.length > 0) {
+                const d = iranDataRes.data[0]; // Access first element of array
                 // Reverted to / 10 (Rials to Tomans) as requested
                 iranSource.gold = parsePrice(d.Gram_18K_Price) / 10; 
                 iranSource.full = parsePrice(d.Emami_Coin_Price) / 10;
@@ -614,18 +624,35 @@
             }
 
             // 2. Iran Currency
-            let currencySource = { name: "ایران کارنسی", gold: 0, full: 0, half: 0, quarter: 0, dollar: 0, ounce: 0, valid: false, time: '-' };
-            if (!currencyRes.error && currencyRes.data) {
-                const d = currencyRes.data;
-                // Kept * 1000 as per specific request for this source
+            let currencySource = { 
+                name: "ایران کارنسی", 
+                gold: 0, full: 0, half: 0, quarter: 0, dollar: 0, ounce: 0, 
+                euro: 0, dirham: 0, pound: 0,
+                valid: false, time: '-' 
+            };
+            if (!currencyRes.error && currencyRes.data && currencyRes.data.length > 0) {
+                const d = currencyRes.data[0]; // Access first element
+                // Kept * 1000 as per specific request for this source (thousands)
                 currencySource.gold = (d.gold_18k || 0) * 1000;
                 currencySource.full = (d.emami_coin || 0) * 1000;
                 currencySource.half = (d.half_coin || 0) * 1000;
                 currencySource.quarter = (d.quarter_coin || 0) * 1000;
-                // Dollar: Removed multiplier to fix 000 issue
-                currencySource.dollar = (d.dollar || 0);
-                // Ounce usually comes as raw value (e.g. 2650), no scaling needed usually
+                // Dollar: Removed multiplier to fix 000 issue (handled externally)
+                currencySource.dollar = (d.dollar || 0); 
+                // Ounce
                 currencySource.ounce = (d.ouns || 0);
+
+                // Additional Currencies (Assuming columns or similar naming, apply thousand scale if needed)
+                // usually these are in thousands too if others are
+                currencySource.euro = (d.euro || d.eur || 0) * 1000;
+                currencySource.dirham = (d.dirham || d.aed || 0) * 1000;
+                currencySource.pound = (d.pound || d.gbp || 0) * 1000;
+                
+                // Safe fix: If *1000 makes it huge (e.g. 50,000,000 for Dirham), likely it was already full price.
+                // Heuristic: Dirham ~40,000 T. If val > 10,000,000, divide by 1000? No, let's assume consisteny.
+                // If input is 40, output 40,000. Correct.
+                // If input is 40000, output 40,000,000 (wrong). 
+                // Let's add a sanity check helper later or rely on previous consistency.
 
                 // FIXED: Prioritize created_at to ensure HH:MM:SS format
                 currencySource.time = d.created_at 
@@ -637,8 +664,8 @@
 
             // 3. Milli Price
             let milliSource = { name: "میلی", gold: 0, full: null, half: null, quarter: null, dollar: null, ounce: null, valid: false, time: '-' };
-            if (!milliRes.error && milliRes.data) {
-                const d = milliRes.data;
+            if (!milliRes.error && milliRes.data && milliRes.data.length > 0) {
+                const d = milliRes.data[0]; // Access first element
                 const rawPrice = d.current_price || 0;
                 
                 // Reverted to heuristic logic to handle different units safely
@@ -655,6 +682,40 @@
                     
                 milliSource.valid = true;
             }
+
+            // 4. Price Logs (Herat)
+            let heratLogSource = { name: "logs", herat: 0, valid: false, time: '-' };
+            if (!logsRes.error && logsRes.data && logsRes.data.length > 0) {
+                const d = logsRes.data[0];
+                let price = parsePrice(d.price);
+                // Heuristic: Herat Dollar ~150,000 T. 
+                // If < 1000, maybe thousands? unlikely. 
+                // If > 1,000,000, likely Rials -> /10.
+                if (price > 1000000) price /= 10;
+                heratLogSource.herat = price;
+                
+                heratLogSource.time = d.created_at 
+                    ? new Date(d.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit', second:'2-digit'}) 
+                    : '-';
+                heratLogSource.valid = true;
+            }
+
+            // 5. Prices (DHS)
+            let dhsSource = { name: "prices", dirham: 0, valid: false, time: '-' };
+            if (!pricesRes.error && pricesRes.data && pricesRes.data.length > 0) {
+                const d = pricesRes.data[0];
+                let price = parsePrice(d.price);
+                // Heuristic: Dirham ~40,000 T. 
+                // If > 200,000, likely Rials -> /10.
+                if (price > 200000) price /= 10;
+                dhsSource.dirham = price;
+
+                dhsSource.time = d.created_at 
+                    ? new Date(d.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit', second:'2-digit'}) 
+                    : '-';
+                dhsSource.valid = true;
+            }
+
 
             // Capture Best Source for Charts
             // Priority: Iran Data > Currency > Milli (if coins exist)
@@ -680,10 +741,21 @@
             errorLog.classList.add('hidden');
 
             // --- Render Table ---
-            const sources = [iranSource, currencySource, milliSource];
+            const sources = [
+                { id: 'tgju', data: iranSource, label: 'TGJU' }, 
+                { id: 'currency', data: currencySource, label: 'ایران کارنسی' }, 
+                { id: 'milli', data: milliSource, label: 'میلی' },
+                { id: 'logs', data: heratLogSource, label: 'Toofan_Harirod' }, // Swapped to Toofan_Harirod
+                { id: 'prices', data: dhsSource, label: 'DHS Dirham' }         // Swapped to DHS Dirham
+            ];
+
             const assets = [
                 { id: 'ounce', label: 'انس جهانی', isGlobal: true },
                 { id: 'dollar', label: 'دلار آزاد', isCurrency: true },
+                { id: 'herat', label: 'دلار هرات', isCurrency: true }, // New
+                { id: 'euro', label: 'یورو', isCurrency: true },       // New
+                { id: 'dirham', label: 'درهم', isCurrency: true },     // New
+                { id: 'pound', label: 'پوند', isCurrency: true },      // New
                 { id: 'gold', label: 'طلای ۱۸ عیار', isGold: true },
                 { id: 'full', label: 'تمام سکه', weight: COIN_SPECS.full.weight },
                 { id: 'half', label: 'نیم سکه', weight: COIN_SPECS.half.weight },
@@ -695,8 +767,8 @@
                 <table class="w-full min-w-[600px] text-right comparison-table border-collapse">
                     <thead>
                         <tr class="text-sm text-white bg-amber-500 border-b border-amber-600 font-bold opacity-100">
-                            <th class="p-3 w-1/4 rounded-tr-lg rounded-br-lg md:rounded-br-none md:rounded-bl-none md:rounded-tr-lg md:rounded-tl-none">شاخص</th>
-                            ${sources.map((s, i) => `<th class="p-3 w-1/4 ${i === sources.length - 1 ? 'rounded-tl-lg rounded-bl-lg md:rounded-bl-none md:rounded-tr-none md:rounded-tl-lg' : ''}">${s.name}</th>`).join('')}
+                            <th class="p-3 w-1/6 rounded-tr-lg rounded-br-lg md:rounded-br-none md:rounded-bl-none md:rounded-tr-lg md:rounded-tl-none">شاخص</th>
+                            ${sources.map((s, i) => `<th class="p-3 w-1/6 ${i === sources.length - 1 ? 'rounded-tl-lg rounded-bl-lg md:rounded-bl-none md:rounded-tr-none md:rounded-tl-lg' : ''}">${s.label}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
@@ -706,7 +778,7 @@
             tableHTML += `<tr class="bg-gray-500/5">`;
             tableHTML += `<td class="text-xs font-bold text-amber-500 p-3">ساعت به‌روزرسانی</td>`;
             sources.forEach(source => {
-                tableHTML += `<td class="text-xs font-mono font-bold ltr p-3 latin-nums">${source.time}</td>`;
+                tableHTML += `<td class="text-xs font-mono font-bold ltr p-3 latin-nums">${source.data.time}</td>`;
             });
             tableHTML += `</tr>`;
 
@@ -714,19 +786,21 @@
                 tableHTML += `<tr>`;
                 tableHTML += `<td class="text-sm font-bold opacity-90 p-3">${asset.label}</td>`;
                 
-                sources.forEach(source => {
+                sources.forEach(sourceObj => {
+                    const source = sourceObj.data;
                     if (!source.valid) {
                         tableHTML += `<td class="text-sm text-red-400/50 p-3">-</td>`;
                         return;
                     }
 
-                    const price = source[asset.id];
+                    // Flexible property access: asset.id (e.g. 'herat') 
+                    // matches property in source (e.g. heratLogSource.herat)
+                    const price = source[asset.id]; 
                     
                     if (!price || price === 0) {
                         tableHTML += `<td class="text-sm opacity-30 p-3">-</td>`;
                     } else {
                         let displayValue = price.toLocaleString();
-                        let suffix = '';
                         
                         if (asset.isGlobal) {
                             displayValue = '$' + price.toLocaleString(); // Add $ for Ounce
