@@ -19,7 +19,6 @@
             }
             loadSettings();
             fetchLiveTicker();
-            // Auto refresh every 60 seconds
             setInterval(fetchLiveTicker, 60000);
         });
     </script>
@@ -35,6 +34,8 @@
             --item-hover: rgba(255,255,255,0.05);
             --border-color: #334155;
             --num-weight: 500;
+            --accent-blue: #3b82f6;
+            --accent-amber: #f59e0b;
         }
 
         body.light-mode {
@@ -55,11 +56,12 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             transition: all 0.3s ease;
+            overflow-x: hidden;
         }
 
         .glass-panel { 
             background: var(--panel-bg); 
-            backdrop-filter: blur(10px); 
+            backdrop-filter: blur(12px); 
             border: 1px solid var(--panel-border); 
         }
 
@@ -85,15 +87,30 @@
             body.light-mode .latin-nums { color: #0f172a !important; }
         }
 
+        /* Tabs Styling */
+        .tab-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-btn.active-blue {
+            background-color: var(--accent-blue);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        .tab-btn.active-amber {
+            background-color: var(--accent-amber);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.39);
+        }
+
         .comparison-table th {
             font-weight: 700;
-            font-size: 0.85rem;
-            padding: 1rem 0.75rem;
+            font-size: 0.75rem;
+            padding: 1rem 0.5rem;
             text-align: center;
             white-space: nowrap;
         }
         .comparison-table td {
-            padding: 0.75rem;
+            padding: 1rem 0.5rem;
             text-align: center;
             border-top: 1px solid var(--border-color);
             white-space: nowrap;
@@ -112,21 +129,23 @@
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20">
 
-    <!-- Header -->
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <!-- Header & Brand -->
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div class="text-center md:text-right">
-            <h1 class="text-2xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
-                <div class="p-2 bg-amber-500/10 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <h1 class="text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
+                <div class="p-2 bg-amber-500/10 rounded-2xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
-                تابلوی نرخ‌های زنده رهدیس
+                رهدیس لایو
             </h1>
+            <p class="text-xs opacity-50 mt-1 mr-1">پایش همزمان نرخ‌های بازار از منابع مرجع</p>
         </div>
-        <div class="flex gap-2">
-            <a href="arbitrage_dashboard.html" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-xs transition font-medium flex items-center gap-2">
-                تحلیل تکنیکال و نمودارها
+        <div class="flex items-center gap-3">
+            <a href="arbitrage_dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-xs transition border border-slate-700 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                تحلیل تکنیکال
             </a>
-            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl text-xs transition font-medium shadow-lg flex items-center gap-2 group">
+            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-xs transition font-bold shadow-lg flex items-center gap-2 group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 بروزرسانی
             </button>
@@ -135,59 +154,92 @@
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        <!-- Table Side -->
-        <div class="lg:col-span-3">
-            <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-amber-500/20">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-gray-500/20 pb-3 gap-2">
-                    <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
-                         <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                         مقایسه زنده نرخ‌ها و حباب (تومان)
-                    </h3>
-                    <span id="connectionStatus" class="text-[10px] px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">درحال اتصال...</span>
+        <!-- Main Content (Tables) -->
+        <div class="lg:col-span-3 space-y-6">
+            
+            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5">
+                <!-- Tab Header -->
+                <div class="bg-slate-800/40 p-2 flex gap-2 border-b border-gray-500/10">
+                    <button id="tab-btn-currency" onclick="switchTab('currency')" class="tab-btn active-blue flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        بازار ارز (تومان)
+                    </button>
+                    <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        طلا و مسکوکات (تومان)
+                    </button>
                 </div>
-                
-                <div id="marketList" class="overflow-x-auto min-h-[400px]">
-                     <div class="flex flex-col items-center justify-center py-20 opacity-40">
-                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mb-4"></div>
-                         <p>درحال دریافت آخرین قیمت‌ها از سرور...</p>
-                     </div>
+
+                <!-- Live Status Bar -->
+                <div class="px-6 py-2 bg-slate-900/20 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="connectionStatus" class="text-[10px] opacity-60">در حال دریافت داده‌های زنده...</span>
+                    </div>
+                    <span id="lastUpdateTime" class="text-[10px] opacity-40 font-mono">--:--:--</span>
                 </div>
-                
-                <div id="errorLog" class="mt-4 p-3 bg-red-900/10 border border-red-900/30 rounded-lg text-[10px] text-red-400 hidden font-mono"></div>
+
+                <!-- Currency Table Container -->
+                <div id="section-currency" class="p-2 md:p-4">
+                    <div id="currencyTable" class="overflow-x-auto min-h-[400px]">
+                        <div class="flex flex-col items-center justify-center py-20 opacity-30">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
+                            <p>درحال همگام‌سازی بازار ارز...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gold Table Container -->
+                <div id="section-gold" class="hidden p-2 md:p-4">
+                    <div id="goldTable" class="overflow-x-auto min-h-[400px]">
+                        <div class="flex flex-col items-center justify-center py-20 opacity-30">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mb-4"></div>
+                            <p>درحال همگام‌سازی بازار طلا...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
+            
+            <div id="errorLog" class="mt-4 p-4 bg-red-900/10 border border-red-900/20 rounded-2xl text-[10px] text-red-400 hidden font-mono break-all"></div>
         </div>
 
-        <!-- Sidebar Side -->
+        <!-- Sidebar (Settings) -->
         <div class="lg:col-span-1 space-y-4">
-            <div class="glass-panel rounded-2xl p-5 sticky top-4">
-                <h3 class="text-xs font-bold opacity-60 mb-4 border-b border-gray-500/10 pb-2">تنظیمات تابلوی قیمت</h3>
+            <div class="glass-panel rounded-3xl p-6 sticky top-4 shadow-xl border border-white/5">
+                <h3 class="text-sm font-bold opacity-80 mb-6 border-b border-gray-500/10 pb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    شخصی‌سازی بصری
+                </h3>
                 
-                <div class="grid grid-cols-2 gap-2 mb-6">
-                    <button onclick="toggleTheme()" class="flex flex-col items-center p-3 rounded-xl bg-gray-500/5 hover:bg-gray-500/10 transition border border-gray-500/10">
-                        <span class="text-lg mb-1">🌓</span>
-                        <span class="text-[10px]">تغییر تم</span>
+                <div class="grid grid-cols-2 gap-3 mb-8">
+                    <button onclick="toggleTheme()" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-500/5 hover:bg-gray-500/10 transition border border-gray-500/10 group">
+                        <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">🌓</span>
+                        <span class="text-[10px] font-bold">تغییر تم</span>
                     </button>
-                    <button onclick="toggleEyeCare()" id="eyeCareBtn" class="flex flex-col items-center p-3 rounded-xl bg-gray-500/5 hover:bg-gray-500/10 transition border border-gray-500/10">
-                        <span class="text-lg mb-1">👓</span>
-                        <span class="text-[10px]">محافظ چشم</span>
+                    <button onclick="toggleEyeCare()" id="eyeCareBtn" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-500/5 hover:bg-gray-500/10 transition border border-gray-500/10 group">
+                        <span class="text-2xl mb-2 group-hover:scale-110 transition-transform">👓</span>
+                        <span class="text-[10px] font-bold">محافظ چشم</span>
                     </button>
                 </div>
 
-                <div class="mb-4">
-                    <label class="text-[10px] opacity-60 block mb-2 font-medium flex justify-between">
-                        <span>سایز فونت اعداد</span>
-                        <span id="scaleValueDisplay" class="text-amber-500 font-mono">1.0x</span>
+                <div class="mb-6">
+                    <label class="text-xs opacity-60 block mb-3 font-medium flex justify-between">
+                        <span>بزرگ‌نمایی اعداد</span>
+                        <span id="scaleValueDisplay" class="text-amber-500 font-mono font-bold">1.0x</span>
                     </label>
-                    <input type="range" id="fontScaleSlider" min="0.8" max="1.5" step="0.1" value="1" 
-                           oninput="updateNumberScale(this.value)" class="w-full">
+                    <input type="range" id="fontScaleSlider" min="0.8" max="1.4" step="0.1" value="1" 
+                           oninput="updateNumberScale(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                 </div>
 
-                <div class="mt-8 p-4 bg-amber-500/5 rounded-xl border border-amber-500/10 text-[10px] leading-relaxed opacity-70">
-                    <p class="font-bold mb-2">💡 راهنما:</p>
-                    <ul class="space-y-1 list-disc list-inside">
-                        <li>حباب بر اساس نرخ طلای اختصاصی هر منبع محاسبه می‌شود.</li>
-                        <li>اعداد مثبت (قرمز) نشانه حباب بالا و ریسک خرید است.</li>
-                        <li>اعداد سبز نشانه حباب پایین و فرصت خرید یا آربیتراژ است.</li>
+                <div class="mt-10 p-5 bg-blue-500/5 rounded-3xl border border-blue-500/10 text-[10px] leading-relaxed opacity-70">
+                    <h4 class="font-bold mb-3 text-blue-400 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        راهنمای تابلوی زنده:
+                    </h4>
+                    <ul class="space-y-2">
+                        <li class="flex gap-2"><span class="text-amber-500">●</span> نرخ‌ها هر ۶۰ ثانیه به صورت خودکار بروزرسانی می‌شوند.</li>
+                        <li class="flex gap-2"><span class="text-amber-500">●</span> حباب مثبت (قرمز) یعنی قیمت بازار بالاتر از ارزش طلای آن است.</li>
+                        <li class="flex gap-2"><span class="text-amber-500">●</span> حباب کمتر از ۸٪ (سبز) فرصت مناسبی برای خرید پله‌ای است.</li>
                     </ul>
                 </div>
             </div>
@@ -200,6 +252,7 @@
     
     let supabaseClient = null;
     let isLightMode = false;
+    let activeTab = 'currency';
     const PURITY_FACTOR = 1.2;
     const COIN_SPECS = { full: 8.133, half: 4.0665, quarter: 2.03325 };
 
@@ -210,6 +263,26 @@
             return supabaseClient;
         }
         return null;
+    }
+
+    function switchTab(tab) {
+        activeTab = tab;
+        const curBtn = document.getElementById('tab-btn-currency');
+        const goldBtn = document.getElementById('tab-btn-gold');
+        const curSec = document.getElementById('section-currency');
+        const goldSec = document.getElementById('section-gold');
+
+        if (tab === 'currency') {
+            curBtn.className = "tab-btn active-blue flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
+            goldBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
+            curSec.classList.remove('hidden');
+            goldSec.classList.add('hidden');
+        } else {
+            goldBtn.className = "tab-btn active-amber flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
+            curBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
+            goldSec.classList.remove('hidden');
+            curSec.classList.add('hidden');
+        }
     }
 
     function parsePrice(value) {
@@ -225,93 +298,121 @@
         return ((price - intrinsic) / intrinsic) * 100;
     }
 
+    function generateTableHTML(sources, assets, isGoldTable) {
+        let html = `
+            <table class="w-full min-w-[500px] text-right comparison-table border-collapse">
+                <thead>
+                    <tr class="text-[11px] text-slate-400">
+                        <th class="p-4 text-right">شاخص پایه</th>
+                        ${sources.map(s => `<th class="p-4">${s.label}<br><span class="text-[9px] font-normal opacity-50 ltr latin-nums">${s.time}</span></th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        assets.forEach(asset => {
+            html += `<tr class="group transition-colors">`;
+            html += `<td class="text-xs font-bold p-4 border-l border-white/5 bg-white/5 group-hover:bg-white/10 transition-colors">${asset.label}</td>`;
+            
+            sources.forEach(s => {
+                const price = s[asset.id];
+                if (!price || price === 0) {
+                    html += `<td class="text-xs opacity-20">-</td>`;
+                } else {
+                    let cellHTML = `<div class="num-sm latin-nums font-bold text-lg">${price.toLocaleString()}</div>`;
+                    
+                    if (isGoldTable && asset.weight && s.gold > 0) {
+                        const bubble = calculateBubble(price, asset.weight, s.gold);
+                        let bClass = 'text-amber-500';
+                        if (bubble > 18) bClass = 'text-red-500';
+                        if (bubble < 8) bClass = 'text-emerald-500';
+                        cellHTML += `<div class="${bClass} text-[10px] font-bold ltr latin-nums mt-1">${bubble.toFixed(1)}% حباب</div>`;
+                    }
+                    
+                    html += `<td class="p-4 group-hover:bg-white/5 transition-colors">${cellHTML}</td>`;
+                }
+            });
+            html += `</tr>`;
+        });
+
+        html += `</tbody></table>`;
+        return html;
+    }
+
     async function fetchLiveTicker() {
         const statusEl = document.getElementById('connectionStatus');
-        const listContainer = document.getElementById('marketList');
+        const updateTimeEl = document.getElementById('lastUpdateTime');
         const client = getSupabaseClient();
         if (!client) return;
 
-        statusEl.innerText = "درحال دریافت...";
-        statusEl.classList.add('animate-pulse');
+        statusEl.innerText = "در حال دریافت قیمت‌ها...";
+        statusEl.parentElement.classList.add('animate-pulse');
 
         try {
-            const [iranData, currencyData, milliData, toofanData, pricesData] = await Promise.all([
+            const [iranData, currencyData, toofanData, pricesData] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
-                client.from('Milli_Price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1)
             ]);
 
             const sources = [
                 {
-                    label: 'TGJU',
-                    time: iranData.data?.[0]?.Timestamp ? new Date(iranData.data[0].Timestamp).toLocaleTimeString('en-GB') : '-',
+                    label: 'مرجع TGJU',
+                    time: iranData.data?.[0]?.Timestamp ? new Date(iranData.data[0].Timestamp).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
                     gold: parsePrice(iranData.data?.[0]?.Gram_18K_Price) / 10,
                     full: parsePrice(iranData.data?.[0]?.Emami_Coin_Price) / 10,
                     half: parsePrice(iranData.data?.[0]?.Half_Coin_Price) / 10,
                     quarter: parsePrice(iranData.data?.[0]?.Quarter_Coin_Price) / 10,
-                    dollar: parsePrice(iranData.data?.[0]?.USD_AZAD_Exchange) / 10
+                    dollar: parsePrice(iranData.data?.[0]?.USD_AZAD_Exchange) / 10,
+                    herat: 0, euro: 0, dirham: 0, pound: 0
                 },
                 {
                     label: 'ایران کارنسی',
-                    time: currencyData.data?.[0]?.created_at ? new Date(currencyData.data[0].created_at).toLocaleTimeString('en-GB') : '-',
+                    time: currencyData.data?.[0]?.created_at ? new Date(currencyData.data[0].created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
                     gold: (currencyData.data?.[0]?.gold_18k || 0) * 1000,
                     full: (currencyData.data?.[0]?.emami_coin || 0) * 1000,
                     half: (currencyData.data?.[0]?.half_coin || 0) * 1000,
                     quarter: (currencyData.data?.[0]?.quarter_coin || 0) * 1000,
-                    dollar: currencyData.data?.[0]?.dollar || 0
+                    dollar: currencyData.data?.[0]?.dollar || 0,
+                    euro: currencyData.data?.[0]?.euro || 0,
+                    dirham: currencyData.data?.[0]?.dirham || 0,
+                    pound: currencyData.data?.[0]?.pound || 0,
+                    herat: 0
+                },
+                {
+                    label: 'بازار جنبی',
+                    time: toofanData.data?.[0]?.created_at ? new Date(toofanData.data[0].created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
+                    herat: (parsePrice(toofanData.data?.[0]?.price) > 1000000) ? parsePrice(toofanData.data?.[0]?.price)/10 : parsePrice(toofanData.data?.[0]?.price),
+                    dirham: (parsePrice(pricesData.data?.[0]?.price) > 200000) ? parsePrice(pricesData.data?.[0]?.price)/10 : parsePrice(pricesData.data?.[0]?.price),
+                    gold: 0, dollar: 0, full: 0, half: 0, quarter: 0
                 }
             ];
 
-            const assets = [
-                { id: 'dollar', label: 'دلار آزاد' },
-                { id: 'gold', label: 'طلای ۱۸ عیار' },
-                { id: 'full', label: 'تمام سکه', weight: COIN_SPECS.full },
-                { id: 'half', label: 'نیم سکه', weight: COIN_SPECS.half },
-                { id: 'quarter', label: 'ربع سکه', weight: COIN_SPECS.quarter }
+            const currencyAssets = [
+                { id: 'dollar', label: 'دلار آزاد تهران' },
+                { id: 'herat', label: 'دلار نقدی هرات' },
+                { id: 'dirham', label: 'درهم امارات (حواله)' },
+                { id: 'euro', label: 'یورو صرافی' },
+                { id: 'pound', label: 'پوند انگلیس' }
             ];
 
-            let html = `
-                <table class="w-full min-w-[500px] text-right comparison-table">
-                    <thead>
-                        <tr class="text-[10px] text-white bg-amber-500">
-                            <th class="rounded-tr-xl">شاخص پایه</th>
-                            ${sources.map(s => `<th>${s.label}<br><span class="text-[9px] font-normal opacity-80">${s.time}</span></th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>`;
+            const goldAssets = [
+                { id: 'gold', label: 'طلای ۱۸ عیار' },
+                { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full },
+                { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half },
+                { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter }
+            ];
 
-            assets.forEach(asset => {
-                html += `<tr><td class="text-xs font-bold p-3">${asset.label}</td>`;
-                sources.forEach(s => {
-                    const price = s[asset.id];
-                    if (!price) {
-                        html += `<td class="opacity-20">-</td>`;
-                    } else {
-                        const bubble = asset.weight ? calculateBubble(price, asset.weight, s.gold) : null;
-                        let bubbleClass = 'text-amber-500';
-                        if (bubble > 18) bubbleClass = 'text-red-400';
-                        if (bubble !== null && bubble < 8) bubbleClass = 'text-emerald-400';
-
-                        html += `<td>
-                            <div class="num-sm latin-nums">${price.toLocaleString()}</div>
-                            ${bubble !== null ? `<div class="${bubbleClass} text-[9px] font-bold ltr latin-nums">${bubble.toFixed(1)}% حباب</div>` : ''}
-                        </td>`;
-                    }
-                });
-                html += `</tr>`;
-            });
-
-            html += `</tbody></table>`;
-            listContainer.innerHTML = html;
-            statusEl.innerText = "آنلاین";
-            statusEl.classList.remove('animate-pulse');
-            statusEl.className = "text-[10px] px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
+            document.getElementById('goldTable').innerHTML = generateTableHTML(sources, goldAssets, true);
+            
+            statusEl.innerText = "بروزرسانی موفقیت‌آمیز";
+            statusEl.parentElement.classList.remove('animate-pulse');
+            updateTimeEl.innerText = new Date().toLocaleTimeString('fa-IR');
 
         } catch (e) {
             console.error(e);
-            document.getElementById('errorLog').innerText = e.message;
+            document.getElementById('errorLog').innerText = "خطا در همگام‌سازی: " + e.message;
             document.getElementById('errorLog').classList.remove('hidden');
         }
     }
