@@ -59,9 +59,9 @@
 
     <!-- Tools Grid -->
     <main id="tools-grid" class="flex-grow p-6 hidden opacity-0 transition-opacity duration-700">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
 
-            <!-- Card: Live Prices Table (Linked to NEW file) -->
+            <!-- Card 1: Live Prices Table -->
             <a href="live_prices_table.html" class="block group h-full">
                 <div class="bg-slate-800 rounded-2xl p-6 h-full border border-slate-700 shadow-lg card-hover relative overflow-hidden flex flex-col">
                     <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
@@ -70,13 +70,13 @@
                     </div>
                     <h2 class="text-lg font-bold text-slate-100 mb-2">تابلوی نرخ‌های لحظه‌ای</h2>
                     <p class="text-slate-400 text-xs leading-relaxed mb-4 flex-grow">
-                        تابلوی اختصاصی و سبک برای رصد زنده قیمت طلا، سکه و ارز از ۵ منبع مختلف با محاسبه آنی حباب.
+                        تابلوی اختصاصی برای رصد زنده قیمت طلا، سکه و ارز از ۵ منبع مختلف با محاسبه آنی حباب.
                     </p>
                     <span class="text-emerald-500 text-xs font-bold flex items-center mt-auto">ورود به تابلو <svg class="w-3 h-3 mr-1 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                 </div>
             </a>
 
-            <!-- Card: Rahdis Analyzer -->
+            <!-- Card 2: Rahdis Analyzer -->
             <a href="arbitrage_dashboard.html" class="block group h-full">
                 <div class="bg-slate-800 rounded-2xl p-6 h-full border border-slate-700 shadow-lg card-hover relative overflow-hidden flex flex-col">
                     <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
@@ -91,7 +91,22 @@
                 </div>
             </a>
 
-            <!-- Card: Calculator -->
+            <!-- Card 3: Portfolio Engine -->
+            <a href="portfolio.html" class="block group h-full">
+                <div class="bg-slate-800 rounded-2xl p-6 h-full border border-slate-700 shadow-lg card-hover relative overflow-hidden flex flex-col">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-500 mb-4 group-hover:bg-cyan-500 group-hover:text-white transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    </div>
+                    <h2 class="text-lg font-bold text-slate-100 mb-2">موتور مدیریت دارایی</h2>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-4 flex-grow">
+                        ثبت و پیگیری موجودی واقعی، مدیریت تراکنش‌ها و تبدیل‌های وزنی (Transaction-Based).
+                    </p>
+                    <span class="text-cyan-500 text-xs font-bold flex items-center mt-auto">ورود به موتور <svg class="w-3 h-3 mr-1 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
+                </div>
+            </a>
+
+            <!-- Card 4: Calculator -->
             <a href="calculator.html" class="block group h-full">
                 <div class="bg-slate-800 rounded-2xl p-6 h-full border border-slate-700 shadow-lg card-hover relative overflow-hidden flex flex-col">
                     <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
@@ -100,13 +115,13 @@
                     </div>
                     <h2 class="text-lg font-bold text-slate-100 mb-2">ماشین حساب تخصصی</h2>
                     <p class="text-slate-400 text-xs leading-relaxed mb-4 flex-grow">
-                        محاسبه سود و زیان تعویض، تبدیل اوزان و مدیریت دقیق سبد فروش.
+                        محاسبه سود و زیان تعویض، تبدیل اوزان و مدیریت دقیق سبد فروش طلا و سکه.
                     </p>
                     <span class="text-amber-500 text-xs font-bold flex items-center mt-auto">ورود به ابزار <svg class="w-3 h-3 mr-1 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                 </div>
             </a>
 
-            <!-- Card: Loan Manager -->
+            <!-- Card 5: Loan Manager -->
             <a href="loan.html" class="block group h-full">
                 <div class="bg-slate-800 rounded-2xl p-6 h-full border border-slate-700 shadow-lg card-hover relative overflow-hidden flex flex-col">
                     <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
@@ -115,9 +130,24 @@
                     </div>
                     <h2 class="text-lg font-bold text-slate-100 mb-2">مدیریت وام و اقساط</h2>
                     <p class="text-slate-400 text-xs leading-relaxed mb-4 flex-grow">
-                        کنترل تعهدات مالی، یادآوری هوشمند اقساط و تحلیل نقطه سر به سر.
+                        کنترل تعهدات مالی، یادآوری هوشمند اقساط و تحلیل نقطه سر به سر مالی.
                     </p>
                     <span class="text-blue-500 text-xs font-bold flex items-center mt-auto">مدیریت اقساط <svg class="w-3 h-3 mr-1 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
+                </div>
+            </a>
+
+            <!-- Card 6: Admin Settings -->
+            <a href="admin_dashboard.html" id="admin-card" class="hidden block group h-full">
+                <div class="bg-slate-800/50 rounded-2xl p-6 h-full border border-rose-500/30 shadow-lg card-hover relative overflow-hidden flex flex-col">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-rose-500"></div>
+                    <div class="w-12 h-12 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-500 mb-4 group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </div>
+                    <h2 class="text-lg font-bold text-slate-100 mb-2">تنظیمات سیستمی</h2>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-4 flex-grow">
+                        مدیریت زمان‌بندی ایمیل‌ها، پایش جداول دیتابیس و کنترل دسترسی کاربران.
+                    </p>
+                    <span class="text-rose-500 text-xs font-bold flex items-center mt-auto">پنل مدیریت <svg class="w-3 h-3 mr-1 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                 </div>
             </a>
 
@@ -153,6 +183,7 @@
                 
                 if (userProfile.role === 'admin') {
                     document.getElementById('admin-link').classList.remove('hidden');
+                    document.getElementById('admin-card').classList.remove('hidden');
                 }
 
                 toolsGrid.classList.remove('hidden');
