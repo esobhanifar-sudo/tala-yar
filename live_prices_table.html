@@ -87,7 +87,6 @@
             body.light-mode .latin-nums { color: #0f172a !important; }
         }
 
-        /* Tabs Styling */
         .tab-btn {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -134,11 +133,11 @@
         <div class="text-center md:text-right">
             <h1 class="text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
                 <div class="p-2 bg-amber-500/10 rounded-2xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
                 رهدیس لایو
             </h1>
-            <p class="text-xs opacity-50 mt-1 mr-1">پایش همزمان نرخ‌های بازار از منابع مرجع</p>
+            <p class="text-xs opacity-50 mt-1 mr-1 text-slate-400">پایش هوشمند نرخ‌های بازار بر اساس انس و دلار سبزه‌میدان</p>
         </div>
         <div class="flex items-center gap-3">
             <a href="arbitrage_dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-xs transition border border-slate-700 flex items-center gap-2">
@@ -154,56 +153,59 @@
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        <!-- Main Content (Tables) -->
         <div class="lg:col-span-3 space-y-6">
             
-            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5">
-                <!-- Tab Header -->
-                <div class="bg-slate-800/40 p-2 flex gap-2 border-b border-gray-500/10">
-                    <button id="tab-btn-currency" onclick="switchTab('currency')" class="tab-btn active-blue flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        بازار ارز (تومان)
-                    </button>
-                    <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                        طلا و مسکوکات (تومان)
-                    </button>
+            <!-- Inherent Gold Price Display -->
+            <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+                <div class="flex-1">
+                    <h2 class="text-lg md:text-xl font-extrabold text-amber-400 flex items-center gap-3 text-shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                        ارزش ذاتی هر گرم طلای ۱۸ عیار
+                    </h2>
+                    <p class="text-xs opacity-50 mt-2 font-mono ltr text-right">Formula: (Ounce/31.1035) × 0.75 × Dollar</p>
                 </div>
-
-                <!-- Live Status Bar -->
-                <div class="px-6 py-2 bg-slate-900/20 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span id="connectionStatus" class="text-[10px] opacity-60">در حال دریافت داده‌های زنده...</span>
+                <div class="text-center md:text-left min-w-[200px]">
+                    <div id="inherent-gold-value" class="num-sm text-4xl md:text-5xl font-black text-white latin-nums tracking-tighter transition-all">
+                        ---,---
                     </div>
-                    <span id="lastUpdateTime" class="text-[10px] opacity-40 font-mono">--:--:--</span>
-                </div>
-
-                <!-- Currency Table Container -->
-                <div id="section-currency" class="p-2 md:p-4">
-                    <div id="currencyTable" class="overflow-x-auto min-h-[400px]">
-                        <div class="flex flex-col items-center justify-center py-20 opacity-30">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-                            <p>درحال همگام‌سازی بازار ارز...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gold Table Container -->
-                <div id="section-gold" class="hidden p-2 md:p-4">
-                    <div id="goldTable" class="overflow-x-auto min-h-[400px]">
-                        <div class="flex flex-col items-center justify-center py-20 opacity-30">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mb-4"></div>
-                            <p>درحال همگام‌سازی بازار طلا...</p>
+                    <div id="inherent-gold-info" class="w-full">
+                        <div class="flex flex-col items-center justify-center py-2 opacity-50 text-xs">
+                            در حال محاسبه...
                         </div>
                     </div>
                 </div>
             </div>
-            
+
+            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5">
+                <div class="bg-slate-800/40 p-2 flex gap-2 border-b border-gray-500/10">
+                    <button id="tab-btn-currency" onclick="switchTab('currency')" class="tab-btn active-blue flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
+                        بازار ارز (تومان)
+                    </button>
+                    <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
+                        طلا و مسکوکات (تومان)
+                    </button>
+                </div>
+
+                <div class="px-6 py-2 bg-slate-900/20 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="connectionStatus" class="text-[10px] opacity-60">در حال دریافت...</span>
+                    </div>
+                    <span id="lastUpdateTime" class="text-[10px] opacity-40 font-mono">--:--:--</span>
+                </div>
+
+                <div id="section-currency" class="p-2 md:p-4">
+                    <div id="currencyTable" class="overflow-x-auto min-h-[300px]"></div>
+                </div>
+
+                <div id="section-gold" class="hidden p-2 md:p-4">
+                    <div id="goldTable" class="overflow-x-auto min-h-[300px]"></div>
+                </div>
+            </div>
             <div id="errorLog" class="mt-4 p-4 bg-red-900/10 border border-red-900/20 rounded-2xl text-[10px] text-red-400 hidden font-mono break-all"></div>
         </div>
 
-        <!-- Sidebar (Settings) -->
+        <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-4">
             <div class="glass-panel rounded-3xl p-6 sticky top-4 shadow-xl border border-white/5">
                 <h3 class="text-sm font-bold opacity-80 mb-6 border-b border-gray-500/10 pb-3 flex items-center gap-2">
@@ -231,15 +233,15 @@
                            oninput="updateNumberScale(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                 </div>
 
-                <div class="mt-10 p-5 bg-blue-500/5 rounded-3xl border border-blue-500/10 text-[10px] leading-relaxed opacity-70">
-                    <h4 class="font-bold mb-3 text-blue-400 flex items-center gap-1">
+                <div class="mt-10 p-5 bg-amber-500/5 rounded-3xl border border-amber-500/10 text-[10px] leading-relaxed opacity-70">
+                    <h4 class="font-bold mb-3 text-amber-400 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        راهنمای تابلوی زنده:
+                        اطلاعات محاسباتی:
                     </h4>
                     <ul class="space-y-2">
-                        <li class="flex gap-2"><span class="text-amber-500">●</span> نرخ‌ها هر ۶۰ ثانیه به صورت خودکار بروزرسانی می‌شوند.</li>
-                        <li class="flex gap-2"><span class="text-amber-500">●</span> حباب مثبت (قرمز) یعنی قیمت بازار بالاتر از ارزش طلای آن است.</li>
-                        <li class="flex gap-2"><span class="text-amber-500">●</span> حباب کمتر از ۸٪ (سبز) فرصت مناسبی برای خرید پله‌ای است.</li>
+                        <li><b>منبع دلار:</b> جدول tahran_sabza (آخرین رکورد)</li>
+                        <li><b>منبع انس:</b> جدول justOunce (Price Blue)</li>
+                        <li><b>فرمول:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار</li>
                     </ul>
                 </div>
             </div>
@@ -253,7 +255,8 @@
     let supabaseClient = null;
     let isLightMode = false;
     let activeTab = 'currency';
-    const PURITY_FACTOR = 1.2;
+    const OUNCE_TO_GRAM = 31.1035;
+    const PURITY_18K = 0.75;
     const COIN_SPECS = { full: 8.133, half: 4.0665, quarter: 2.03325 };
 
     function getSupabaseClient() {
@@ -275,67 +278,53 @@
         if (tab === 'currency') {
             curBtn.className = "tab-btn active-blue flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
             goldBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
-            curSec.classList.remove('hidden');
-            goldSec.classList.add('hidden');
+            curSec.classList.remove('hidden'); goldSec.classList.add('hidden');
         } else {
             goldBtn.className = "tab-btn active-amber flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
             curBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-3 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
-            goldSec.classList.remove('hidden');
-            curSec.classList.add('hidden');
+            goldSec.classList.remove('hidden'); curSec.classList.add('hidden');
         }
     }
 
     function parsePrice(value) {
         if (!value) return 0;
         if (typeof value === 'number') return value;
-        const clean = value.toString().replace(/,/g, '').replace(/[^\d.]/g, '');
-        return parseFloat(clean) || 0;
+        return parseFloat(value.toString().replace(/,/g, '').replace(/[^\d.]/g, '')) || 0;
     }
 
     function calculateBubble(price, weight, goldPrice) {
         if (!price || !goldPrice) return 0;
-        const intrinsic = weight * (goldPrice * PURITY_FACTOR);
+        const intrinsic = weight * (goldPrice * 1.2);
         return ((price - intrinsic) / intrinsic) * 100;
     }
 
     function generateTableHTML(sources, assets, isGoldTable) {
-        let html = `
-            <table class="w-full min-w-[500px] text-right comparison-table border-collapse">
-                <thead>
-                    <tr class="text-[11px] text-slate-400">
-                        <th class="p-4 text-right">شاخص پایه</th>
-                        ${sources.map(s => `<th class="p-4">${s.label}<br><span class="text-[9px] font-normal opacity-50 ltr latin-nums">${s.time}</span></th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody>`;
+        let html = `<table class="w-full min-w-[500px] text-right comparison-table border-collapse">
+            <thead><tr class="text-[11px] text-slate-400"><th class="p-4 text-right">شاخص پایه</th>
+            ${sources.map(s => `<th class="p-4">${s.label}<br><span class="text-[9px] font-normal opacity-50 ltr latin-nums">${s.time}</span></th>`).join('')}
+            </tr></thead><tbody>`;
 
         assets.forEach(asset => {
-            html += `<tr class="group transition-colors">`;
-            html += `<td class="text-xs font-bold p-4 border-l border-white/5 bg-white/5 group-hover:bg-white/10 transition-colors">${asset.label}</td>`;
-            
+            html += `<tr class="group transition-colors"><td class="text-xs font-bold p-4 border-l border-white/5 bg-white/5 group-hover:bg-white/10">${asset.label}</td>`;
             sources.forEach(s => {
                 const price = s[asset.id];
                 if (!price || price === 0) {
                     html += `<td class="text-xs opacity-20">-</td>`;
                 } else {
-                    let cellHTML = `<div class="num-sm latin-nums font-bold text-lg">${price.toLocaleString()}</div>`;
+                    let cellHTML = `<div class="num-sm latin-nums font-bold text-lg">${Math.round(price).toLocaleString()}</div>`;
                     
                     if (isGoldTable && asset.weight && s.gold > 0) {
                         const bubble = calculateBubble(price, asset.weight, s.gold);
-                        let bClass = 'text-amber-500';
-                        if (bubble > 18) bClass = 'text-red-500';
-                        if (bubble < 8) bClass = 'text-emerald-500';
+                        let bClass = bubble > 18 ? 'text-red-500' : (bubble < 8 ? 'text-emerald-500' : 'text-amber-500');
                         cellHTML += `<div class="${bClass} text-[10px] font-bold ltr latin-nums mt-1">${bubble.toFixed(1)}% حباب</div>`;
                     }
                     
-                    html += `<td class="p-4 group-hover:bg-white/5 transition-colors">${cellHTML}</td>`;
+                    html += `<td class="p-4 group-hover:bg-white/5">${cellHTML}</td>`;
                 }
             });
             html += `</tr>`;
         });
-
-        html += `</tbody></table>`;
-        return html;
+        return html + `</tbody></table>`;
     }
 
     async function fetchLiveTicker() {
@@ -343,101 +332,129 @@
         const updateTimeEl = document.getElementById('lastUpdateTime');
         const client = getSupabaseClient();
         if (!client) return;
-
         statusEl.innerText = "در حال دریافت قیمت‌ها...";
-        statusEl.parentElement.classList.add('animate-pulse');
 
         try {
-            const [iranData, currencyData, toofanData, pricesData] = await Promise.all([
+            // Updated queries to be simple and robust
+            const [iranData, currencyData, toofanData, pricesData, sabzaData, ounceData] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
-                client.from('prices').select('*').order('id', { ascending: false }).limit(1)
+                client.from('prices').select('*').order('id', { ascending: false }).limit(1),
+                // DOLLAR: Fetch 10 records to find the first valid non-zero one
+                client.from('tahran_sabza').select('*').order('id', { ascending: false }).limit(10),
+                // OUNCE: Just grab the latest from justOunce
+                client.from('justOunce').select('*').order('id', { ascending: false }).limit(1)
             ]);
+
+            const iran = iranData.data?.[0] || {};
+            const curr = currencyData.data?.[0] || {};
+            
+            // Sabza Dollar Logic: Scan recent records for a valid price
+            let sabzaDollar = 0;
+            let sabzaTime = '-';
+            
+            if (sabzaData.data && sabzaData.data.length > 0) {
+                // Find first record with price > 0
+                const validRecord = sabzaData.data.find(r => r.tahran_sabza_price_dollar && Number(r.tahran_sabza_price_dollar) > 0);
+                if (validRecord) {
+                    sabzaDollar = Number(validRecord.tahran_sabza_price_dollar);
+                    sabzaTime = validRecord.time || new Date(validRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'});
+                } else {
+                    console.warn("No valid dollar price found in last 10 records of tahran_sabza");
+                }
+            } else {
+                console.warn("Table tahran_sabza is empty or failed to load");
+            }
+
+            // Ounce Logic
+            const ounceRecord = ounceData.data?.[0];
+            const ouncePrice = ounceRecord ? parsePrice(ounceRecord.price_blue) : 0;
+            const ounceTime = ounceRecord ? new Date(ounceRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-';
+
+            // Formula: (Ounce / 31.1035) * 0.75 * Dollar
+            const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) 
+                ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar
+                : 0;
+
+            // Update Widget - ALWAYS SHOW DATA, even if calculation fails
+            const valEl = document.getElementById('inherent-gold-value');
+            const infoEl = document.getElementById('inherent-gold-info');
+
+            valEl.innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
+            
+            infoEl.innerHTML = `
+                <div class="flex flex-col gap-1 mt-2 border-t border-white/10 pt-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="opacity-70">💵 دلار سبزه‌میدان:</span>
+                        <span class="font-mono font-bold ${sabzaDollar > 0 ? 'text-white' : 'text-red-400'} latin-nums">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="opacity-70">⚖️ انس JustOunce:</span>
+                        <span class="font-mono font-bold ${ouncePrice > 0 ? 'text-white' : 'text-red-400'} latin-nums">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span>
+                    </div>
+                    <div class="flex justify-between text-[9px] opacity-40 mt-1 latin-nums">
+                        <span>بروزرسانی دلار: ${sabzaTime}</span>
+                        <span>بروزرسانی انس: ${ounceTime}</span>
+                    </div>
+                </div>`;
 
             const sources = [
                 {
                     label: 'مرجع TGJU',
-                    time: iranData.data?.[0]?.Timestamp ? new Date(iranData.data[0].Timestamp).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
-                    gold: parsePrice(iranData.data?.[0]?.Gram_18K_Price) / 10,
-                    full: parsePrice(iranData.data?.[0]?.Emami_Coin_Price) / 10,
-                    half: parsePrice(iranData.data?.[0]?.Half_Coin_Price) / 10,
-                    quarter: parsePrice(iranData.data?.[0]?.Quarter_Coin_Price) / 10,
-                    dollar: parsePrice(iranData.data?.[0]?.USD_AZAD_Exchange) / 10,
+                    time: iran.Timestamp ? new Date(iran.Timestamp).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
+                    gold: parsePrice(iran.Gram_18K_Price) / 10,
+                    full: parsePrice(iran.Emami_Coin_Price) / 10,
+                    half: parsePrice(iran.Half_Coin_Price) / 10,
+                    quarter: parsePrice(iran.Quarter_Coin_Price) / 10,
+                    dollar: parsePrice(iran.USD_AZAD_Exchange) / 10,
                     herat: 0, euro: 0, dirham: 0, pound: 0
                 },
                 {
                     label: 'ایران کارنسی',
-                    time: currencyData.data?.[0]?.created_at ? new Date(currencyData.data[0].created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
-                    gold: (currencyData.data?.[0]?.gold_18k || 0) * 1000,
-                    full: (currencyData.data?.[0]?.emami_coin || 0) * 1000,
-                    half: (currencyData.data?.[0]?.half_coin || 0) * 1000,
-                    quarter: (currencyData.data?.[0]?.quarter_coin || 0) * 1000,
-                    dollar: currencyData.data?.[0]?.dollar || 0,
-                    euro: currencyData.data?.[0]?.euro || 0,
-                    dirham: currencyData.data?.[0]?.dirham || 0,
-                    pound: currencyData.data?.[0]?.pound || 0,
+                    time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
+                    gold: (curr.gold_18k || 0) * 1000,
+                    full: (curr.emami_coin || 0) * 1000,
+                    half: (curr.half_coin || 0) * 1000,
+                    quarter: (curr.quarter_coin || 0) * 1000,
+                    dollar: curr.dollar || 0,
+                    euro: curr.euro || 0,
+                    dirham: curr.dirham || 0,
+                    pound: curr.pound || 0,
                     herat: 0
-                },
-                {
-                    label: 'بازار جنبی',
-                    time: toofanData.data?.[0]?.created_at ? new Date(toofanData.data[0].created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
-                    herat: (parsePrice(toofanData.data?.[0]?.price) > 1000000) ? parsePrice(toofanData.data?.[0]?.price)/10 : parsePrice(toofanData.data?.[0]?.price),
-                    dirham: (parsePrice(pricesData.data?.[0]?.price) > 200000) ? parsePrice(pricesData.data?.[0]?.price)/10 : parsePrice(pricesData.data?.[0]?.price),
-                    gold: 0, dollar: 0, full: 0, half: 0, quarter: 0
                 }
             ];
 
             const currencyAssets = [
                 { id: 'dollar', label: 'دلار آزاد تهران' },
                 { id: 'herat', label: 'دلار نقدی هرات' },
-                { id: 'dirham', label: 'درهم امارات (حواله)' },
-                { id: 'euro', label: 'یورو صرافی' },
-                { id: 'pound', label: 'پوند انگلیس' }
+                { id: 'dirham', label: 'درهم امارات' },
+                { id: 'euro', label: 'یورو صرافی' }
             ];
 
             const goldAssets = [
-                { id: 'gold', label: 'طلای ۱۸ عیار' },
-                { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full },
-                { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half },
-                { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter }
+                { id: 'gold', label: 'طلای ۱۸ عیار (بازار)' },
+                { id: 'full', label: 'تمام سکه امامی', weight: 8.133 },
+                { id: 'half', label: 'نیم سکه بهار', weight: 4.0665 },
+                { id: 'quarter', label: 'ربع سکه بهار', weight: 2.03325 }
             ];
 
             document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
             document.getElementById('goldTable').innerHTML = generateTableHTML(sources, goldAssets, true);
             
-            statusEl.innerText = "بروزرسانی موفقیت‌آمیز";
-            statusEl.parentElement.classList.remove('animate-pulse');
+            statusEl.innerText = "بروزرسانی موفق";
             updateTimeEl.innerText = new Date().toLocaleTimeString('fa-IR');
-
         } catch (e) {
             console.error(e);
-            document.getElementById('errorLog').innerText = "خطا در همگام‌سازی: " + e.message;
+            document.getElementById('errorLog').innerText = "خطا در ارتباط با سرور: " + e.message;
             document.getElementById('errorLog').classList.remove('hidden');
         }
     }
 
-    function toggleTheme() {
-        isLightMode = !isLightMode;
-        document.body.classList.toggle('light-mode', isLightMode);
-        localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
-    }
-
-    function toggleEyeCare() {
-        const active = document.body.classList.toggle('eye-care-mode');
-        document.getElementById('eyeCareBtn').classList.toggle('ring-2', active);
-        document.getElementById('eyeCareBtn').classList.toggle('ring-amber-500', active);
-    }
-
-    function updateNumberScale(val) {
-        document.documentElement.style.setProperty('--num-scale', val);
-        document.getElementById('scaleValueDisplay').innerText = val + 'x';
-    }
-
-    function loadSettings() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') toggleTheme();
-    }
+    function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); }
+    function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
+    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; }
+    function loadSettings() { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'light') toggleTheme(); }
 </script>
 </body>
 </html>
