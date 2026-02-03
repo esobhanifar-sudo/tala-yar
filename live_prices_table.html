@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تابلوی زنده نرخ‌ها و حباب | رهدیس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- AUTHENTICATION (Supabase) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Optional: External Auth Script -->
+    <script src="auth.js" onerror="console.warn('auth.js failed to load. Running in standalone mode.')"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof checkAuthGuard === 'function') {
+                checkAuthGuard();
+            }
+            loadSettings();
+            fetchLiveTicker();
+            // Auto refresh every 60 seconds
+            setInterval(fetchLiveTicker, 60000);
+        });
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        :root {
+            --num-scale: 1;
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --panel-border: rgba(255, 255, 255, 0.1);
+            --item-hover: rgba(255,255,255,0.05);
+            --border-color: #334155;
+            --num-weight: 500;
+        }
+
+        body.light-mode {
+            --bg-color: #f1f5f9;
+            --text-color: #334155;
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --panel-border: rgba(0, 0, 0, 0.05);
+            --item-hover: rgba(0,0,0,0.03);
+            --border-color: #e2e8f0;
+        }
+
+        body.eye-care-mode {
+            filter: sepia(0.25) contrast(0.95) brightness(0.95);
+        }
+
+        body { 
+            font-family: 'Vazirmatn', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            transition: all 0.3s ease;
+        }
+
+        .glass-panel { 
+            background: var(--panel-bg); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--panel-border); 
+        }
+
+        .latin-nums {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            direction: ltr;
+            unicode-bidi: embed;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.5px;
+        }
+
+        .num-sm { 
+            font-size: calc(0.875rem * var(--num-scale)); 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+            font-weight: var(--num-weight);
+            transition: font-size 0.2s;
+        }
+
+        @media (min-width: 768px) {
+            :root { --num-weight: 800; }
+            .num-sm { text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+            body:not(.light-mode) .latin-nums { color: #ffffff !important; }
+            body.light-mode .latin-nums { color: #0f172a !important; }
+        }
+
+        .comparison-table th {
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 1rem 0.75rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .comparison-table td {
+            padding: 0.75rem;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        .comparison-table tr:hover td { background-color: var(--item-hover); }
+
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #fbbf24; cursor: pointer; margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; background: #334155; border-radius: 2px;
+        }
+        body.light-mode input[type=range]::-webkit-slider-runnable-track { background: #cbd5e1; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 pb-20">
+
+    <!-- Header -->
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div class="text-center md:text-right">
+            <h1 class="text-2xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
+                <div class="p-2 bg-amber-500/10 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                تابلوی نرخ‌های زنده رهدیس
+            </h1>
+        </div>
+        <div class="flex gap-2">
+            <a href="arbitrage_dashboard.html" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-xs transition font-medium flex items-center gap-2">
+                تحلیل تکنیکال و نمودارها
+            </a>
+            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl text-xs transition font-medium shadow-lg flex items-center gap-2 group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                بروزرسانی
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Table Side -->
+        <div class="lg:col-span-3">
+            <div class="glass-panel rounded-2xl p-4 md:p-6 shadow-xl border border-amber-500/20">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-gray-500/20 pb-3 gap-2">
+                    <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                         <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                         مقایسه زنده نرخ‌ها و حباب (تومان)
+                    </h3>
+                    <span id="connectionStatus" class="text-[10px] px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">درحال اتصال...</span>
+                </div>
+                
+                <div id="marketList" class="overflow-x-auto min-h-[400px]">
+                     <div class="flex flex-col items-center justify-center py-20 opacity-40">
+                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mb-4"></div>
+                         <p>درحال دریافت آخرین قیمت‌ها از سرور...</p>
+                     </div>
+                </div>
+                
+                <div id="errorLog" class="mt-4 p-3 bg-red-900/10 border border-red-900/30 rounded-lg text-[10px] text-red-400 hidden font-mono"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar Side -->
+        <div class="lg:col-span-1 space-y-4">
+            <div class="glass-panel rounded-2xl p-5 sticky top-4">
+                <h3 class="text-xs font-bold opacity-60 mb-4 border-b border-gray-500/10 pb-2">تنظیمات تابلوی قیمت</h3>
+                
+                <div class="grid grid-cols-2 gap-2 mb-6">
+                    <button onclick="toggleTheme()" class="flex flex-col items-center p-3 rounded-xl bg-gray-500/5 hover:bg-gray-500/10 transition border border-gray-500/10">
+                        <span class="text-lg mb-1">🌓</span>
+                        <span class="text-[10px]">تغییر تم</span>
+                    </button>
+                    <button onclick="toggleEyeCare()" id="eyeCareBtn" class="flex flex-col items-center p-3 rounded-xl bg-gray-500/5 hover:bg-gray-500/10 transition border border-gray-500/10">
+                        <span class="text-lg mb-1">👓</span>
+                        <span class="text-[10px]">محافظ چشم</span>
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-[10px] opacity-60 block mb-2 font-medium flex justify-between">
+                        <span>سایز فونت اعداد</span>
+                        <span id="scaleValueDisplay" class="text-amber-500 font-mono">1.0x</span>
+                    </label>
+                    <input type="range" id="fontScaleSlider" min="0.8" max="1.5" step="0.1" value="1" 
+                           oninput="updateNumberScale(this.value)" class="w-full">
+                </div>
+
+                <div class="mt-8 p-4 bg-amber-500/5 rounded-xl border border-amber-500/10 text-[10px] leading-relaxed opacity-70">
+                    <p class="font-bold mb-2">💡 راهنما:</p>
+                    <ul class="space-y-1 list-disc list-inside">
+                        <li>حباب بر اساس نرخ طلای اختصاصی هر منبع محاسبه می‌شود.</li>
+                        <li>اعداد مثبت (قرمز) نشانه حباب بالا و ریسک خرید است.</li>
+                        <li>اعداد سبز نشانه حباب پایین و فرصت خرید یا آربیتراژ است.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const FB_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+    const FB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+    
+    let supabaseClient = null;
+    let isLightMode = false;
+    const PURITY_FACTOR = 1.2;
+    const COIN_SPECS = { full: 8.133, half: 4.0665, quarter: 2.03325 };
+
+    function getSupabaseClient() {
+        if (supabaseClient) return supabaseClient;
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(FB_URL, FB_KEY);
+            return supabaseClient;
+        }
+        return null;
+    }
+
+    function parsePrice(value) {
+        if (!value) return 0;
+        if (typeof value === 'number') return value;
+        const clean = value.toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+        return parseFloat(clean) || 0;
+    }
+
+    function calculateBubble(price, weight, goldPrice) {
+        if (!price || !goldPrice) return 0;
+        const intrinsic = weight * (goldPrice * PURITY_FACTOR);
+        return ((price - intrinsic) / intrinsic) * 100;
+    }
+
+    async function fetchLiveTicker() {
+        const statusEl = document.getElementById('connectionStatus');
+        const listContainer = document.getElementById('marketList');
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        statusEl.innerText = "درحال دریافت...";
+        statusEl.classList.add('animate-pulse');
+
+        try {
+            const [iranData, currencyData, milliData, toofanData, pricesData] = await Promise.all([
+                client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
+                client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
+                client.from('Milli_Price').select('*').order('id', { ascending: false }).limit(1),
+                client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
+                client.from('prices').select('*').order('id', { ascending: false }).limit(1)
+            ]);
+
+            const sources = [
+                {
+                    label: 'TGJU',
+                    time: iranData.data?.[0]?.Timestamp ? new Date(iranData.data[0].Timestamp).toLocaleTimeString('en-GB') : '-',
+                    gold: parsePrice(iranData.data?.[0]?.Gram_18K_Price) / 10,
+                    full: parsePrice(iranData.data?.[0]?.Emami_Coin_Price) / 10,
+                    half: parsePrice(iranData.data?.[0]?.Half_Coin_Price) / 10,
+                    quarter: parsePrice(iranData.data?.[0]?.Quarter_Coin_Price) / 10,
+                    dollar: parsePrice(iranData.data?.[0]?.USD_AZAD_Exchange) / 10
+                },
+                {
+                    label: 'ایران کارنسی',
+                    time: currencyData.data?.[0]?.created_at ? new Date(currencyData.data[0].created_at).toLocaleTimeString('en-GB') : '-',
+                    gold: (currencyData.data?.[0]?.gold_18k || 0) * 1000,
+                    full: (currencyData.data?.[0]?.emami_coin || 0) * 1000,
+                    half: (currencyData.data?.[0]?.half_coin || 0) * 1000,
+                    quarter: (currencyData.data?.[0]?.quarter_coin || 0) * 1000,
+                    dollar: currencyData.data?.[0]?.dollar || 0
+                }
+            ];
+
+            const assets = [
+                { id: 'dollar', label: 'دلار آزاد' },
+                { id: 'gold', label: 'طلای ۱۸ عیار' },
+                { id: 'full', label: 'تمام سکه', weight: COIN_SPECS.full },
+                { id: 'half', label: 'نیم سکه', weight: COIN_SPECS.half },
+                { id: 'quarter', label: 'ربع سکه', weight: COIN_SPECS.quarter }
+            ];
+
+            let html = `
+                <table class="w-full min-w-[500px] text-right comparison-table">
+                    <thead>
+                        <tr class="text-[10px] text-white bg-amber-500">
+                            <th class="rounded-tr-xl">شاخص پایه</th>
+                            ${sources.map(s => `<th>${s.label}<br><span class="text-[9px] font-normal opacity-80">${s.time}</span></th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            assets.forEach(asset => {
+                html += `<tr><td class="text-xs font-bold p-3">${asset.label}</td>`;
+                sources.forEach(s => {
+                    const price = s[asset.id];
+                    if (!price) {
+                        html += `<td class="opacity-20">-</td>`;
+                    } else {
+                        const bubble = asset.weight ? calculateBubble(price, asset.weight, s.gold) : null;
+                        let bubbleClass = 'text-amber-500';
+                        if (bubble > 18) bubbleClass = 'text-red-400';
+                        if (bubble !== null && bubble < 8) bubbleClass = 'text-emerald-400';
+
+                        html += `<td>
+                            <div class="num-sm latin-nums">${price.toLocaleString()}</div>
+                            ${bubble !== null ? `<div class="${bubbleClass} text-[9px] font-bold ltr latin-nums">${bubble.toFixed(1)}% حباب</div>` : ''}
+                        </td>`;
+                    }
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            listContainer.innerHTML = html;
+            statusEl.innerText = "آنلاین";
+            statusEl.classList.remove('animate-pulse');
+            statusEl.className = "text-[10px] px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+
+        } catch (e) {
+            console.error(e);
+            document.getElementById('errorLog').innerText = e.message;
+            document.getElementById('errorLog').classList.remove('hidden');
+        }
+    }
+
+    function toggleTheme() {
+        isLightMode = !isLightMode;
+        document.body.classList.toggle('light-mode', isLightMode);
+        localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+    }
+
+    function toggleEyeCare() {
+        const active = document.body.classList.toggle('eye-care-mode');
+        document.getElementById('eyeCareBtn').classList.toggle('ring-2', active);
+        document.getElementById('eyeCareBtn').classList.toggle('ring-amber-500', active);
+    }
+
+    function updateNumberScale(val) {
+        document.documentElement.style.setProperty('--num-scale', val);
+        document.getElementById('scaleValueDisplay').innerText = val + 'x';
+    }
+
+    function loadSettings() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') toggleTheme();
+    }
+</script>
+</body>
+</html>
