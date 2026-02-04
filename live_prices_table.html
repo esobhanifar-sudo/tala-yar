@@ -137,7 +137,7 @@
                 </div>
                 رهدیس لایو
             </h1>
-            <p class="text-xs opacity-50 mt-1 mr-1 text-slate-400">پایش هوشمند نرخ‌های بازار بر اساس انس و دلار سبزه‌میدان</p>
+            <p class="text-xs opacity-50 mt-1 mr-1 text-slate-400">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
         <div class="flex items-center gap-3">
             <a href="arbitrage_dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-xs transition border border-slate-700 flex items-center gap-2">
@@ -155,23 +155,39 @@
         
         <div class="lg:col-span-3 space-y-6">
             
-            <!-- Inherent Gold Price Display -->
-            <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-                <div class="flex-1">
-                    <h2 class="text-lg md:text-xl font-extrabold text-amber-400 flex items-center gap-3 text-shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-                        ارزش ذاتی هر گرم طلای ۱۸ عیار
-                    </h2>
-                    <p class="text-xs opacity-50 mt-2 font-mono ltr text-right">Formula: (Ounce/31.1035) × 0.75 × Dollar</p>
-                </div>
-                <div class="text-center md:text-left min-w-[200px]">
-                    <div id="inherent-gold-value" class="num-sm text-4xl md:text-5xl font-black text-white latin-nums tracking-tighter transition-all">
-                        ---,---
-                    </div>
-                    <div id="inherent-gold-info" class="w-full">
-                        <div class="flex flex-col items-center justify-center py-2 opacity-50 text-xs">
-                            در حال محاسبه...
+            <!-- Header Widgets Area -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Inherent Gold Price Widget -->
+                <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                                ارزش ذاتی طلای ۱۸ عیار
+                            </h2>
+                            <p class="text-[10px] opacity-40 mt-1">فرمول جهانی بر اساس انس و دلار</p>
                         </div>
+                        <div id="inherent-gold-value" class="num-sm text-2xl font-black text-white latin-nums">---,---</div>
+                    </div>
+                    <div id="inherent-gold-info" class="mt-4">
+                        <!-- Timestamps injected here by JS -->
+                    </div>
+                </div>
+
+                <!-- Inherent Dollar Price Widget (Based on Dirham) -->
+                <div id="inherent-dollar-widget" class="bg-gradient-to-l from-blue-600/20 to-transparent border-r-4 border-blue-500 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-sm font-extrabold text-blue-400 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                ارزش ذاتی دلار (از درهم)
+                            </h2>
+                            <p class="text-[10px] opacity-40 mt-1">فرمول: درهم × ۳.۶۷۲۵</p>
+                        </div>
+                        <div id="inherent-dollar-value" class="num-sm text-2xl font-black text-white latin-nums">---,---</div>
+                    </div>
+                    <div id="inherent-dollar-info" class="mt-4">
+                        <!-- Timestamps injected here by JS -->
                     </div>
                 </div>
             </div>
@@ -194,12 +210,12 @@
                     <span id="lastUpdateTime" class="text-[10px] opacity-40 font-mono">--:--:--</span>
                 </div>
 
-                <!-- Gold Table (Now First and Visible) -->
+                <!-- Gold Table -->
                 <div id="section-gold" class="p-2 md:p-4">
                     <div id="goldTable" class="overflow-x-auto min-h-[300px]"></div>
                 </div>
 
-                <!-- Currency Table (Now Second and Hidden) -->
+                <!-- Currency Table -->
                 <div id="section-currency" class="hidden p-2 md:p-4">
                     <div id="currencyTable" class="overflow-x-auto min-h-[300px]"></div>
                 </div>
@@ -241,9 +257,8 @@
                         اطلاعات محاسباتی:
                     </h4>
                     <ul class="space-y-2">
-                        <li><b>منبع دلار:</b> جدول tahran_sabza (آخرین رکورد)</li>
-                        <li><b>منبع انس:</b> جدول justOunce (Price Blue)</li>
-                        <li><b>فرمول:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار</li>
+                        <li><b>ارزش ذاتی ۱۸:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار</li>
+                        <li><b>ارزش ذاتی دلار:</b> نرخ درهم × ۳.۶۷۲۵</li>
                     </ul>
                 </div>
             </div>
@@ -259,6 +274,7 @@
     let activeTab = 'gold'; // Default to Gold
     const OUNCE_TO_GRAM = 31.1035;
     const PURITY_18K = 0.75;
+    const DIRHAM_TO_DOLLAR = 3.6725;
     const COIN_SPECS = { full: 8.133, half: 4.0665, quarter: 2.03325 };
 
     function getSupabaseClient() {
@@ -356,54 +372,65 @@
 
             const iran = iranData.data?.[0] || {};
             const curr = currencyData.data?.[0] || {};
+            const prices = pricesData.data?.[0] || {};
             
-            let magholi = {};
-            if (magholiData.data && magholiData.data.length > 0) {
-                magholi = magholiData.data.find(r => parsePrice(r.gram_sell_magholi) > 0 || parsePrice(r.mesghal_sell_magholi) > 0) || magholiData.data[0];
-            }
-            
+            // --- Dollar Intrinsic Logic (From Dirham) ---
+            let dhsPrice = parsePrice(prices.price);
+            if (dhsPrice > 200000) dhsPrice /= 10; // Rial to Toman check
+            const dhsTime = prices.created_at ? new Date(prices.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
+            const inherentDollar = dhsPrice * DIRHAM_TO_DOLLAR;
+
+            // --- Gold Intrinsic Logic ---
             const sabzaRecord = sabzaData.data?.[0];
             const sabzaDollar = sabzaRecord ? parsePrice(sabzaRecord.tahran_sabza_price_dollar) : 0;
-            const sabzaTime = sabzaRecord ? (sabzaRecord.time || new Date(sabzaRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'})) : '-';
+            const sabzaTime = sabzaRecord ? (sabzaRecord.time || new Date(sabzaRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'})) : '-';
 
             const ounceRecord = ounceData.data?.[0];
             const ouncePrice = ounceRecord ? parsePrice(ounceRecord.price_blue) : 0;
-            const ounceTime = ounceRecord ? new Date(ounceRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-';
+            const ounceTime = ounceRecord ? new Date(ounceRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
 
             const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) 
                 ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar
                 : 0;
 
-            const valEl = document.getElementById('inherent-gold-value');
-            const infoEl = document.getElementById('inherent-gold-info');
-            valEl.innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
-            
-            infoEl.innerHTML = `
-                <div class="flex flex-col gap-1 mt-2 border-t border-white/10 pt-2">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="opacity-70">💵 دلار سبزه‌میدان:</span>
-                        <span class="font-mono font-bold ${sabzaDollar > 0 ? 'text-white' : 'text-red-400'} latin-nums">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span>
+            // --- Update Widgets ---
+            // 1. Gold Widget (Ensuring dollar and ounce update times are shown)
+            document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
+            document.getElementById('inherent-gold-info').innerHTML = `
+                <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="opacity-70">💵 دلار سبزه‌میدان: <span class="latin-nums font-bold text-white">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span></span>
+                        <span class="opacity-40 text-[9px] latin-nums">بروزرسانی: ${sabzaTime}</span>
                     </div>
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="opacity-70">⚖️ انس JustOunce:</span>
-                        <span class="font-mono font-bold ${ouncePrice > 0 ? 'text-white' : 'text-red-400'} latin-nums">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span>
-                    </div>
-                    <div class="flex justify-between text-[9px] opacity-40 mt-1 latin-nums">
-                        <span>بروزرسانی دلار: ${sabzaTime}</span>
-                        <span>بروزرسانی انس: ${ounceTime}</span>
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="opacity-70">⚖️ انس JustOunce: <span class="latin-nums font-bold text-white">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span></span>
+                        <span class="opacity-40 text-[9px] latin-nums">بروزرسانی: ${ounceTime}</span>
                     </div>
                 </div>`;
 
-            // FIXED MAGHOLI LOGIC: Intelligent Rial/Toman detection to hit the target 19,468,812
+            // 2. Dollar Widget
+            document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
+            document.getElementById('inherent-dollar-info').innerHTML = `
+                <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="opacity-70">🇦🇪 نرخ درهم (DHS): <span class="latin-nums font-bold text-white">${dhsPrice > 0 ? dhsPrice.toLocaleString() : 'یافت نشد'}</span></span>
+                    </div>
+                    <div class="flex justify-between text-[9px] opacity-40 mt-1 latin-nums">
+                        <span>بروزرسانی درهم: ${dhsTime}</span>
+                    </div>
+                </div>`;
+
+            // --- Table Logic ---
+            let magholi = {};
+            if (magholiData.data && magholiData.data.length > 0) {
+                magholi = magholiData.data.find(r => parsePrice(r.gram_sell_magholi) > 0 || parsePrice(r.mesghal_sell_magholi) > 0) || magholiData.data[0];
+            }
+
             let rawMagholi = parsePrice(magholi.gram_sell_magholi);
             if (rawMagholi === 0 && magholi.mesghal_sell_magholi) {
                 rawMagholi = parsePrice(magholi.mesghal_sell_magholi) / 4.3318;
             }
-
-            // Corrective Logic: If the number is around 194 million (Rial), divide by 10 to get ~19 million (Toman).
-            // No extra multiplier is applied anymore.
             let magholiGramPrice = rawMagholi > 100000000 ? rawMagholi / 10 : rawMagholi;
-            
             const magholiTime = magholi.time_magholi || (magholi.created_at ? new Date(magholi.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-');
 
             const sources = [
@@ -444,8 +471,8 @@
                 { id: 'quarter', label: 'ربع سکه بهار', weight: 2.03325 }
             ];
 
-            document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
             document.getElementById('goldTable').innerHTML = generateTableHTML(sources, goldAssets, true);
+            document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
             
             statusEl.innerText = "بروزرسانی موفق";
             updateTimeEl.innerText = new Date().toLocaleTimeString('fa-IR');
