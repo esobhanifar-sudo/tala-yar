@@ -136,7 +136,7 @@
         <div class="text-center md:text-right">
             <h1 class="text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
                 <div class="p-2 bg-amber-500/10 rounded-2xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
                 رهدیس لایو
             </h1>
@@ -177,7 +177,7 @@
                     </div>
                 </div>
 
-                <!-- Inherent Dollar Price Widget (Based on Dirham) -->
+                <!-- Inherent Dollar Price Widget -->
                 <div id="inherent-dollar-widget" class="bg-gradient-to-l from-blue-600/20 to-transparent border-r-4 border-blue-500 glass-panel rounded-3xl p-6 flex flex-col justify-between shadow-xl">
                     <div class="flex justify-between items-start">
                         <div>
@@ -226,7 +226,7 @@
                     <div id="currencyTable" class="overflow-x-auto min-h-[300px]"></div>
                 </div>
 
-                <!-- Candlestick Chart (Fixed Time Alignment) -->
+                <!-- Candlestick Chart -->
                 <div id="maqholi-chart-container" class="p-6 border-t border-white/5 relative overflow-hidden bg-slate-900/10">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                         <div>
@@ -390,7 +390,9 @@
                     html += `<td class="text-xs opacity-30 p-3">-</td>`;
                 } else {
                     let cellHTML = `<div class="num-sm latin-nums font-bold text-lg">${Math.round(price).toLocaleString()}</div>`;
-                    if (isGoldTable && s.inherent_gold > 0) {
+                    
+                    // Bubble Logic (Only for Sell rows and coins)
+                    if (isGoldTable && s.inherent_gold > 0 && asset.id !== 'gold_buy') {
                         let bubble = (asset.id === 'gold') ? ((price - s.inherent_gold) / s.inherent_gold) * 100 : (asset.weight ? calculateBubble(price, asset.weight, s.inherent_gold) : null);
                         if (bubble !== null) {
                             let bClass = bubble > 18 ? 'text-red-500' : (bubble < 8 ? 'text-emerald-500' : 'text-amber-500');
@@ -465,18 +467,32 @@
             });
             if (mLow === Infinity) mLow = 0;
 
+            // SELL LOGIC
             let rawMagholi = parsePrice(magholi.gram_sell_magholi); 
             if (rawMagholi === 0 && magholi.mesghal_sell_magholi) rawMagholi = parsePrice(magholi.mesghal_sell_magholi) / 4.3318;
             let magholiGramPrice = rawMagholi > 100000000 ? rawMagholi / 10 : rawMagholi;
+
+            // BUY LOGIC
+            let rawMagholiBuy = parsePrice(magholi.gram_buy_magholi);
+            if (rawMagholiBuy === 0 && magholi.mesghal_buy_magholi) rawMagholiBuy = parsePrice(magholi.mesghal_buy_magholi) / 4.3318;
+            let magholiGramBuyPrice = rawMagholiBuy > 100000000 ? rawMagholiBuy / 10 : rawMagholiBuy;
+
             const magholiTime = magholi.time_magholi || (magholi.created_at ? new Date(magholi.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-');
 
             const sources = [
-                { label: 'طلای معقولی', time: magholiTime, gold: magholiGramPrice, range_high: mHigh, range_low: mLow, full: 0, half: 0, quarter: 0, dollar: 0, herat: 0, euro: 0, dirham: 0, pound: 0, inherent_gold: inherentGold },
-                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-', gold: (curr.gold_18k || 0) * 1000, full: (curr.emami_coin || 0) * 1000, half: (curr.half_coin || 0) * 1000, quarter: (curr.quarter_coin || 0) * 1000, dollar: curr.dollar || 0, euro: curr.euro || 0, dirham: curr.dirham || 0, pound: curr.pound || 0, herat: 0, inherent_gold: inherentGold }
+                { label: 'طلای معقولی', time: magholiTime, gold: magholiGramPrice, gold_buy: magholiGramBuyPrice, range_high: mHigh, range_low: mLow, full: 0, half: 0, quarter: 0, dollar: 0, herat: 0, euro: 0, dirham: 0, pound: 0, inherent_gold: inherentGold },
+                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-', gold: (curr.gold_18k || 0) * 1000, gold_buy: 0, full: (curr.emami_coin || 0) * 1000, half: (curr.half_coin || 0) * 1000, quarter: (curr.quarter_coin || 0) * 1000, dollar: curr.dollar || 0, euro: curr.euro || 0, dirham: curr.dirham || 0, pound: curr.pound || 0, herat: 0, inherent_gold: inherentGold }
             ];
 
             const currencyAssets = [{ id: 'dollar', label: 'دلار آزاد تهران' }, { id: 'herat', label: 'دلار نقدی هرات' }, { id: 'dirham', label: 'درهم امارات' }, { id: 'euro', label: 'یورو صرافی' }];
-            const goldAssets = [{ id: 'gold', label: 'طلای ۱۸ عیار (بازار)' }, { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight }, { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight }];
+            const goldAssets = [
+                { id: 'gold', label: 'طلای ۱۸ عیار (فروش)' }, 
+                { id: 'gold_buy', label: 'طلای ۱۸ عیار (خرید)' }, 
+                { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, 
+                { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight }, 
+                { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, 
+                { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight }
+            ];
 
             document.getElementById('goldTable').innerHTML = generateTableHTML(sources, goldAssets, true);
             document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
@@ -515,7 +531,6 @@
             if (timeframe === 'today') filterDate.setHours(0,0,0,0);
             else filterDate.setDate(filterDate.getDate() - 7);
 
-            // FIXED: Fetching specific date and time columns to align with database reality
             const { data, error } = await client
                 .from('gold_magholi')
                 .select('mesghal_sell_magholi, date_magholi, time_magholi')
@@ -526,7 +541,6 @@
 
             const groups = {};
             data.forEach(r => {
-                // Combine date and time strings from DB (e.g., 2026-02-05 and 12:58:11)
                 const date = new Date(r.date_magholi + ' ' + r.time_magholi);
                 if (isNaN(date.getTime())) return;
 
@@ -550,7 +564,7 @@
                 xaxis: { 
                     type: 'datetime', 
                     labels: { 
-                        datetimeUTC: false, // Force Local Time display on axis
+                        datetimeUTC: false, 
                         style: { colors: '#64748b', fontSize: '10px', fontFamily: 'Vazirmatn' } 
                     } 
                 },
