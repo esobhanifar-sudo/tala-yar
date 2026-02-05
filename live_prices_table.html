@@ -219,7 +219,7 @@
                     <div id="goldTable" class="min-h-[300px]"></div>
                 </div>
 
-                <!-- Currency Table Content -->
+                <!-- Currency Table Content (Excel Design) -->
                 <div id="section-currency" class="hidden p-4 md:p-10 text-xs overflow-x-auto">
                     <div id="currencyTable" class="min-h-[300px]"></div>
                 </div>
@@ -398,7 +398,6 @@
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
             const [iranRes, currRes, toofanRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
-                // FIXED: Using correct table name to ensure coins fetch
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1),
@@ -425,44 +424,51 @@
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
                 <div class="flex flex-col gap-2 pt-2 text-[11px]">
-                    <div class="flex justify-between items-center opacity-80"><span>💵 دلار سبزه‌میدان: <span class="num-sm font-bold text-white">${sabzaDollar.toLocaleString()}</span></span></div>
-                    <div class="flex justify-between items-center opacity-80"><span>⚖️ انس JustOunce: <span class="num-sm font-bold text-white">${ouncePrice.toLocaleString()}</span></span></div>
+                    <div class="flex justify-between items-center opacity-80"><span>💵 دلار سبزه‌میدان: <span class="latin-nums font-bold text-white num-sm">${sabzaDollar.toLocaleString()}</span></span></div>
+                    <div class="flex justify-between items-center opacity-80"><span>⚖️ انس JustOunce: <span class="latin-nums font-bold text-white num-sm">${ouncePrice.toLocaleString()}</span></span></div>
                 </div>`;
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
             document.getElementById('inherent-dollar-info').innerHTML = `
-                <div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-80"><span>🇦🇪 نرخ درهم (DHS): <span class="num-sm font-bold text-white">${dhsPrice.toLocaleString()}</span></span><span class="opacity-40 latin-nums text-[9px]">${dhsTime}</span></div></div>`;
+                <div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-80"><span>🇦🇪 نرخ درهم (DHS): <span class="latin-nums font-bold text-white num-sm">${dhsPrice.toLocaleString()}</span></span><span class="opacity-40 latin-nums text-[9px]">${dhsTime}</span></div></div>`;
 
-            // Gold Table Data (Fixed mapping for Iran Currency Coins)
+            // Process Range
+            let mHigh = 0, mLow = Infinity;
+            if (magRangeRes.data && magRangeRes.data.length > 0) {
+                magRangeRes.data.forEach(r => {
+                    let p = parsePrice(r.mesghal_sell_magholi);
+                    if (p > 200000000) p /= 10;
+                    if (p > 0) {
+                        const gram18 = p / 4.3318;
+                        if (gram18 > mHigh) mHigh = gram18;
+                        if (gram18 < mLow) mLow = gram18;
+                    }
+                });
+            }
+            if (mLow === Infinity) mLow = 0;
+
+            // --- Updated Currency Excel Data Mapping ---
+            let hPrice = parsePrice(herat.price); if (hPrice > 1000000) hPrice /= 10;
+            const currencyDataList = [
+                { source: 'iran currency', price: parsePrice(curr.dollar), item: 'دلار آزاد', isDollar: true },
+                { source: 'tofan hariod', price: hPrice, item: 'دلار هرات فردایی فروش', isDollar: true },
+                { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان', isDollar: true },
+                { source: 'DHS driham', price: inherentDollar, item: 'ارزش ذاتی دلار (از درهم)', isDollar: false },
+                // NEW ROWS ADDED PER USER QUERY
+                { source: 'iran currency', price: parsePrice(curr.euro), item: 'یورو', isDollar: false },
+                { source: 'DHS driham', price: dhsPrice, item: 'درهم', isDollar: false },
+                { source: 'iran currency', price: parsePrice(curr.dirham), item: 'درهم', isDollar: false },
+                { source: 'iran currency', price: parsePrice(curr.pound), item: 'پوند', isDollar: false }
+            ];
+            document.getElementById('currencyTable').innerHTML = generateExcelCurrencyHTML(currencyDataList, inherentDollar);
+
+            // Gold Table
             const goldSources = [
-                { 
-                    label: 'طلای معقولی', 
-                    time: magholiRes.data?.[0]?.time_magholi || '-', 
-                    gold: parsePrice(magholiRes.data?.[0]?.gram_sell_magholi) > 100000000 ? parsePrice(magholiRes.data?.[0]?.gram_sell_magholi)/10 : parsePrice(magholiRes.data?.[0]?.gram_sell_magholi), 
-                    gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), 
-                    inherent_gold: inherentGold 
-                },
-                { 
-                    label: 'ایران کارنسی', 
-                    time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', 
-                    gold: (parsePrice(curr.gold_18k) || 0) * 1000, 
-                    full: (parsePrice(curr.emami_coin) || 0) * 1000, 
-                    half: (parsePrice(curr.half_coin) || 0) * 1000, 
-                    quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, 
-                    inherent_gold: inherentGold 
-                }
+                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: parsePrice(magholiRes.data?.[0]?.gram_sell_magholi) > 100000000 ? parsePrice(magholiRes.data?.[0]?.gram_sell_magholi)/10 : parsePrice(magholiRes.data?.[0]?.gram_sell_magholi), gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold },
+                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold }
             ];
             const goldAssets = [{ id: 'gold', label: 'طلای ۱۸ عیار (فروش)' }, { id: 'gold_buy', label: 'طلای ۱۸ عیار (خرید)' }, { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight }, { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight }];
             document.getElementById('goldTable').innerHTML = generateGoldTableHTML(goldSources, goldAssets);
 
-            let hPrice = parsePrice(herat.price); if (hPrice > 1000000) hPrice /= 10;
-            const currencyData = [
-                { source: 'iran currency', price: parsePrice(curr.dollar), item: 'دلار آزاد', isDollar: true },
-                { source: 'tofan hariod', price: hPrice, item: 'دلار هرات فردایی فروش', isDollar: true },
-                { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان', isDollar: true },
-                { source: 'DHS driham', price: inherentDollar, item: 'ارزش ذاتی دلار (از درهم)', isDollar: false }
-            ];
-            document.getElementById('currencyTable').innerHTML = generateExcelCurrencyHTML(currencyData, inherentDollar);
-            
             document.getElementById('connectionStatus').innerText = "آنلاین";
             document.getElementById('lastUpdateTime').innerText = new Date().toLocaleTimeString('fa-IR');
             if (!maqholiChart) loadMaqholiChart('today');
@@ -500,7 +506,7 @@
 
     function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); }
     function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
-    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; localStorage.setItem('numScale', val); }
+    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; localStorage.setItem('numScale', val); const widgetMain = document.querySelectorAll('.widget-main-num'); widgetMain.forEach(el => el.style.fontSize = val > 2.5 ? '1.5rem' : '2.25rem'); }
     function loadSettings() { const s = localStorage.getItem('numScale'); if (s) { updateNumberScale(parseFloat(s)); document.getElementById('fontScaleSlider').value = s; } }
 </script>
 </body>
