@@ -9,6 +9,9 @@
     <!-- AUTHENTICATION (Supabase) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- CHARTS LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
     <!-- Optional: External Auth Script -->
     <script src="auth.js" onerror="console.warn('auth.js failed to load. Running in standalone mode.')"></script>
     
@@ -140,7 +143,7 @@
             <p class="text-xs opacity-50 mt-1 mr-1 text-slate-400">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="arbitrage_dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-xs transition border border-slate-700 flex items-center gap-2">
+            <a href="arbitrage_dashboard.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-sm transition border border-slate-700 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                 تحلیل تکنیکال
             </a>
@@ -189,6 +192,26 @@
                     <div id="inherent-dollar-info" class="mt-4">
                         <!-- Timestamps injected here by JS -->
                     </div>
+                </div>
+            </div>
+
+            <!-- MAQHOLI CANDLE CHART SECTION -->
+            <div class="glass-panel rounded-3xl p-6 shadow-xl border border-white/5 relative overflow-hidden">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-amber-500 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                            تحلیل نوسانات طلای معقولی (۱۸ عیار)
+                        </h3>
+                        <p class="text-[10px] opacity-40">پایش سقف و کف قیمت در تایم‌فریم‌های مختلف</p>
+                    </div>
+                    <div class="flex bg-slate-800/50 p-1 rounded-xl border border-white/5">
+                        <button onclick="loadMaqholiChart('today')" id="btn-chart-today" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white">امروز</button>
+                        <button onclick="loadMaqholiChart('week')" id="btn-chart-week" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">هفته جاری</button>
+                    </div>
+                </div>
+                <div id="maqholi-candle-chart" class="min-h-[300px] w-full">
+                    <div class="flex items-center justify-center h-[300px] opacity-20">در حال پردازش کندل‌ها...</div>
                 </div>
             </div>
 
@@ -273,6 +296,9 @@
     let supabaseClient = null;
     let isLightMode = false;
     let activeTab = 'gold'; 
+    let maqholiChart = null;
+    let currentMaqholiTimeframe = 'today';
+    
     const OUNCE_TO_GRAM = 31.1035;
     const PURITY_18K = 0.75;
     const DIRHAM_TO_DOLLAR = 3.6725;
@@ -328,7 +354,6 @@
             sources.forEach(s => {
                 const price = s[asset.id];
                 
-                // FIXED: Logic for Daily 18k High/Low Range
                 if (asset.id === 'mesghal_range') {
                     if (s.label === 'طلای معقولی' && s.range_high > 0) {
                         html += `<td class="p-4 group-hover:bg-white/5">
@@ -405,41 +430,25 @@
 
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
-                <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
-                    <div class="flex justify-between items-center text-[10px]">
-                        <span class="opacity-70">💵 دلار سبزه‌میدان: <span class="latin-nums font-bold text-white">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span></span>
-                        <span class="opacity-40 text-[9px] latin-nums">بروزرسانی: ${sabzaTime}</span>
-                    </div>
-                    <div class="flex justify-between items-center text-[10px]">
-                        <span class="opacity-70">⚖️ انس JustOunce: <span class="latin-nums font-bold text-white">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span></span>
-                        <span class="opacity-40 text-[9px] latin-nums">بروزرسانی: ${ounceTime}</span>
-                    </div>
+                <div class="flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px]">
+                    <div class="flex justify-between items-center"><span class="opacity-70">💵 دلار سبزه‌میدان: <span class="latin-nums font-bold text-white">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span></span><span class="opacity-40 latin-nums">بروزرسانی: ${sabzaTime}</span></div>
+                    <div class="flex justify-between items-center"><span class="opacity-70">⚖️ انس JustOunce: <span class="latin-nums font-bold text-white">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span></span><span class="opacity-40 latin-nums">بروزرسانی: ${ounceTime}</span></div>
                 </div>`;
 
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
             document.getElementById('inherent-dollar-info').innerHTML = `
-                <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
-                    <div class="flex justify-between items-center text-[10px]">
-                        <span class="opacity-70">🇦🇪 نرخ درهم (DHS): <span class="latin-nums font-bold text-white">${dhsPrice > 0 ? dhsPrice.toLocaleString() : 'یافت نشد'}</span></span>
-                    </div>
-                    <div class="flex justify-between text-[9px] opacity-40 mt-1 latin-nums">
-                        <span>بروزرسانی درهم: ${dhsTime}</span>
-                    </div>
+                <div class="flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px]">
+                    <div class="flex justify-between items-center"><span class="opacity-70">🇦🇪 نرخ درهم (DHS): <span class="latin-nums font-bold text-white">${dhsPrice > 0 ? dhsPrice.toLocaleString() : 'یافت نشد'}</span></span></div>
+                    <div class="flex justify-between text-[9px] opacity-40 mt-1 latin-nums"><span>بروزرسانی درهم: ${dhsTime}</span></div>
                 </div>`;
 
             let magholi = magholiData.data?.find(r => parsePrice(r.gram_sell_magholi) > 0 || parsePrice(r.mesghal_sell_magholi) > 0) || magholiData.data?.[0] || {};
-            
-            // CALCULATION FOR 18K HIGH/LOW
             let mHigh = 0, mLow = Infinity;
             magholiRangeData.data?.forEach(r => { 
-                let mesghalPrice = parsePrice(r.mesghal_sell_magholi); 
-                if (mesghalPrice > 200000000) mesghalPrice /= 10; // Rial to Toman
-                
+                let mesghalPrice = parsePrice(r.mesghal_sell_magholi); if (mesghalPrice > 200000000) mesghalPrice /= 10;
                 if (mesghalPrice > 0) {
-                    // Convert Mesghal (17k) to 18k Gram: (Mesghal / 4.3318)
                     let gram18Price = mesghalPrice / 4.3318;
-                    if (gram18Price > mHigh) mHigh = gram18Price;
-                    if (gram18Price < mLow) mLow = gram18Price;
+                    if (gram18Price > mHigh) mHigh = gram18Price; if (gram18Price < mLow) mLow = gram18Price;
                 }
             });
             if (mLow === Infinity) mLow = 0;
@@ -455,13 +464,7 @@
             ];
 
             const currencyAssets = [{ id: 'dollar', label: 'دلار آزاد تهران' }, { id: 'herat', label: 'دلار نقدی هرات' }, { id: 'dirham', label: 'درهم امارات' }, { id: 'euro', label: 'یورو صرافی' }];
-            const goldAssets = [
-                { id: 'gold', label: 'طلای ۱۸ عیار (بازار)' }, 
-                { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, // Updated Row name
-                { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight }, 
-                { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, 
-                { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight }
-            ];
+            const goldAssets = [{ id: 'gold', label: 'طلای ۱۸ عیار (بازار)' }, { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight }, { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight }];
 
             document.getElementById('goldTable').innerHTML = generateTableHTML(sources, goldAssets, true);
             document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
@@ -469,6 +472,10 @@
             statusEl.innerText = "بروزرسانی موفق";
             statusEl.className = "text-[10px] px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
             updateTimeEl.innerText = new Date().toLocaleTimeString('fa-IR');
+            
+            // Initial Chart Load
+            if (!maqholiChart) loadMaqholiChart('today');
+            
         } catch (e) {
             console.error(e);
             document.getElementById('errorLog').innerText = "خطا در ارتباط با سرور: " + e.message;
@@ -476,24 +483,109 @@
         }
     }
 
-    function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); }
-    function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
-    
-    function updateNumberScale(val) { 
-        document.documentElement.style.setProperty('--num-scale', val); 
-        document.getElementById('scaleValueDisplay').innerText = val + 'x'; 
-        localStorage.setItem('numScale', val);
+    async function loadMaqholiChart(timeframe) {
+        currentMaqholiTimeframe = timeframe;
+        const container = document.getElementById('maqholi-candle-chart');
+        const client = getSupabaseClient();
+        if (!client) return;
+        
+        // Update Button Styles
+        const btnToday = document.getElementById('btn-chart-today');
+        const btnWeek = document.getElementById('btn-chart-week');
+        if (timeframe === 'today') {
+            btnToday.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-lg";
+            btnWeek.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+        } else {
+            btnWeek.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-lg";
+            btnToday.className = "px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+        }
+
+        try {
+            let filterDate = new Date();
+            if (timeframe === 'today') filterDate.setHours(0,0,0,0);
+            else filterDate.setDate(filterDate.getDate() - 7);
+
+            const { data, error } = await client
+                .from('gold_magholi')
+                .select('mesghal_sell_magholi, created_at')
+                .gte('created_at', filterDate.toISOString())
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            // OHLC Processing
+            const groups = {};
+            data.forEach(r => {
+                const date = new Date(r.created_at);
+                let key;
+                if (timeframe === 'today') {
+                    // Group by Hour for Today
+                    key = date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate() + ' ' + date.getHours() + ':00';
+                } else {
+                    // Group by Day for Week
+                    key = date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
+                }
+
+                let p = parsePrice(r.mesghal_sell_magholi);
+                if (p > 200000000) p /= 10;
+                if (p > 0) {
+                    const gram18 = p / 4.3318;
+                    if (!groups[key]) groups[key] = { open: gram18, high: gram18, low: gram18, close: gram18, time: date.getTime() };
+                    groups[key].high = Math.max(groups[key].high, gram18);
+                    groups[key].low = Math.min(groups[key].low, gram18);
+                    groups[key].close = gram18;
+                }
+            });
+
+            const candleData = Object.values(groups).map(g => ({
+                x: new Date(g.time),
+                y: [Math.round(g.open), Math.round(g.high), Math.round(g.low), Math.round(g.close)]
+            }));
+
+            const options = {
+                series: [{ data: candleData }],
+                chart: {
+                    type: 'candlestick',
+                    height: 300,
+                    toolbar: { show: false },
+                    animations: { enabled: true }
+                },
+                plotOptions: {
+                    candlestick: {
+                        colors: { upward: '#10b981', downward: '#ef4444' },
+                        wick: { useFillColor: true }
+                    }
+                },
+                xaxis: {
+                    type: 'datetime',
+                    labels: { style: { colors: '#64748b', fontSize: '10px', fontFamily: 'Vazirmatn' } }
+                },
+                yaxis: {
+                    labels: { 
+                        formatter: (val) => Math.round(val).toLocaleString(),
+                        style: { colors: '#64748b', fontSize: '10px', fontFamily: 'Vazirmatn' } 
+                    }
+                },
+                tooltip: { theme: 'dark', x: { format: timeframe === 'today' ? 'HH:mm' : 'dd MMM' } },
+                grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 }
+            };
+
+            if (maqholiChart) maqholiChart.destroy();
+            maqholiChart = new ApexCharts(container, options);
+            maqholiChart.render();
+
+        } catch (e) {
+            console.error("Chart Error:", e);
+            container.innerHTML = `<div class="text-red-400 text-xs text-center py-10">خطا در بارگذاری نمودار: ${e.message}</div>`;
+        }
     }
 
+    function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); }
+    function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
+    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; localStorage.setItem('numScale', val); }
     function loadSettings() { 
-        const savedTheme = localStorage.getItem('theme'); 
-        if (savedTheme === 'light') toggleTheme(); 
-        
-        const savedScale = localStorage.getItem('numScale');
-        if (savedScale) {
-            updateNumberScale(parseFloat(savedScale));
-            document.getElementById('fontScaleSlider').value = savedScale;
-        }
+        const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'light') toggleTheme(); 
+        const savedScale = localStorage.getItem('numScale'); if (savedScale) { updateNumberScale(parseFloat(savedScale)); document.getElementById('fontScaleSlider').value = savedScale; }
     }
 </script>
 </body>
