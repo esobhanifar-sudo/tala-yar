@@ -76,10 +76,12 @@
             letter-spacing: -0.5px;
         }
 
+        /* FIXED: Using percentage to scale relative to the element's existing font size */
         .num-sm { 
-            font-size: calc(1em * var(--num-scale)) !important; 
+            font-size: calc(100% * var(--num-scale)) !important; 
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
             font-weight: var(--num-weight);
+            display: inline-block;
             transition: font-size 0.2s;
         }
 
@@ -136,7 +138,7 @@
         <div class="text-center md:text-right">
             <h1 class="text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
                 <div class="p-2 bg-amber-500/10 rounded-2xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
                 رهدیس لایو
             </h1>
@@ -170,10 +172,13 @@
                             </h2>
                             <p class="text-[10px] opacity-40 mt-1">فرمول جهانی بر اساس انس و دلار</p>
                         </div>
-                        <div id="inherent-gold-value" class="num-sm text-2xl font-black text-white latin-nums tracking-tighter">---,---</div>
+                        <!-- Fixed structure for scaling -->
+                        <div class="text-2xl font-black text-white latin-nums tracking-tighter">
+                            <span id="inherent-gold-value" class="num-sm">---,---</span>
+                        </div>
                     </div>
                     <div id="inherent-gold-info" class="mt-4">
-                        <!-- Timestamps injected here by JS -->
+                        <!-- Detail numbers injected here will now scale -->
                     </div>
                 </div>
 
@@ -187,10 +192,13 @@
                             </h2>
                             <p class="text-[10px] opacity-40 mt-1">فرمول: درهم × ۳.۶۷۲۵</p>
                         </div>
-                        <div id="inherent-dollar-value" class="num-sm text-2xl font-black text-white latin-nums tracking-tighter">---,---</div>
+                        <!-- Fixed structure for scaling -->
+                        <div class="text-2xl font-black text-white latin-nums tracking-tighter">
+                            <span id="inherent-dollar-value" class="num-sm">---,---</span>
+                        </div>
                     </div>
                     <div id="inherent-dollar-info" class="mt-4">
-                        <!-- Timestamps injected here by JS -->
+                        <!-- Detail numbers injected here will now scale -->
                     </div>
                 </div>
             </div>
@@ -442,17 +450,18 @@
             const ounceTime = ounceRecord ? new Date(ounceRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
             const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar : 0;
 
+            // --- Update Widgets ---
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
                 <div class="flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px]">
-                    <div class="flex justify-between items-center"><span class="opacity-70">💵 دلار سبزه‌میدان: <span class="latin-nums font-bold text-white">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span></span><span class="opacity-40 latin-nums">بروزرسانی: ${sabzaTime}</span></div>
-                    <div class="flex justify-between items-center"><span class="opacity-70">⚖️ انس JustOunce: <span class="latin-nums font-bold text-white">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span></span><span class="opacity-40 latin-nums">بروزرسانی: ${ounceTime}</span></div>
+                    <div class="flex justify-between items-center"><span class="opacity-70">💵 دلار سبزه‌میدان: <span class="latin-nums font-bold text-white num-sm">${sabzaDollar > 0 ? sabzaDollar.toLocaleString() : 'یافت نشد'}</span></span><span class="opacity-40 latin-nums">بروزرسانی: ${sabzaTime}</span></div>
+                    <div class="flex justify-between items-center"><span class="opacity-70">⚖️ انس JustOunce: <span class="latin-nums font-bold text-white num-sm">${ouncePrice > 0 ? ouncePrice.toLocaleString() : 'یافت نشد'}</span></span><span class="opacity-40 latin-nums">بروزرسانی: ${ounceTime}</span></div>
                 </div>`;
 
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
             document.getElementById('inherent-dollar-info').innerHTML = `
                 <div class="flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px]">
-                    <div class="flex justify-between items-center"><span class="opacity-70">🇦🇪 نرخ درهم (DHS): <span class="latin-nums font-bold text-white">${dhsPrice > 0 ? dhsPrice.toLocaleString() : 'یافت نشد'}</span></span></div>
+                    <div class="flex justify-between items-center"><span class="opacity-70">🇦🇪 نرخ درهم (DHS): <span class="latin-nums font-bold text-white num-sm">${dhsPrice > 0 ? dhsPrice.toLocaleString() : 'یافت نشد'}</span></span></div>
                     <div class="flex justify-between text-[9px] opacity-40 mt-1 latin-nums"><span>بروزرسانی درهم: ${dhsTime}</span></div>
                 </div>`;
 
@@ -600,4 +609,4 @@
     }
 </script>
 </body>
-</html>
+</html> eof
