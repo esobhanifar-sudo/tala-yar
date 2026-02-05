@@ -226,7 +226,7 @@
                     <div id="currencyTable" class="overflow-x-auto min-h-[300px]"></div>
                 </div>
 
-                <!-- Candlestick Chart -->
+                <!-- Candlestick Chart (Fixed Time Alignment) -->
                 <div id="maqholi-chart-container" class="p-6 border-t border-white/5 relative overflow-hidden bg-slate-900/10">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                         <div>
@@ -234,7 +234,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                                 تحلیل نوسانات طلای معقولی (۱۸ عیار)
                             </h3>
-                            <p class="text-[10px] opacity-40">پایش سقف و کف قیمت در تایم‌فریم‌های مختلف</p>
+                            <p class="text-[10px] opacity-40">پایش سقف و کف بر اساس ستون زمان دیتابیس (Time_Maqholi)</p>
                         </div>
                         <div class="flex bg-slate-800/50 p-1 rounded-xl border border-white/5">
                             <button onclick="loadMaqholiChart('today')" id="btn-chart-today" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-lg">امروز</button>
@@ -273,7 +273,6 @@
                         <span>بزرگ‌نمایی اعداد</span>
                         <span id="scaleValueDisplay" class="text-amber-500 font-mono font-bold">1.0x</span>
                     </label>
-                    <!-- UPDATED: max changed to 3.0 -->
                     <input type="range" id="fontScaleSlider" min="0.8" max="3.0" step="0.1" value="1" 
                            oninput="updateNumberScale(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                     <div class="flex justify-between text-[8px] opacity-40 mt-1">
@@ -291,7 +290,7 @@
                     <ul class="space-y-2">
                         <li><b>ارزش ذاتی ۱۸:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار</li>
                         <li><b>ارزش ذاتی دلار:</b> نرخ درهم × ۳.۶۷۲۵</li>
-                        <li><b>نوسان روزانه:</b> سقف و کف قیمت ۱۸ عیار از ابتدای امروز.</li>
+                        <li><b>نوسان روزانه:</b> سقف و کف قیمت ۱۸ عیار منطبق با دیتابیس معقولی.</li>
                     </ul>
                 </div>
             </div>
@@ -516,9 +515,10 @@
             if (timeframe === 'today') filterDate.setHours(0,0,0,0);
             else filterDate.setDate(filterDate.getDate() - 7);
 
+            // FIXED: Fetching specific date and time columns to align with database reality
             const { data, error } = await client
                 .from('gold_magholi')
-                .select('mesghal_sell_magholi, created_at')
+                .select('mesghal_sell_magholi, date_magholi, time_magholi')
                 .gte('created_at', filterDate.toISOString())
                 .order('created_at', { ascending: true });
 
@@ -526,7 +526,10 @@
 
             const groups = {};
             data.forEach(r => {
-                const date = new Date(r.created_at);
+                // Combine date and time strings from DB (e.g., 2026-02-05 and 12:58:11)
+                const date = new Date(r.date_magholi + ' ' + r.time_magholi);
+                if (isNaN(date.getTime())) return;
+
                 let key = (timeframe === 'today') ? date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate() + ' ' + date.getHours() + ':00' : date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
                 let p = parsePrice(r.mesghal_sell_magholi); if (p > 200000000) p /= 10;
                 if (p > 0) {
@@ -544,9 +547,18 @@
                 series: [{ data: candleData }],
                 chart: { type: 'candlestick', height: 280, toolbar: { show: false }, animations: { enabled: true } },
                 plotOptions: { candlestick: { colors: { upward: '#10b981', downward: '#ef4444' }, wick: { useFillColor: true } } },
-                xaxis: { type: 'datetime', labels: { style: { colors: '#64748b', fontSize: '10px', fontFamily: 'Vazirmatn' } } },
+                xaxis: { 
+                    type: 'datetime', 
+                    labels: { 
+                        datetimeUTC: false, // Force Local Time display on axis
+                        style: { colors: '#64748b', fontSize: '10px', fontFamily: 'Vazirmatn' } 
+                    } 
+                },
                 yaxis: { labels: { formatter: (val) => Math.round(val).toLocaleString(), style: { colors: '#64748b', fontSize: '10px', fontFamily: 'Vazirmatn' } } },
-                tooltip: { theme: 'dark', x: { format: timeframe === 'today' ? 'HH:mm' : 'dd MMM' } },
+                tooltip: { 
+                    theme: 'dark', 
+                    x: { format: timeframe === 'today' ? 'HH:mm' : 'dd MMM' } 
+                },
                 grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 }
             };
 
