@@ -55,7 +55,7 @@
             font-family: 'Vazirmatn', sans-serif; 
             background-color: var(--bg-color); 
             color: var(--text-color); 
-            transition: all 0.3s ease;
+            transition: background-color 0.3s, color 0.3s, filter 0.3s;
             overflow-x: hidden;
         }
 
@@ -74,7 +74,7 @@
         }
 
         .num-sm { 
-            font-size: calc(0.875rem * var(--num-scale)); 
+            font-size: calc(1em * var(--num-scale)) !important; 
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
             font-weight: var(--num-weight);
             transition: font-size 0.2s;
@@ -167,7 +167,7 @@
                             </h2>
                             <p class="text-[10px] opacity-40 mt-1">فرمول جهانی بر اساس انس و دلار</p>
                         </div>
-                        <div id="inherent-gold-value" class="num-sm text-2xl font-black text-white latin-nums">---,---</div>
+                        <div id="inherent-gold-value" class="num-sm text-2xl font-black text-white latin-nums tracking-tighter">---,---</div>
                     </div>
                     <div id="inherent-gold-info" class="mt-4">
                         <!-- Timestamps injected here by JS -->
@@ -184,7 +184,7 @@
                             </h2>
                             <p class="text-[10px] opacity-40 mt-1">فرمول: درهم × ۳.۶۷۲۵</p>
                         </div>
-                        <div id="inherent-dollar-value" class="num-sm text-2xl font-black text-white latin-nums">---,---</div>
+                        <div id="inherent-dollar-value" class="num-sm text-2xl font-black text-white latin-nums tracking-tighter">---,---</div>
                     </div>
                     <div id="inherent-dollar-info" class="mt-4">
                         <!-- Timestamps injected here by JS -->
@@ -211,12 +211,12 @@
                 </div>
 
                 <!-- Gold Table -->
-                <div id="section-gold" class="p-2 md:p-4">
+                <div id="section-gold" class="p-2 md:p-4 text-xs">
                     <div id="goldTable" class="overflow-x-auto min-h-[300px]"></div>
                 </div>
 
                 <!-- Currency Table -->
-                <div id="section-currency" class="hidden p-2 md:p-4">
+                <div id="section-currency" class="hidden p-2 md:p-4 text-xs">
                     <div id="currencyTable" class="overflow-x-auto min-h-[300px]"></div>
                 </div>
             </div>
@@ -243,11 +243,11 @@
                 </div>
 
                 <div class="mb-6">
-                    <label class="text-xs opacity-60 block mb-3 font-medium flex justify-between">
+                    <label class="text-xs opacity-60 block mb-2 font-medium flex justify-between">
                         <span>بزرگ‌نمایی اعداد</span>
                         <span id="scaleValueDisplay" class="text-amber-500 font-mono font-bold">1.0x</span>
                     </label>
-                    <input type="range" id="fontScaleSlider" min="0.8" max="1.4" step="0.1" value="1" 
+                    <input type="range" id="fontScaleSlider" min="0.8" max="1.6" step="0.1" value="1" 
                            oninput="updateNumberScale(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                 </div>
 
@@ -259,6 +259,7 @@
                     <ul class="space-y-2">
                         <li><b>ارزش ذاتی ۱۸:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار</li>
                         <li><b>ارزش ذاتی دلار:</b> نرخ درهم × ۳.۶۷۲۵</li>
+                        <li><b>نوسان روزانه:</b> سقف و کف قیمت ۱۸ عیار از ابتدای امروز.</li>
                     </ul>
                 </div>
             </div>
@@ -271,7 +272,7 @@
     
     let supabaseClient = null;
     let isLightMode = false;
-    let activeTab = 'gold'; // Default to Gold
+    let activeTab = 'gold'; 
     const OUNCE_TO_GRAM = 31.1035;
     const PURITY_18K = 0.75;
     const DIRHAM_TO_DOLLAR = 3.6725;
@@ -326,19 +327,34 @@
             html += `<tr class="group transition-colors"><td class="text-xs font-bold p-4 border-l border-white/5 bg-white/5 group-hover:bg-white/10">${asset.label}</td>`;
             sources.forEach(s => {
                 const price = s[asset.id];
+                
+                // FIXED: Logic for Daily 18k High/Low Range
+                if (asset.id === 'mesghal_range') {
+                    if (s.label === 'طلای معقولی' && s.range_high > 0) {
+                        html += `<td class="p-4 group-hover:bg-white/5">
+                            <div class="flex flex-col items-center gap-1">
+                                <div class="text-[10px] text-emerald-400 font-bold ltr latin-nums flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                                    سقف: <span class="num-sm font-mono">${Math.round(s.range_high).toLocaleString()}</span>
+                                </div>
+                                <div class="text-[10px] text-red-400 font-bold ltr latin-nums flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    کف: <span class="num-sm font-mono">${Math.round(s.range_low).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </td>`;
+                    } else {
+                        html += `<td class="text-xs opacity-20">-</td>`;
+                    }
+                    return;
+                }
+
                 if (!price || price === 0) {
                     html += `<td class="text-xs opacity-20">-</td>`;
                 } else {
                     let cellHTML = `<div class="num-sm latin-nums font-bold text-lg">${Math.round(price).toLocaleString()}</div>`;
-                    
                     if (isGoldTable && s.inherent_gold > 0) {
-                        let bubble = null;
-                        if (asset.id === 'gold') {
-                            bubble = ((price - s.inherent_gold) / s.inherent_gold) * 100;
-                        } else if (asset.weight) {
-                            bubble = calculateBubble(price, asset.weight, s.inherent_gold);
-                        }
-
+                        let bubble = (asset.id === 'gold') ? ((price - s.inherent_gold) / s.inherent_gold) * 100 : (asset.weight ? calculateBubble(price, asset.weight, s.inherent_gold) : null);
                         if (bubble !== null) {
                             let bClass = bubble > 18 ? 'text-red-500' : (bubble < 8 ? 'text-emerald-500' : 'text-amber-500');
                             cellHTML += `<div class="${bClass} text-[10px] font-bold ltr latin-nums mt-1">${bubble.toFixed(1)}% حباب</div>`;
@@ -360,41 +376,33 @@
         statusEl.innerText = "در حال دریافت قیمت‌ها...";
 
         try {
-            const [iranData, currencyData, toofanData, pricesData, sabzaData, ounceData, magholiData] = await Promise.all([
+            const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+            const [iranData, currencyData, toofanData, pricesData, sabzaData, ounceData, magholiData, magholiRangeData] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1),
                 client.from('tahran_sabza').select('*').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
                 client.from('justOunce').select('*').order('id', { ascending: false }).limit(1),
-                client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20)
+                client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
+                client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString())
             ]);
 
             const iran = iranData.data?.[0] || {};
             const curr = currencyData.data?.[0] || {};
             const prices = pricesData.data?.[0] || {};
-            
-            // --- Dollar Intrinsic Logic (From Dirham) ---
-            let dhsPrice = parsePrice(prices.price);
-            if (dhsPrice > 200000) dhsPrice /= 10; // Rial to Toman check
+            let dhsPrice = parsePrice(prices.price); if (dhsPrice > 200000) dhsPrice /= 10;
             const dhsTime = prices.created_at ? new Date(prices.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
             const inherentDollar = dhsPrice * DIRHAM_TO_DOLLAR;
 
-            // --- Gold Intrinsic Logic ---
             const sabzaRecord = sabzaData.data?.[0];
             const sabzaDollar = sabzaRecord ? parsePrice(sabzaRecord.tahran_sabza_price_dollar) : 0;
             const sabzaTime = sabzaRecord ? (sabzaRecord.time || new Date(sabzaRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'})) : '-';
-
             const ounceRecord = ounceData.data?.[0];
             const ouncePrice = ounceRecord ? parsePrice(ounceRecord.price_blue) : 0;
             const ounceTime = ounceRecord ? new Date(ounceRecord.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
+            const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar : 0;
 
-            const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) 
-                ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar
-                : 0;
-
-            // --- Update Widgets ---
-            // 1. Gold Widget (Ensuring dollar and ounce update times are shown)
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
                 <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
@@ -408,7 +416,6 @@
                     </div>
                 </div>`;
 
-            // 2. Dollar Widget
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
             document.getElementById('inherent-dollar-info').innerHTML = `
                 <div class="flex flex-col gap-1 border-t border-white/10 pt-2">
@@ -420,61 +427,47 @@
                     </div>
                 </div>`;
 
-            // --- Table Logic ---
-            let magholi = {};
-            if (magholiData.data && magholiData.data.length > 0) {
-                magholi = magholiData.data.find(r => parsePrice(r.gram_sell_magholi) > 0 || parsePrice(r.mesghal_sell_magholi) > 0) || magholiData.data[0];
-            }
+            let magholi = magholiData.data?.find(r => parsePrice(r.gram_sell_magholi) > 0 || parsePrice(r.mesghal_sell_magholi) > 0) || magholiData.data?.[0] || {};
+            
+            // CALCULATION FOR 18K HIGH/LOW
+            let mHigh = 0, mLow = Infinity;
+            magholiRangeData.data?.forEach(r => { 
+                let mesghalPrice = parsePrice(r.mesghal_sell_magholi); 
+                if (mesghalPrice > 200000000) mesghalPrice /= 10; // Rial to Toman
+                
+                if (mesghalPrice > 0) {
+                    // Convert Mesghal (17k) to 18k Gram: (Mesghal / 4.3318)
+                    let gram18Price = mesghalPrice / 4.3318;
+                    if (gram18Price > mHigh) mHigh = gram18Price;
+                    if (gram18Price < mLow) mLow = gram18Price;
+                }
+            });
+            if (mLow === Infinity) mLow = 0;
 
-            let rawMagholi = parsePrice(magholi.gram_sell_magholi);
-            if (rawMagholi === 0 && magholi.mesghal_sell_magholi) {
-                rawMagholi = parsePrice(magholi.mesghal_sell_magholi) / 4.3318;
-            }
+            let rawMagholi = parsePrice(magholi.gram_sell_magholi); 
+            if (rawMagholi === 0 && magholi.mesghal_sell_magholi) rawMagholi = parsePrice(magholi.mesghal_sell_magholi) / 4.3318;
             let magholiGramPrice = rawMagholi > 100000000 ? rawMagholi / 10 : rawMagholi;
             const magholiTime = magholi.time_magholi || (magholi.created_at ? new Date(magholi.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-');
 
             const sources = [
-                {
-                    label: 'طلای معقولی',
-                    time: magholiTime,
-                    gold: magholiGramPrice,
-                    full: 0, half: 0, quarter: 0, dollar: 0, herat: 0, euro: 0, dirham: 0, pound: 0,
-                    inherent_gold: inherentGold
-                },
-                {
-                    label: 'ایران کارنسی',
-                    time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-',
-                    gold: (curr.gold_18k || 0) * 1000,
-                    full: (curr.emami_coin || 0) * 1000,
-                    half: (curr.half_coin || 0) * 1000,
-                    quarter: (curr.quarter_coin || 0) * 1000,
-                    dollar: curr.dollar || 0,
-                    euro: curr.euro || 0,
-                    dirham: curr.dirham || 0,
-                    pound: curr.pound || 0,
-                    herat: 0,
-                    inherent_gold: inherentGold
-                }
+                { label: 'طلای معقولی', time: magholiTime, gold: magholiGramPrice, range_high: mHigh, range_low: mLow, full: 0, half: 0, quarter: 0, dollar: 0, herat: 0, euro: 0, dirham: 0, pound: 0, inherent_gold: inherentGold },
+                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '-', gold: (curr.gold_18k || 0) * 1000, full: (curr.emami_coin || 0) * 1000, half: (curr.half_coin || 0) * 1000, quarter: (curr.quarter_coin || 0) * 1000, dollar: curr.dollar || 0, euro: curr.euro || 0, dirham: curr.dirham || 0, pound: curr.pound || 0, herat: 0, inherent_gold: inherentGold }
             ];
 
-            const currencyAssets = [
-                { id: 'dollar', label: 'دلار آزاد تهران' },
-                { id: 'herat', label: 'دلار نقدی هرات' },
-                { id: 'dirham', label: 'درهم امارات' },
-                { id: 'euro', label: 'یورو صرافی' }
-            ];
-
+            const currencyAssets = [{ id: 'dollar', label: 'دلار آزاد تهران' }, { id: 'herat', label: 'دلار نقدی هرات' }, { id: 'dirham', label: 'درهم امارات' }, { id: 'euro', label: 'یورو صرافی' }];
             const goldAssets = [
-                { id: 'gold', label: 'طلای ۱۸ عیار (بازار)' },
-                { id: 'full', label: 'تمام سکه امامی', weight: 8.133 },
-                { id: 'half', label: 'نیم سکه بهار', weight: 4.0665 },
-                { id: 'quarter', label: 'ربع سکه بهار', weight: 2.03325 }
+                { id: 'gold', label: 'طلای ۱۸ عیار (بازار)' }, 
+                { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, // Updated Row name
+                { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight }, 
+                { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, 
+                { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight }
             ];
 
             document.getElementById('goldTable').innerHTML = generateTableHTML(sources, goldAssets, true);
             document.getElementById('currencyTable').innerHTML = generateTableHTML(sources, currencyAssets, false);
             
             statusEl.innerText = "بروزرسانی موفق";
+            statusEl.className = "text-[10px] px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
             updateTimeEl.innerText = new Date().toLocaleTimeString('fa-IR');
         } catch (e) {
             console.error(e);
@@ -485,8 +478,23 @@
 
     function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); }
     function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
-    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; }
-    function loadSettings() { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'light') toggleTheme(); }
+    
+    function updateNumberScale(val) { 
+        document.documentElement.style.setProperty('--num-scale', val); 
+        document.getElementById('scaleValueDisplay').innerText = val + 'x'; 
+        localStorage.setItem('numScale', val);
+    }
+
+    function loadSettings() { 
+        const savedTheme = localStorage.getItem('theme'); 
+        if (savedTheme === 'light') toggleTheme(); 
+        
+        const savedScale = localStorage.getItem('numScale');
+        if (savedScale) {
+            updateNumberScale(parseFloat(savedScale));
+            document.getElementById('fontScaleSlider').value = savedScale;
+        }
+    }
 </script>
 </body>
 </html>
