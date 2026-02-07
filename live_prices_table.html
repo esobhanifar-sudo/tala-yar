@@ -504,7 +504,8 @@
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1),
-                client.from('tahran_sabza').select('*').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
+                // FIXED: Filter specifically for 'معامله ✅'
+                client.from('tahran_sabza').select('*').eq('type', 'معامله ✅').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
                 client.from('justOunce').select('*').order('id', { ascending: false }).limit(1),
                 client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString())
