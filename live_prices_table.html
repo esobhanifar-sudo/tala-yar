@@ -528,12 +528,12 @@
 
         try {
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-            const [iranRes, currRes, toofanRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes] = await Promise.all([
+            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
-                client.from('Toofan_Harirod').select('*').order('id', { ascending: false }).limit(1),
+                client.from('price_logs').select('*').eq('info', 'هرات معامله فردایی ⏳').order('id', { ascending: false }).limit(1),
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1),
-                client.from('tahran_sabza').select('*').eq('type', 'معامله ✅').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
+                client.from('tahran_sabza').select('*').eq('type', 'معامله فردایی ✅').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
                 client.from('justOunce').select('*').order('id', { ascending: false }).limit(1),
                 client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString())
@@ -542,7 +542,7 @@
             const curr = currRes.data?.[0] || {};
             const prices = pricesRes.data?.[0] || {};
             const sabza = sabzaRes.data?.[0] || {};
-            const herat = toofanRes.data?.[0] || {};
+            const herat = heratRes.data?.[0] || {};
 
             let dhsPrice = parsePrice(prices.price); if (dhsPrice > 200000) dhsPrice /= 10;
             const dhsTime = prices.created_at ? new Date(prices.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
@@ -555,7 +555,7 @@
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
                 <div class="flex flex-col gap-2 pt-2 text-[11px]">
-                    <div class="flex justify-between items-center opacity-80"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان: <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div>
+                    <div class="flex justify-between items-center opacity-80"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان (فردایی): <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div>
                     <div class="flex justify-between items-center opacity-80"><span class="flex items-center gap-1">⚖️ انس JustOunce: <span class="num-sm font-bold live-price-text">${ouncePrice.toLocaleString()}</span></span></div>
                 </div>`;
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
@@ -598,8 +598,8 @@
             let hPrice = parsePrice(herat.price); if (hPrice > 1000000) hPrice /= 10;
             const currencyData = [
                 { source: 'iran currency', price: parsePrice(curr.dollar), item: 'دلار آزاد', isDollar: true },
-                { source: 'tofan hariod', price: hPrice, item: 'دلار هرات فردایی فروش', isDollar: true },
-                { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان', isDollar: true },
+                { source: 'price_logs', price: hPrice, item: 'دلار هرات فردایی', isDollar: true },
+                { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان (فردایی)', isDollar: true },
                 { source: 'DHS driham', price: inherentDollar, item: 'ارزش ذاتی دلار (از درهم)', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.euro), item: 'یورو', isDollar: false },
                 { source: 'DHS driham', price: dhsPrice, item: 'درهم', isDollar: false },
