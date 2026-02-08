@@ -15,7 +15,7 @@
     <script>
         // Protect this page
         document.addEventListener('DOMContentLoaded', () => {
-            checkAuthGuard();
+            if (window.checkAuthGuard) checkAuthGuard();
         });
     </script>
 
@@ -118,7 +118,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                     <span class="hidden md:inline">خانه</span>
                 </a>
-                <button onclick="signOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
+                <button onclick="if(window.signOut) window.signOut()" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white transition">خروج</button>
             </div>
         </div>
     </div>
@@ -235,7 +235,8 @@
 
                     <div class="input-group">
                         <label>مبلغ اصل وام (تومان)</label>
-                        <input type="text" id="principalAmount" inputmode="numeric" placeholder="0" class="ltr text-left" oninput="formatInput(this)" required>
+                        <!-- ADDED: onblur trigger for automatic calculation -->
+                        <input type="text" id="principalAmount" inputmode="numeric" placeholder="0" class="ltr text-left" oninput="formatInput(this)" onblur="calculateAutomaticGoldWeight()" required>
                     </div>
 
                     <div class="input-group">
@@ -247,7 +248,7 @@
                         <div class="input-group">
                             <label class="text-amber-800">وزن طلای خریداری شده</label>
                             <div class="relative">
-                                <input type="number" step="0.001" id="goldWeight" placeholder="0.000" class="ltr text-left border-amber-200 focus:border-amber-500">
+                                <input type="number" step="0.001" id="goldWeight" placeholder="0.000" class="ltr text-left border-amber-200 focus:border-amber-500 bg-white">
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-600 font-bold">گرم</span>
                             </div>
                         </div>
@@ -280,7 +281,8 @@
                         <div class="input-group sm:col-span-2">
                             <label>تاریخ دریافت وام (شروع محاسبه)</label>
                             <div class="relative">
-                                <input type="text" id="startDate" placeholder="1403/10/01" class="ltr text-center font-mono w-full pl-10" onchange="syncDates('start')">
+                                <!-- ADDED: calculateAutomaticGoldWeight() on change -->
+                                <input type="text" id="startDate" placeholder="1403/10/01" class="ltr text-center font-mono w-full pl-10" onchange="syncDates('start'); calculateAutomaticGoldWeight();">
                                 <button type="button" onclick="openDatePicker('startDate')" class="absolute left-1 top-1/2 -translate-y-1/2 text-indigo-500 hover:bg-indigo-100 p-1.5 rounded transition">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 </button>
@@ -617,6 +619,50 @@
         } catch (err) { console.error('Fetch error:', err); }
     }
 
+    // --- Historical Gold Weight Calculation ---
+    async function calculateAutomaticGoldWeight() {
+        const dateStr = document.getElementById('startDate').value;
+        const principalStr = document.getElementById('principalAmount').value;
+        const weightInput = document.getElementById('goldWeight');
+
+        if (!dateStr || !principalStr) return;
+
+        const principal = getRawValue(principalStr);
+        if (principal <= 0) return;
+
+        // Visual feedback
+        const originalPlaceholder = weightInput.placeholder;
+        weightInput.placeholder = "در حال محاسبه...";
+        
+        try {
+            const { data, error } = await sb
+                .from('ArchiveTgju_gram18_Mordad_92')
+                .select('high_price')
+                .eq('date_jalali', dateStr)
+                .maybeSingle();
+
+            if (error) {
+                console.error("Error fetching historical price:", error);
+                return;
+            }
+
+            if (data && data.high_price) {
+                // Assuming stored price is in Rials, convert to Tomans by dividing by 10
+                const priceInTomans = data.high_price / 10;
+                
+                if (priceInTomans > 0) {
+                    const weight = principal / priceInTomans;
+                    weightInput.value = weight.toFixed(3);
+                    showToast(`قیمت طلا در تاریخ ${dateStr}: ${formatNumber(priceInTomans)} تومان`);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            weightInput.placeholder = originalPlaceholder;
+        }
+    }
+
     // --- DB Operations (NEW) ---
     async function fetchLoansDB() {
         const { data: { user } } = await sb.auth.getUser();
@@ -635,7 +681,6 @@
         }
 
         // Map DB columns to UI expected format (CamelCase)
-        // UPDATED: Now mapping real DB columns for weight, grace, etc.
         loans = data.map(row => ({
             id: row.id,
             bank: row.bank_name,
