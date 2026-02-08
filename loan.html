@@ -246,11 +246,15 @@
 
                     <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
                         <div class="input-group">
-                            <label class="text-amber-800">وزن طلای خریداری شده</label>
+                            <label class="text-amber-800 flex justify-between items-center">
+                                <span>وزن طلای خریداری شده</span>
+                                <button type="button" onclick="calculateAutomaticGoldWeight()" class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded hover:bg-amber-200 transition">محاسبه مجدد</button>
+                            </label>
                             <div class="relative">
                                 <input type="number" step="0.001" id="goldWeight" placeholder="0.000" class="ltr text-left border-amber-200 focus:border-amber-500 bg-white">
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-600 font-bold">گرم</span>
                             </div>
+                            <p id="goldCalcMessage" class="text-[10px] text-amber-600 mt-1 h-4"></p>
                         </div>
                     </div>
 
@@ -624,6 +628,10 @@
         const dateStr = document.getElementById('startDate').value;
         const principalStr = document.getElementById('principalAmount').value;
         const weightInput = document.getElementById('goldWeight');
+        const msgEl = document.getElementById('goldCalcMessage');
+        
+        // Reset message
+        if(msgEl) msgEl.innerText = "";
 
         if (!dateStr || !principalStr) return;
 
@@ -633,8 +641,10 @@
         // Visual feedback
         const originalPlaceholder = weightInput.placeholder;
         weightInput.placeholder = "در حال محاسبه...";
+        if(msgEl) msgEl.innerText = "در حال جستجوی قیمت...";
         
         try {
+            // Note: Table name from user prompt
             const { data, error } = await sb
                 .from('ArchiveTgju_gram18_Mordad_92')
                 .select('high_price')
@@ -643,6 +653,7 @@
 
             if (error) {
                 console.error("Error fetching historical price:", error);
+                if(msgEl) msgEl.innerText = "خطا در اتصال به دیتابیس";
                 return;
             }
 
@@ -653,11 +664,15 @@
                 if (priceInTomans > 0) {
                     const weight = principal / priceInTomans;
                     weightInput.value = weight.toFixed(3);
-                    showToast(`قیمت طلا در تاریخ ${dateStr}: ${formatNumber(priceInTomans)} تومان`);
+                    if(msgEl) msgEl.innerText = `قیمت ${dateStr}: ${formatNumber(priceInTomans)} تومان`;
+                    showToast(`محاسبه شد: ${weight.toFixed(3)} گرم`);
                 }
+            } else {
+                 if(msgEl) msgEl.innerText = `قیمتی برای ${dateStr} یافت نشد`;
             }
         } catch (e) {
             console.error(e);
+            if(msgEl) msgEl.innerText = "خطا در محاسبه";
         } finally {
             weightInput.placeholder = originalPlaceholder;
         }
