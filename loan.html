@@ -641,19 +641,22 @@
         // Visual feedback
         const originalPlaceholder = weightInput.placeholder;
         weightInput.placeholder = "در حال محاسبه...";
-        if(msgEl) msgEl.innerText = "در حال جستجوی قیمت...";
+        if(msgEl) msgEl.innerText = "در حال تبدیل تاریخ و جستجو...";
         
         try {
-            // Convert to Gregorian for reliable date searching
+            // Manual Conversion: Jalali -> Gregorian
+            // We use the library function explicitly here as requested
             const parts = parseJalaliString(dateStr);
             const gObj = jalaali.toGregorian(parts.jy, parts.jm, parts.jd);
             const gDateStr = `${gObj.gy}-${String(gObj.gm).padStart(2,'0')}-${String(gObj.gd).padStart(2,'0')}`;
 
-            // Search for date <= selected date to handle holidays/Fridays
+            console.log(`Jalali: ${dateStr} converted to Gregorian: ${gDateStr}`);
+
+            // Query using date_gregorian column
             const { data, error } = await sb
                 .from('ArchiveTgju_gram18_Mordad_92')
-                .select('high_price, date_jalali')
-                .lte('date_gregorian', gDateStr)
+                .select('high_price, date_jalali, date_gregorian')
+                .lte('date_gregorian', gDateStr) // Use Gregorian for <= comparison (handles holidays by finding previous valid day)
                 .order('date_gregorian', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -665,16 +668,16 @@
             }
 
             if (data && data.high_price) {
-                // Assuming stored price is in Rials, convert to Tomans by dividing by 10
+                // Price in Rials -> Tomans
                 const priceInTomans = data.high_price / 10;
                 
                 if (priceInTomans > 0) {
                     const weight = principal / priceInTomans;
                     weightInput.value = weight.toFixed(3);
                     
-                    // Show which date was used if different from requested
+                    // Feedback on date used
                     if (data.date_jalali !== dateStr) {
-                        if(msgEl) msgEl.innerText = `قیمت ${data.date_jalali}: ${formatNumber(priceInTomans)} تومان`;
+                        if(msgEl) msgEl.innerText = `قیمت ${data.date_jalali} (معادل ${data.date_gregorian}): ${formatNumber(priceInTomans)} تومان`;
                     } else {
                         if(msgEl) msgEl.innerText = `قیمت ${dateStr}: ${formatNumber(priceInTomans)} تومان`;
                     }
@@ -682,7 +685,7 @@
                     showToast(`محاسبه شد: ${weight.toFixed(3)} گرم`);
                 }
             } else {
-                 if(msgEl) msgEl.innerText = `قیمتی برای ${dateStr} یافت نشد`;
+                 if(msgEl) msgEl.innerText = `قیمتی برای ${dateStr} (یا قبل از آن) یافت نشد`;
             }
         } catch (e) {
             console.error(e);
