@@ -235,8 +235,8 @@
 
                     <div class="input-group">
                         <label>مبلغ اصل وام (تومان)</label>
-                        <!-- ADDED: onblur trigger for automatic calculation -->
-                        <input type="text" id="principalAmount" inputmode="numeric" placeholder="0" class="ltr text-left" oninput="formatInput(this)" onblur="calculateAutomaticGoldWeight()" required>
+                        <!-- ADDED: oninput debounce trigger for automatic calculation -->
+                        <input type="text" id="principalAmount" inputmode="numeric" placeholder="0" class="ltr text-left" oninput="formatInput(this); debouncedCalculate();" required>
                     </div>
 
                     <div class="input-group">
@@ -429,6 +429,7 @@
     let loans = [];
     let editingLoanId = null;
     let calYear, calMonth;
+    let debounceTimer; // Added for debounce logic
     
     // --- Utils ---
     const formatNumber = (num) => num ? parseInt(num).toLocaleString('en-US') : '0';
@@ -438,6 +439,12 @@
         let val = el.value.replace(/,/g, '').replace(/\D/g, '');
         if (val) el.value = parseInt(val).toLocaleString('en-US');
         else el.value = '';
+    }
+
+    // Debounce function wrapper
+    function debouncedCalculate() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(calculateAutomaticGoldWeight, 1000);
     }
 
     // --- Toast Logic ---
@@ -604,7 +611,7 @@
 
     // --- Live Price Fetching ---
     async function fetchLiveGoldPrice() {
-        if (!sb) return; 
+        if (typeof sb === 'undefined') return; 
         try {
             const { data, error } = await sb
                 .from('Iran_Data')
@@ -625,6 +632,11 @@
 
     // --- Historical Gold Weight Calculation ---
     async function calculateAutomaticGoldWeight() {
+        if (typeof sb === 'undefined') {
+            console.error("Supabase client (sb) is not defined. Ensure auth.js is loaded.");
+            return;
+        }
+
         const dateStr = document.getElementById('startDate').value;
         const principalStr = document.getElementById('principalAmount').value;
         const weightInput = document.getElementById('goldWeight');
@@ -668,7 +680,7 @@
             }
 
             if (data && data.high_price) {
-                // Price in Rials -> Tomans
+                // Assuming stored price is in Rials, convert to Tomans by dividing by 10
                 const priceInTomans = data.high_price / 10;
                 
                 if (priceInTomans > 0) {
@@ -697,6 +709,8 @@
 
     // --- DB Operations (NEW) ---
     async function fetchLoansDB() {
+        if (typeof sb === 'undefined') return;
+        
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
 
