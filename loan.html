@@ -644,11 +644,18 @@
         if(msgEl) msgEl.innerText = "در حال جستجوی قیمت...";
         
         try {
-            // Note: Table name from user prompt
+            // Convert to Gregorian for reliable date searching
+            const parts = parseJalaliString(dateStr);
+            const gObj = jalaali.toGregorian(parts.jy, parts.jm, parts.jd);
+            const gDateStr = `${gObj.gy}-${String(gObj.gm).padStart(2,'0')}-${String(gObj.gd).padStart(2,'0')}`;
+
+            // Search for date <= selected date to handle holidays/Fridays
             const { data, error } = await sb
                 .from('ArchiveTgju_gram18_Mordad_92')
-                .select('high_price')
-                .eq('date_jalali', dateStr)
+                .select('high_price, date_jalali')
+                .lte('date_gregorian', gDateStr)
+                .order('date_gregorian', { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
             if (error) {
@@ -664,7 +671,14 @@
                 if (priceInTomans > 0) {
                     const weight = principal / priceInTomans;
                     weightInput.value = weight.toFixed(3);
-                    if(msgEl) msgEl.innerText = `قیمت ${dateStr}: ${formatNumber(priceInTomans)} تومان`;
+                    
+                    // Show which date was used if different from requested
+                    if (data.date_jalali !== dateStr) {
+                        if(msgEl) msgEl.innerText = `قیمت ${data.date_jalali}: ${formatNumber(priceInTomans)} تومان`;
+                    } else {
+                        if(msgEl) msgEl.innerText = `قیمت ${dateStr}: ${formatNumber(priceInTomans)} تومان`;
+                    }
+                    
                     showToast(`محاسبه شد: ${weight.toFixed(3)} گرم`);
                 }
             } else {
