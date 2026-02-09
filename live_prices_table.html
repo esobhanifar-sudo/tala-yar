@@ -269,21 +269,40 @@
         <div class="flex-1 overflow-y-auto p-4 space-y-4">
             <!-- Asset Selector & Summary -->
             <div class="bg-white/5 rounded-xl p-3 border border-white/5">
-                <div class="flex justify-between text-xs mb-2 opacity-60">
+                <div class="flex justify-between text-xs mb-3 opacity-60">
                     <span>دارایی فعال:</span>
                     <span class="text-amber-400 font-bold">طلای ۱۸ عیار</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-center">
-                    <div class="bg-black/20 p-2 rounded-lg">
-                        <div class="text-[10px] opacity-50">موجودی (گرم)</div>
-                        <div id="trade-net-weight" class="text-sm font-bold latin-nums mt-1">0.00</div>
+                
+                <div class="grid grid-cols-2 gap-2 text-center mb-3">
+                    <div class="bg-black/20 p-2 rounded-lg col-span-2">
+                        <div class="text-[9px] opacity-50">موجودی (گرم)</div>
+                        <div id="trade-net-weight" class="text-sm font-bold latin-nums mt-1 text-white">0.00</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
-                        <div class="text-[10px] opacity-50">سود/ضرر لحظه‌ای</div>
-                        <div id="trade-pl" class="text-sm font-bold latin-nums mt-1 text-slate-400">0</div>
+                        <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید</div>
+                        <div id="trade-avg-buy-display" class="text-sm font-bold latin-nums mt-1 text-white">0</div>
+                    </div>
+                    <div class="bg-black/20 p-2 rounded-lg">
+                        <div class="text-[9px] opacity-50 text-red-400">میانگین فروش</div>
+                        <div id="trade-avg-sell-display" class="text-sm font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                 </div>
-                <div class="mt-2 text-center text-[10px] opacity-40"><span id="trade-avg-label">میانگین خرید</span>: <span id="trade-avg-val" class="latin-nums">0</span></div>
+
+                <div class="bg-slate-900/40 p-3 rounded-xl space-y-2 border border-white/5">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span class="text-[10px] opacity-50">سود/زیان قطعی (Realized)</span>
+                        <span id="trade-realized-pl" class="text-xs font-bold latin-nums text-slate-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span class="text-[10px] opacity-50">سود/زیان شناور (Unrealized)</span>
+                        <span id="trade-unrealized-pl" class="text-xs font-bold latin-nums text-slate-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-[11px] font-bold text-amber-400">سود/زیان کل</span>
+                        <span id="trade-total-pl" class="text-sm font-bold latin-nums text-slate-200">0</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Input Form -->
@@ -1177,6 +1196,9 @@
         const listEl = document.getElementById('orders-list');
         listEl.innerHTML = '';
 
+        // Sort orders for display (Newest First)
+        // Note: currentSession.orders is maintained as Newest First in addOrder
+        
         if(currentSession.orders.length === 0) {
             listEl.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
         } else {
@@ -1222,52 +1244,102 @@
     }
 
     function updateTradeStats() {
-        let totalBuyWeight = 0; // in Grams
-        let totalBuyCost = 0;   // in Toman
-        let totalSellWeight = 0; // in Grams
-        let totalSellRevenue = 0; // in Toman
+        // We need to process orders chronologically (Oldest First) to calculate Realized P/L correctly
+        // using a Weighted Average Cost (WAC) method.
+        // currentSession.orders is Newest First, so we copy and reverse.
+        const sortedOrders = [...currentSession.orders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        currentSession.orders.forEach(o => {
-            // Standardized calculation using normalized values
-            const orderTotalValue = o.weight_gram * o.price_per_gram;
+        let inventoryGram = 0;
+        let weightedAvgBuyPrice = 0; // Cost Basis for P/L
+        let realizedPL = 0;
 
-            if(o.side === 'buy') {
-                totalBuyWeight += o.weight_gram;
-                totalBuyCost += orderTotalValue;
+        // Variables for Simple Averages (Total Session)
+        let totalBuyWeight = 0;
+        let totalBuyValue = 0;
+        let totalSellWeight = 0;
+        let totalSellValue = 0;
+
+        sortedOrders.forEach(o => {
+            const weight = o.weight_gram;
+            const pricePerGram = o.price_per_gram;
+            const totalValue = weight * pricePerGram;
+
+            // --- Aggregate for Simple Averages ---
+            if (o.side === 'buy') {
+                totalBuyWeight += weight;
+                totalBuyValue += totalValue;
             } else {
-                totalSellWeight += o.weight_gram;
-                totalSellRevenue += orderTotalValue;
+                totalSellWeight += weight;
+                totalSellValue += totalValue;
+            }
+
+            // --- P/L Logic ---
+            if (o.side === 'buy') {
+                // Update Weighted Average Price (Cost Basis)
+                const oldTotalValue = inventoryGram * weightedAvgBuyPrice;
+                const newTotalValue = oldTotalValue + totalValue;
+                const newInventory = inventoryGram + weight;
+                
+                if (newInventory > 0) {
+                    weightedAvgBuyPrice = newTotalValue / newInventory;
+                } else {
+                    weightedAvgBuyPrice = 0;
+                }
+                inventoryGram = newInventory;
+            } else {
+                // Sell
+                // Calculate Realized P/L based on difference between Sell Price and CURRENT Weighted Avg Price
+                if (inventoryGram > 0) {
+                    // Logic: Selling from existing inventory
+                    const profit = (pricePerGram - weightedAvgBuyPrice) * weight;
+                    realizedPL += profit;
+                    inventoryGram -= weight;
+                } else {
+                    // Logic: Selling short (Inventory becomes negative)
+                    const oldTotalValue = inventoryGram * weightedAvgBuyPrice; // Negative * Price
+                    const newTotalValue = oldTotalValue - totalValue; // Removing value
+                    const newInventory = inventoryGram - weight;
+                    inventoryGram = newInventory;
+                }
             }
         });
 
-        const netWeight = totalBuyWeight - totalSellWeight;
-        const avgBuy = totalBuyWeight > 0 ? (totalBuyCost / totalBuyWeight) : 0;
-        const avgSell = totalSellWeight > 0 ? (totalSellRevenue / totalSellWeight) : 0;
-        
-        // P/L = (Current Value of Net Holdings) + (Realized Cash from Sales) - (Cost of Goods Sold/Held)
-        // Simplified: Market Value of Net Inventory + Total Cash In - Total Cash Out
-        let pl = 0;
-        if(currentLiveGoldPrice > 0) {
-             pl = (netWeight * currentLiveGoldPrice) + totalSellRevenue - totalBuyCost;
+        // Unrealized P/L (Floating) calculation for remaining inventory
+        let unrealizedPL = 0;
+        if (currentLiveGoldPrice > 0 && inventoryGram !== 0) {
+            // Value if liquidated now - Cost basis
+            const marketValue = inventoryGram * currentLiveGoldPrice;
+            const costBasis = inventoryGram * weightedAvgBuyPrice;
+            unrealizedPL = marketValue - costBasis;
         }
 
-        document.getElementById('trade-net-weight').innerText = netWeight.toFixed(2);
+        const totalPL = realizedPL + unrealizedPL;
+
+        // Calculate Simple Session Averages
+        const sessionAvgBuy = totalBuyWeight > 0 ? totalBuyValue / totalBuyWeight : 0;
+        const sessionAvgSell = totalSellWeight > 0 ? totalSellValue / totalSellWeight : 0;
+
+        // --- UI UPDATES ---
+        document.getElementById('trade-net-weight').innerText = inventoryGram.toFixed(2);
         
-        // Dynamic Label and Value based on active Trade Side
-        const avgLabelEl = document.getElementById('trade-avg-label');
-        const avgValEl = document.getElementById('trade-avg-val');
-        
-        if (tradeSide === 'buy') {
-            avgLabelEl.innerText = 'میانگین خرید';
-            avgValEl.innerText = Math.round(avgBuy).toLocaleString();
-        } else {
-            avgLabelEl.innerText = 'میانگین فروش';
-            avgValEl.innerText = Math.round(avgSell).toLocaleString();
-        }
-        
-        const plEl = document.getElementById('trade-pl');
-        plEl.innerText = Math.round(pl).toLocaleString();
-        plEl.className = `text-sm font-bold latin-nums mt-1 ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+        // Display Simple Averages
+        document.getElementById('trade-avg-buy-display').innerText = Math.round(sessionAvgBuy).toLocaleString();
+        document.getElementById('trade-avg-sell-display').innerText = Math.round(sessionAvgSell).toLocaleString();
+
+        // Helper to colorize text
+        const colorize = (val, elId) => {
+            const el = document.getElementById(elId);
+            el.innerText = Math.round(val).toLocaleString();
+            el.className = `text-xs font-bold latin-nums ${val > 0 ? 'text-emerald-400' : val < 0 ? 'text-red-400' : 'text-slate-400'}`;
+            // For Total P/L make text larger
+            if(elId === 'trade-total-pl') {
+                 el.className = `text-sm font-bold latin-nums ${val > 0 ? 'text-emerald-400' : val < 0 ? 'text-red-400' : 'text-slate-200'}`;
+            }
+        };
+
+        colorize(realizedPL, 'trade-realized-pl');
+        colorize(unrealizedPL, 'trade-unrealized-pl');
+        colorize(totalPL, 'trade-total-pl');
     }
 </script>
 </body>
