@@ -37,9 +37,9 @@
         :root {
             --num-scale: 1;
             --bg-color: #0f172a;
-            --text-color: #e2e8f0;
-            --panel-bg: rgba(30, 41, 59, 0.7);
-            --panel-border: rgba(255, 255, 255, 0.1);
+            --text-color: #f1f5f9; /* Improved Contrast for Dark Mode */
+            --panel-bg: rgba(30, 41, 59, 0.75);
+            --panel-border: rgba(255, 255, 255, 0.15);
             --item-hover: rgba(255,255,255,0.05);
             --border-color: #334155;
             --num-weight: 700;
@@ -49,9 +49,9 @@
 
         body.light-mode {
             --bg-color: #f1f5f9;
-            --text-color: #334155;
+            --text-color: #1e293b;
             --panel-bg: rgba(255, 255, 255, 0.85);
-            --panel-border: rgba(0, 0, 0, 0.05);
+            --panel-border: rgba(0, 0, 0, 0.08);
             --item-hover: rgba(0,0,0,0.03);
             --border-color: #e2e8f0;
         }
@@ -121,7 +121,7 @@
             text-align: center;
             background: rgba(51, 65, 85, 0.3);
             text-transform: lowercase;
-            opacity: 0.8;
+            opacity: 0.9;
         }
         .excel-table td {
             border: 1px solid var(--border-color);
@@ -169,7 +169,7 @@
                 </div>
                 رهدیس لایو
             </h1>
-            <p class="text-xs opacity-50 mt-1 mr-1 text-slate-400">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
+            <p class="text-xs opacity-70 mt-1 mr-1 text-slate-300">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
         <div class="flex items-center gap-3">
             <button onclick="handleLogout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl text-sm transition border border-red-500/20 flex items-center gap-2">
@@ -178,7 +178,7 @@
                 </svg>
                 خروج
             </button>
-            <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl text-sm transition border border-slate-700 flex items-center gap-2">
+            <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-100 px-5 py-2.5 rounded-xl text-sm transition border border-slate-600 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
@@ -203,7 +203,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
                             ارزش ذاتی طلای ۱۸ عیار
                         </h2>
-                        <span class="text-[9px] opacity-30 font-bold text-amber-500">فرمول جهانی</span>
+                        <span class="text-[9px] opacity-60 font-bold text-amber-500">فرمول جهانی</span>
                     </div>
                     <div class="widget-main-num latin-nums tracking-tighter" id="inherent-gold-value-container">
                         <span id="inherent-gold-value" class="num-sm">---,---</span>
@@ -217,7 +217,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             ارزش ذاتی دلار (از درهم)
                         </h2>
-                        <span class="text-[9px] opacity-30 font-bold text-blue-400">فرمول درهم</span>
+                        <span class="text-[9px] opacity-60 font-bold text-blue-400">فرمول درهم</span>
                     </div>
                     <div class="widget-main-num latin-nums tracking-tighter" id="inherent-dollar-value-container">
                         <span id="inherent-dollar-value" class="num-sm">---,---</span>
@@ -240,10 +240,10 @@
                 <div class="px-6 py-2 bg-slate-900/20 flex justify-between items-center border-b border-white/5">
                     <div class="flex items-center gap-2">
                         <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span id="connectionStatus" class="text-[10px] opacity-60">در حال دریافت...</span>
-                        <span id="refreshTimer" class="text-[10px] opacity-40 font-mono mx-2 text-amber-500"></span>
+                        <span id="connectionStatus" class="text-[10px] opacity-80">در حال دریافت...</span>
+                        <span id="refreshTimer" class="text-[10px] opacity-70 font-mono mx-2 text-amber-500"></span>
                     </div>
-                    <span id="lastUpdateTime" class="text-[10px] opacity-40 font-mono">--:--:--</span>
+                    <span id="lastUpdateTime" class="text-[10px] opacity-60 font-mono">--:--:--</span>
                 </div>
 
                 <!-- Gold Table Content -->
@@ -264,7 +264,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                                 تحلیل نوسانات طلای معقولی (۱۸ عیار)
                             </h3>
-                            <p class="text-[10px] opacity-40">پایش سقف و کف بر اساس ستون زمان دیتابیس (Time_Maqholi)</p>
+                            <p class="text-[10px] opacity-60">پایش سقف و کف بر اساس بازه‌های ۱۵ دقیقه‌ای (Time_Maqholi)</p>
                         </div>
                         <div class="flex bg-slate-800/50 p-1 rounded-xl border border-white/5">
                             <button onclick="loadMaqholiChart('today')" id="btn-chart-today" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-lg">امروز</button>
@@ -272,7 +272,7 @@
                         </div>
                     </div>
                     <div id="maqholi-candle-chart" class="min-h-[280px] w-full">
-                        <div class="flex items-center justify-center h-[280px] opacity-20 text-[10px]">در حال پردازش کندل‌ها...</div>
+                        <div class="flex items-center justify-center h-[280px] opacity-40 text-[10px]">در حال پردازش کندل‌ها...</div>
                     </div>
                 </div>
             </div>
@@ -282,7 +282,7 @@
         <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-4">
             <div class="glass-panel rounded-3xl p-6 sticky top-4 shadow-xl border border-white/5">
-                <h3 class="text-sm font-bold opacity-80 mb-6 border-b border-gray-500/10 pb-3 flex items-center gap-2 text-amber-500">
+                <h3 class="text-sm font-bold opacity-90 mb-6 border-b border-gray-500/10 pb-3 flex items-center gap-2 text-amber-500">
                     شخصی‌سازی بصری
                 </h3>
                 
@@ -298,7 +298,7 @@
                 </div>
 
                 <div class="mb-6">
-                    <label class="text-xs opacity-60 block mb-2 font-medium flex justify-between">
+                    <label class="text-xs opacity-80 block mb-2 font-medium flex justify-between">
                         <span>بزرگ‌نمایی اعداد (3x)</span>
                         <span id="scaleValueDisplay" class="text-amber-500 font-mono font-bold">1.0x</span>
                     </label>
@@ -306,7 +306,7 @@
                            oninput="updateNumberScale(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                 </div>
 
-                <div class="mt-10 p-5 bg-amber-500/5 rounded-3xl border border-amber-500/10 text-[10px] leading-relaxed opacity-70">
+                <div class="mt-10 p-5 bg-amber-500/5 rounded-3xl border border-amber-500/10 text-[10px] leading-relaxed opacity-80">
                     <h4 class="font-bold mb-3 text-amber-400 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         اطلاعات محاسباتی:
@@ -405,7 +405,7 @@
     function generateGoldTableHTML(sources, assets) {
         let html = `<table class="w-full min-w-[500px] text-right comparison-table border-collapse">
             <thead><tr class="text-[11px] text-slate-400"><th class="p-4 text-right">شاخص پایه</th>
-            ${sources.map(s => `<th class="p-4">${s.label}<br><span class="text-[9px] font-normal opacity-50 ltr latin-nums">${s.time}</span></th>`).join('')}
+            ${sources.map(s => `<th class="p-4">${s.label}<br><span class="text-[9px] font-normal opacity-70 ltr latin-nums">${s.time}</span></th>`).join('')}
             </tr></thead><tbody>`;
 
         assets.forEach(asset => {
@@ -415,7 +415,7 @@
             html += `<tr class="${rowClass}">
                 <td class="text-xs ${textColorClass} p-4 border-l border-white/5">
                     ${asset.label}
-                    ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-60 font-normal intrinsic-text">محاسبات رهدیس</span>' : ''}
+                    ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-70 font-normal intrinsic-text">محاسبات رهدیس</span>' : ''}
                 </td>`;
             
             sources.forEach(s => {
@@ -430,7 +430,7 @@
                     }
                     
                     if (!value || value === 0) {
-                        html += `<td class="text-xs opacity-30 p-3">-</td>`;
+                        html += `<td class="text-xs opacity-40 p-3">-</td>`;
                     } else {
                         html += `<td class="p-4">
                             <div class="num-sm latin-nums font-bold intrinsic-text">${Math.round(value).toLocaleString()}</div>
@@ -445,11 +445,11 @@
                                 <div class="text-[10px] text-emerald-400 font-bold ltr latin-nums">↑ <span class="num-sm font-mono">${Math.round(s.range_high).toLocaleString()}</span></div>
                                 <div class="text-[10px] text-red-400 font-bold ltr latin-nums">↓ <span class="num-sm font-mono">${Math.round(s.range_low).toLocaleString()}</span></div>
                             </div></td>`;
-                    } else { html += `<td class="text-xs opacity-20">-</td>`; }
+                    } else { html += `<td class="text-xs opacity-30">-</td>`; }
                     return;
                 }
 
-                if (!price || price === 0) { html += `<td class="text-xs opacity-30 p-3">-</td>`; } 
+                if (!price || price === 0) { html += `<td class="text-xs opacity-40 p-3">-</td>`; } 
                 else {
                     let cellHTML = `<div class="flex flex-col items-center gap-0.5">`;
                     cellHTML += `<div class="num-sm latin-nums font-bold text-lg live-price-text">${Math.round(price).toLocaleString()}</div>`;
@@ -481,7 +481,7 @@
             <tbody>`;
         dataRows.forEach(row => {
             const displayPrice = row.price > 0 ? Math.round(row.price).toLocaleString() : '-';
-            let bubbleHTML = '<span class="opacity-20">-</span>';
+            let bubbleHTML = '<span class="opacity-30">-</span>';
             
             if (row.isDollar && row.price > 0 && intrinsicValue > 0) {
                 const diff = row.price - intrinsicValue;
@@ -489,14 +489,14 @@
                 const bubbleClass = bubblePct > 0 ? 'text-emerald-400' : 'text-red-400';
                 bubbleHTML = `
                     <div class="${bubbleClass} font-bold flex flex-col items-center leading-tight bubble-val">
-                        <span class="text-xs opacity-70">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
+                        <span class="text-xs opacity-90">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
                         <span class="text-xl num-sm">(${Math.round(diff).toLocaleString()})</span>
                     </div>`;
             }
 
             html += `
                 <tr>
-                    <td class="text-xs opacity-70 live-price-text">${row.source}</td>
+                    <td class="text-xs opacity-80 live-price-text">${row.source}</td>
                     <td class="text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
                     <td class="text-sm font-bold intrinsic-text">${row.item}</td>
                     <td>${bubbleHTML}</td>
@@ -559,12 +559,12 @@
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
                 <div class="flex flex-col gap-2 pt-2 text-[11px]">
-                    <div class="flex justify-between items-center opacity-80"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان (فردایی): <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div>
-                    <div class="flex justify-between items-center opacity-80"><span class="flex items-center gap-1">⚖️ انس JustOunce: <span class="num-sm font-bold live-price-text">${ouncePrice.toLocaleString()}</span></span></div>
+                    <div class="flex justify-between items-center opacity-90"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان (فردایی): <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div>
+                    <div class="flex justify-between items-center opacity-90"><span class="flex items-center gap-1">⚖️ انس JustOunce: <span class="num-sm font-bold live-price-text">${ouncePrice.toLocaleString()}</span></span></div>
                 </div>`;
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
             document.getElementById('inherent-dollar-info').innerHTML = `
-                <div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-80"><span class="flex items-center gap-1">🇦🇪 نرخ درهم (DHS): <span class="num-sm font-bold live-price-text">${dhsPrice.toLocaleString()}</span></span><span class="opacity-40 latin-nums text-[9px]">${dhsTime}</span></div></div>`;
+                <div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-90"><span class="flex items-center gap-1">🇦🇪 نرخ درهم (DHS): <span class="num-sm font-bold live-price-text">${dhsPrice.toLocaleString()}</span></span><span class="opacity-60 latin-nums text-[9px]">${dhsTime}</span></div></div>`;
 
             let mHigh = 0, mLow = Infinity;
             if (magRangeRes.data && magRangeRes.data.length > 0) {
@@ -632,27 +632,73 @@
         if (!client) return;
         try {
             let filterDate = new Date(); if (timeframe === 'today') filterDate.setHours(0,0,0,0); else filterDate.setDate(filterDate.getDate() - 7);
-            const { data } = await client.from('gold_magholi').select('mesghal_sell_magholi, date_magholi, time_magholi').gte('created_at', filterDate.toISOString()).order('created_at', { ascending: true });
+            const { data } = await client.from('gold_magholi').select('mesghal_sell_magholi, date_magholi, time_magholi, created_at').gte('created_at', filterDate.toISOString()).order('created_at', { ascending: true });
+            
             const groups = {};
             data.forEach(r => {
-                const date = new Date(r.date_magholi + ' ' + r.time_magholi); if (isNaN(date.getTime())) return;
-                let key = (timeframe === 'today') ? date.getHours() + ':00' : r.date_magholi;
-                let p = parsePrice(r.mesghal_sell_magholi); if (p > 200000000) p /= 10;
+                const date = new Date(r.created_at);
+                if (isNaN(date.getTime())) return;
+                
+                let key;
+                if (timeframe === 'today') {
+                    // Grouping by 15-minute intervals
+                    const minutes = date.getMinutes();
+                    const quarter = Math.floor(minutes / 15) * 15;
+                    key = `${date.getHours().toString().padStart(2, '0')}:${quarter.toString().padStart(2, '0')}`;
+                } else {
+                    key = r.date_magholi;
+                }
+                
+                let p = parsePrice(r.mesghal_sell_magholi); 
+                if (p > 200000000) p /= 10;
+                
                 if (p > 0) {
                     const gram18 = p / 4.3318;
-                    if (!groups[key]) groups[key] = { open: gram18, high: gram18, low: gram18, close: gram18, time: date.getTime() };
-                    groups[key].high = Math.max(groups[key].high, gram18); groups[key].low = Math.min(groups[key].low, gram18); groups[key].close = gram18;
+                    if (!groups[key]) {
+                        groups[key] = { open: gram18, high: gram18, low: gram18, close: gram18, time: date.getTime() };
+                    }
+                    groups[key].high = Math.max(groups[key].high, gram18); 
+                    groups[key].low = Math.min(groups[key].low, gram18); 
+                    groups[key].close = gram18;
                 }
             });
+
             const options = {
-                series: [{ data: Object.values(groups).map(g => ({ x: new Date(g.time), y: [Math.round(g.open), Math.round(g.high), Math.round(g.low), Math.round(g.close)] })) }],
-                chart: { type: 'candlestick', height: 280, toolbar: { show: false } },
+                series: [{ 
+                    data: Object.keys(groups).sort().map(key => ({ 
+                        x: timeframe === 'today' ? key : new Date(groups[key].time), 
+                        y: [Math.round(groups[key].open), Math.round(groups[key].high), Math.round(groups[key].low), Math.round(groups[key].close)] 
+                    })) 
+                }],
+                chart: { 
+                    type: 'candlestick', 
+                    height: 280, 
+                    toolbar: { show: false },
+                    animations: { enabled: false }
+                },
                 plotOptions: { candlestick: { colors: { upward: '#10b981', downward: '#ef4444' } } },
-                xaxis: { type: 'datetime', labels: { datetimeUTC: false } },
-                yaxis: { labels: { formatter: (v) => Math.round(v).toLocaleString() } }
+                xaxis: { 
+                    type: timeframe === 'today' ? 'category' : 'datetime',
+                    labels: { 
+                        datetimeUTC: false,
+                        style: { colors: '#94a3b8' }
+                    }
+                },
+                yaxis: { 
+                    labels: { 
+                        formatter: (v) => Math.round(v).toLocaleString(),
+                        style: { colors: '#94a3b8' }
+                    }
+                },
+                grid: { borderColor: '#334155' }
             };
-            if (maqholiChart) maqholiChart.destroy(); maqholiChart = new ApexCharts(container, options); maqholiChart.render();
-        } catch (e) {}
+
+            if (maqholiChart) maqholiChart.destroy(); 
+            maqholiChart = new ApexCharts(container, options); 
+            maqholiChart.render();
+        } catch (e) {
+            console.error("Chart Error:", e);
+        }
     }
 
     function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); }
