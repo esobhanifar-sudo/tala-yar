@@ -678,6 +678,7 @@
                     .select('gold_18k, date')
                     .lte('date', gDateStrSlash) 
                     .order('date', { ascending: false })
+                    .order('gold_18k', { ascending: false })
                     .limit(1)
                     .maybeSingle();
                 
@@ -686,7 +687,7 @@
 
                 if (data && data.gold_18k) {
                     // Use the raw value from the column as requested.
-                    priceInTomans = data.gold_18k;
+                    priceInTomans = data.gold_18k * 1000;
                     foundDateGregorian = data.date;
                 }
 
