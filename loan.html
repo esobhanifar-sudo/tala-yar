@@ -702,21 +702,54 @@
         
         try {
             // Manual Conversion: Jalali -> Gregorian
-            // We use the library function explicitly here as requested
             const parts = parseJalaliString(dateStr);
             const gObj = jalaali.toGregorian(parts.jy, parts.jm, parts.jd);
             const gDateStr = `${gObj.gy}-${String(gObj.gm).padStart(2,'0')}-${String(gObj.gd).padStart(2,'0')}`;
 
             console.log(`Jalali: ${dateStr} converted to Gregorian: ${gDateStr}`);
 
-            // Query using date_gregorian column
-            const { data, error } = await sb
-                .from('ArchiveTgju_gram18_Mordad_92')
-                .select('high_price, date_jalali, date_gregorian')
-                .lte('date_gregorian', gDateStr) // Use Gregorian for <= comparison (handles holidays by finding previous valid day)
-                .order('date_gregorian', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+            let data, error;
+            let priceInTomans = 0;
+            let foundDateGregorian = '';
+
+            // LOGIC SPLIT BASED ON DATE
+            if (gDateStr >= '2026-01-01') {
+                // Use new table
+                 const res = await sb
+                    .from('irancurrency_price')
+                    .select('gold_18k, date')
+                    .lte('date', gDateStr) 
+                    .order('date', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                
+                data = res.data;
+                error = res.error;
+
+                if (data && data.gold_18k) {
+                    // Assuming irancurrency_price stores in Rials like the archive table
+                    priceInTomans = data.gold_18k / 10; 
+                    foundDateGregorian = data.date;
+                }
+
+            } else {
+                // Use old table (Existing Logic)
+                const res = await sb
+                    .from('ArchiveTgju_gram18_Mordad_92')
+                    .select('high_price, date_jalali, date_gregorian')
+                    .lte('date_gregorian', gDateStr)
+                    .order('date_gregorian', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                
+                data = res.data;
+                error = res.error;
+
+                if (data && data.high_price) {
+                    priceInTomans = data.high_price / 10;
+                    foundDateGregorian = data.date_gregorian;
+                }
+            }
 
             if (error) {
                 console.error("Error fetching historical price:", error);
@@ -724,29 +757,26 @@
                 return;
             }
 
-            if (data && data.high_price) {
-                // Assuming stored price is in Rials, convert to Tomans by dividing by 10
-                const priceInTomans = data.high_price / 10;
+            if (priceInTomans > 0) {
+                const weight = principal / priceInTomans;
+                weightInput.value = weight.toFixed(3);
                 
-                if (priceInTomans > 0) {
-                    const weight = principal / priceInTomans;
-                    weightInput.value = weight.toFixed(3);
-                    
-                    // Display text logic updated as requested:
-                    // Only show Gregorian and Calculated Jalali (ignore DB's date_jalali text)
-                    const gDateFound = data.date_gregorian;
-                    
-                    // Convert found Gregorian back to Jalali for "Equivalent" display
-                    const [gY, gM, gD] = gDateFound.split('-').map(Number);
-                    const jObjFound = jalaali.toJalaali(gY, gM, gD);
-                    const jDateFound = `${jObjFound.jy}/${String(jObjFound.jm).padStart(2, '0')}/${String(jObjFound.jd).padStart(2, '0')}`;
-                    
-                    if(msgEl) {
-                        msgEl.innerText = `قیمت ${gDateFound} (معادل ${jDateFound}): ${formatNumber(priceInTomans)} تومان`;
-                    }
-                    
-                    showToast(`محاسبه شد: ${weight.toFixed(3)} گرم`);
+                // Display text logic:
+                // Only show Gregorian and Calculated Jalali
+                const gDateFound = foundDateGregorian;
+                
+                // Convert found Gregorian back to Jalali for "Equivalent" display
+                // Handle potential different date formats if irancurrency_price uses time or something else
+                // But assuming YYYY-MM-DD
+                const [gY, gM, gD] = gDateFound.split('-').map(Number);
+                const jObjFound = jalaali.toJalaali(gY, gM, gD);
+                const jDateFound = `${jObjFound.jy}/${String(jObjFound.jm).padStart(2, '0')}/${String(jObjFound.jd).padStart(2, '0')}`;
+                
+                if(msgEl) {
+                    msgEl.innerText = `قیمت ${gDateFound} (معادل ${jDateFound}): ${formatNumber(priceInTomans)} تومان`;
                 }
+                
+                showToast(`محاسبه شد: ${weight.toFixed(3)} گرم`);
             } else {
                  if(msgEl) msgEl.innerText = `قیمتی برای ${dateStr} (یا قبل از آن) یافت نشد`;
             }
