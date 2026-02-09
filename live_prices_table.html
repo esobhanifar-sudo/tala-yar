@@ -707,8 +707,13 @@
             // --- TRADE LOGIC UPDATE: Update live price for calculator ---
             let magholiGold = parsePrice(magholiRes.data?.[0]?.gram_sell_magholi);
             if (magholiGold > 100000000) magholiGold /= 10;
-            currentLiveGoldPrice = magholiGold;
-            updateTradeStats(); // Recalculate trade P/L with new price
+
+            let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
+            if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
+            
+            // Use Buy Price for Trade Assistant P/L as requested
+            currentLiveGoldPrice = magholiGoldBuy; 
+            updateTradeStats(); 
             // ------------------------------------------------------------
 
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
@@ -759,6 +764,7 @@
                 { id: 'gold_buy', label: 'طلای ۱۸ عیار (خرید)' }, 
                 { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, 
                 { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight },
+                { id: 'full_intrinsic', label: 'ارزش ذاتی تمام سکه', isIntrinsic: true, weight: COIN_SPECS.full.weight },
                 { id: 'full_intrinsic', label: 'ارزش ذاتی تمام سکه', isIntrinsic: true, weight: COIN_SPECS.full.weight },
                 { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, 
                 { id: 'half_intrinsic', label: 'ارزش ذاتی نیم سکه', isIntrinsic: true, weight: COIN_SPECS.half.weight },
@@ -997,23 +1003,34 @@
         let totalSellRevenue = 0;
 
         currentSession.orders.forEach(o => {
+            // Calculate total value of this specific order (Price * Quantity Entered)
+            // Use display_weight if available (added in recent version), otherwise infer based on unit
+            let orderValue = 0;
+            if (o.display_weight) {
+                orderValue = o.display_weight * o.price;
+            } else {
+                // Fallback for older data structure
+                if (o.unit === 'mesghal') {
+                    // weight_gram was stored as mesghal * 4.3318
+                    // price was stored as price per mesghal
+                    // We want (weight_gram / 4.3318) * price
+                    orderValue = (o.weight_gram / 4.3318) * o.price;
+                } else {
+                    orderValue = o.weight_gram * o.price;
+                }
+            }
+
             if(o.side === 'buy') {
                 totalBuyWeight += o.weight_gram;
-                totalBuyCost += (o.weight_gram * o.price);
+                totalBuyCost += orderValue;
             } else {
                 totalSellWeight += o.weight_gram;
-                totalSellRevenue += (o.weight_gram * o.price);
+                totalSellRevenue += orderValue;
             }
         });
 
         const netWeight = totalBuyWeight - totalSellWeight;
         const avgBuy = totalBuyWeight > 0 ? (totalBuyCost / totalBuyWeight) : 0;
-        
-        // Calculate P/L
-        // Unrealized P/L = (Current Price - Avg Buy) * Net Weight + (Realized P/L from sales)
-        // Simplified for this dashboard: (Value of current holdings at market price) - (Cost of remaining holdings)
-        // Or simpler: (Market Price * Net Weight) + Total Sales - Total Cost
-        // If Net Weight is negative (Short), logic reverses. Assuming simple Long mostly.
         
         let pl = 0;
         if(currentLiveGoldPrice > 0) {
