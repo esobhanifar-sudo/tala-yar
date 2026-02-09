@@ -207,6 +207,12 @@
             color: #000;
             font-weight: bold;
         }
+        .input-label-sm {
+            font-size: 0.65rem;
+            opacity: 0.5;
+            margin-bottom: 2px;
+            display: block;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20">
@@ -287,17 +293,29 @@
                     <button onclick="setTradeSide('sell')" id="btn-side-sell" class="flex-1 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:text-white transition-all">فروش</button>
                 </div>
 
-                <div class="flex items-center gap-2 bg-slate-800/30 p-2 rounded-lg border border-white/5">
-                    <input type="number" id="input-weight" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="وزن..." step="0.01">
-                    <div class="flex gap-1 bg-black/20 p-1 rounded">
-                        <span onclick="setUnit('gram')" id="unit-gram" class="unit-toggle active">g</span>
-                        <span onclick="setUnit('mesghal')" id="unit-mesghal" class="unit-toggle">مثقال</span>
+                <div class="bg-slate-800/30 p-2 rounded-lg border border-white/5">
+                    <span class="input-label-sm">مقدار وزن</span>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="input-weight" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="وزن..." step="0.01">
+                        <div class="flex gap-1 bg-black/20 p-1 rounded">
+                            <span onclick="setWeightUnit('gram')" id="weight-unit-gram" class="unit-toggle active">g</span>
+                            <span onclick="setWeightUnit('mesghal')" id="weight-unit-mesghal" class="unit-toggle">مثقال</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 bg-slate-800/30 p-2 rounded-lg border border-white/5">
-                    <input type="text" id="input-price" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="قیمت واحد (تومان)..." onkeyup="formatPriceInput(this)">
-                    <button onclick="fetchCurrentPrice()" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/30">نرخ روز</button>
+                <div class="bg-slate-800/30 p-2 rounded-lg border border-white/5">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="input-label-sm">قیمت واحد (فی)</span>
+                        <button onclick="fetchCurrentPrice()" class="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/30 transition">نرخ روز</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="input-price" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="قیمت..." onkeyup="formatPriceInput(this)">
+                        <div class="flex gap-1 bg-black/20 p-1 rounded">
+                            <span onclick="setPriceUnit('gram')" id="price-unit-gram" class="unit-toggle active">/g</span>
+                            <span onclick="setPriceUnit('mesghal')" id="price-unit-mesghal" class="unit-toggle">/مثقال</span>
+                        </div>
+                    </div>
                 </div>
 
                 <button onclick="addOrder()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
@@ -320,6 +338,7 @@
         </div>
     </div>
 
+    <!-- ... rest of layout ... -->
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         <div class="lg:col-span-3 space-y-6">
@@ -464,10 +483,12 @@
     const PURITY_18K = 0.75;
     const DIRHAM_TO_DOLLAR = 3.6725;
     const COIN_SPECS = { full: { weight: 8.133 }, half: { weight: 4.0665 }, quarter: { weight: 2.03325 } };
+    const MESGHAL_TO_GRAM = 4.3318;
 
     // --- Trade Logic Variables ---
     let tradeSide = 'buy';
-    let inputUnit = 'gram';
+    let inputWeightUnit = 'gram';
+    let inputPriceUnit = 'gram';
     let currentSession = {
         orders: []
     };
@@ -890,6 +911,24 @@
         const storedSession = localStorage.getItem('trade_session');
         if (storedSession) {
             currentSession = JSON.parse(storedSession);
+            // Migrate old data structure if necessary
+            currentSession.orders = currentSession.orders.map(o => {
+                if (typeof o.price_per_gram === 'undefined') {
+                    // Migration logic: Assume old orders were simple. 
+                    // This is a rough fix, better to clear if structure changed drastically, 
+                    // but we try to preserve what we can.
+                    return {
+                        ...o,
+                        price_per_gram: o.unit === 'mesghal' ? o.price / MESGHAL_TO_GRAM : o.price,
+                        weight_gram: o.unit === 'mesghal' ? o.display_weight * MESGHAL_TO_GRAM : o.display_weight,
+                        input_weight: o.display_weight || 0,
+                        input_weight_unit: o.unit || 'gram',
+                        input_price: o.price || 0,
+                        input_price_unit: 'gram' // Old logic implicitly assumed price was per unit entered, effectively
+                    };
+                }
+                return o;
+            });
             renderSessionUI();
         }
     }
@@ -909,14 +948,25 @@
         }
     }
 
-    function setUnit(unit) {
-        inputUnit = unit;
+    function setWeightUnit(unit) {
+        inputWeightUnit = unit;
         if(unit === 'gram') {
-            document.getElementById('unit-gram').classList.add('active');
-            document.getElementById('unit-mesghal').classList.remove('active');
+            document.getElementById('weight-unit-gram').classList.add('active');
+            document.getElementById('weight-unit-mesghal').classList.remove('active');
         } else {
-            document.getElementById('unit-mesghal').classList.add('active');
-            document.getElementById('unit-gram').classList.remove('active');
+            document.getElementById('weight-unit-mesghal').classList.add('active');
+            document.getElementById('weight-unit-gram').classList.remove('active');
+        }
+    }
+
+    function setPriceUnit(unit) {
+        inputPriceUnit = unit;
+        if(unit === 'gram') {
+            document.getElementById('price-unit-gram').classList.add('active');
+            document.getElementById('price-unit-mesghal').classList.remove('active');
+        } else {
+            document.getElementById('price-unit-mesghal').classList.add('active');
+            document.getElementById('price-unit-gram').classList.remove('active');
         }
     }
 
@@ -927,29 +977,46 @@
 
     function fetchCurrentPrice() {
         if(currentLiveGoldPrice > 0) {
-            document.getElementById('input-price').value = Math.round(currentLiveGoldPrice).toLocaleString();
+            let p = currentLiveGoldPrice; // Standard is per gram
+            if(inputPriceUnit === 'mesghal') {
+                p = currentLiveGoldPrice * MESGHAL_TO_GRAM;
+            }
+            document.getElementById('input-price').value = Math.round(p).toLocaleString();
         }
     }
 
     function addOrder() {
         const weightInput = parseFloat(document.getElementById('input-weight').value);
-        const priceInput = parsePrice(document.getElementById('input-price').value);
+        const priceInputRaw = parsePrice(document.getElementById('input-price').value);
 
-        if(!weightInput || !priceInput) return;
+        if(!weightInput || !priceInputRaw) return;
 
-        let weightGram = weightInput;
-        if (inputUnit === 'mesghal') {
-            weightGram = weightInput * 4.3318;
+        // 1. Standardize Weight to Grams
+        let finalWeightGram = weightInput;
+        if (inputWeightUnit === 'mesghal') {
+            finalWeightGram = weightInput * MESGHAL_TO_GRAM;
+        }
+
+        // 2. Standardize Price to Per Gram
+        let finalPricePerGram = priceInputRaw;
+        if (inputPriceUnit === 'mesghal') {
+            finalPricePerGram = priceInputRaw / MESGHAL_TO_GRAM;
         }
 
         const order = {
             id: Date.now(),
             side: tradeSide,
-            weight_gram: weightGram,
-            unit: inputUnit,
-            display_weight: weightInput,
-            price: priceInput,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            
+            // Standardized Data (Golden Rule)
+            weight_gram: finalWeightGram,
+            price_per_gram: finalPricePerGram,
+            
+            // UI Data (What user entered)
+            input_weight: weightInput,
+            input_weight_unit: inputWeightUnit,
+            input_price: priceInputRaw,
+            input_price_unit: inputPriceUnit
         };
 
         currentSession.orders.unshift(order); // Add to top
@@ -979,16 +1046,22 @@
             currentSession.orders.forEach(order => {
                 const sideColor = order.side === 'buy' ? 'text-emerald-400' : 'text-red-400';
                 const sideText = order.side === 'buy' ? 'خرید' : 'فروش';
-                const unitText = order.unit === 'gram' ? 'g' : 'مثقال';
+                
+                // Show what user entered
+                const displayWeightUnit = order.input_weight_unit === 'gram' ? 'g' : 'مثقال';
+                const displayPriceUnit = order.input_price_unit === 'gram' ? '/g' : '/مثقال';
                 
                 const item = document.createElement('div');
                 item.className = 'bg-white/5 rounded p-2 text-xs flex justify-between items-center';
                 item.innerHTML = `
                     <div class="flex flex-col">
-                        <span class="${sideColor} font-bold">${sideText} ${order.display_weight} <span class="text-[9px] opacity-50">${unitText}</span></span>
+                        <span class="${sideColor} font-bold">${sideText} ${order.input_weight} <span class="text-[9px] opacity-50">${displayWeightUnit}</span></span>
                         <span class="text-[9px] opacity-30 latin-nums">${new Date(order.timestamp).toLocaleTimeString()}</span>
                     </div>
-                    <div class="latin-nums font-mono opacity-80">${order.price.toLocaleString()}</div>
+                    <div class="text-right">
+                        <div class="latin-nums font-mono opacity-90">${Math.round(order.input_price).toLocaleString()} <span class="text-[9px] opacity-50">${displayPriceUnit}</span></div>
+                        <!-- Optional: Show normalized values in tooltip or small text if needed -->
+                    </div>
                 `;
                 listEl.appendChild(item);
             });
@@ -997,41 +1070,29 @@
     }
 
     function updateTradeStats() {
-        let totalBuyWeight = 0;
-        let totalBuyCost = 0;
-        let totalSellWeight = 0;
-        let totalSellRevenue = 0;
+        let totalBuyWeight = 0; // in Grams
+        let totalBuyCost = 0;   // in Toman
+        let totalSellWeight = 0; // in Grams
+        let totalSellRevenue = 0; // in Toman
 
         currentSession.orders.forEach(o => {
-            // Calculate total value of this specific order (Price * Quantity Entered)
-            // Use display_weight if available (added in recent version), otherwise infer based on unit
-            let orderValue = 0;
-            if (o.display_weight) {
-                orderValue = o.display_weight * o.price;
-            } else {
-                // Fallback for older data structure
-                if (o.unit === 'mesghal') {
-                    // weight_gram was stored as mesghal * 4.3318
-                    // price was stored as price per mesghal
-                    // We want (weight_gram / 4.3318) * price
-                    orderValue = (o.weight_gram / 4.3318) * o.price;
-                } else {
-                    orderValue = o.weight_gram * o.price;
-                }
-            }
+            // Standardized calculation using normalized values
+            const orderTotalValue = o.weight_gram * o.price_per_gram;
 
             if(o.side === 'buy') {
                 totalBuyWeight += o.weight_gram;
-                totalBuyCost += orderValue;
+                totalBuyCost += orderTotalValue;
             } else {
                 totalSellWeight += o.weight_gram;
-                totalSellRevenue += orderValue;
+                totalSellRevenue += orderTotalValue;
             }
         });
 
         const netWeight = totalBuyWeight - totalSellWeight;
         const avgBuy = totalBuyWeight > 0 ? (totalBuyCost / totalBuyWeight) : 0;
         
+        // P/L = (Current Value of Net Holdings) + (Realized Cash from Sales) - (Cost of Goods Sold/Held)
+        // Simplified: Market Value of Net Inventory + Total Cash In - Total Cash Out
         let pl = 0;
         if(currentLiveGoldPrice > 0) {
              pl = (netWeight * currentLiveGoldPrice) + totalSellRevenue - totalBuyCost;
