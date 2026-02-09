@@ -27,6 +27,9 @@
             // Load Settings
             loadSettings();
             
+            // Initialize Trade Session State
+            initTradeSession();
+
             // Initial Fetch (Timer will start automatically after fetch)
             fetchLiveTicker();
         });
@@ -45,6 +48,7 @@
             --num-weight: 700;
             --accent-blue: #3b82f6;
             --accent-amber: #f59e0b;
+            --trade-panel-width: 320px;
         }
 
         body.light-mode {
@@ -156,6 +160,53 @@
         .light-mode .live-price-text {
             color: #0f172a !important;
         }
+
+        /* Trade Assistant Panel Styles */
+        #trade-panel {
+            position: fixed;
+            top: 0;
+            left: -400px; /* Hidden by default */
+            width: 100%;
+            max-width: var(--trade-panel-width);
+            height: 100vh;
+            background: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            z-index: 50;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        #trade-panel.open {
+            left: 0;
+        }
+        .trade-input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 1.1rem;
+            outline: none;
+        }
+        .trade-input:focus {
+            border-color: var(--accent-amber);
+        }
+        .unit-toggle {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.2s;
+        }
+        .unit-toggle.active {
+            background: var(--accent-amber);
+            color: #000;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20">
@@ -172,6 +223,12 @@
             <p class="text-xs opacity-90 mt-1 mr-1 text-slate-200">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
         <div class="flex items-center gap-3">
+            <button onclick="toggleTradePanel()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-4 py-2.5 rounded-xl text-sm transition border border-emerald-500/20 flex items-center gap-2 font-bold shadow-lg shadow-emerald-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                دستیار ترید
+            </button>
             <button onclick="handleLogout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl text-sm transition border border-red-500/20 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -188,6 +245,78 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 بروزرسانی
             </button>
+        </div>
+    </div>
+
+    <!-- Trade Assistant Side Panel -->
+    <div id="trade-panel" class="backdrop-blur-xl">
+        <div class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
+            <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                ماشین‌حساب ترید
+            </h3>
+            <button onclick="toggleTradePanel()" class="p-1 rounded-lg hover:bg-white/10 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <!-- Asset Selector & Summary -->
+            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
+                <div class="flex justify-between text-xs mb-2 opacity-60">
+                    <span>دارایی فعال:</span>
+                    <span class="text-amber-400 font-bold">طلای ۱۸ عیار</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-black/20 p-2 rounded-lg">
+                        <div class="text-[10px] opacity-50">موجودی (گرم)</div>
+                        <div id="trade-net-weight" class="text-sm font-bold latin-nums mt-1">0.00</div>
+                    </div>
+                    <div class="bg-black/20 p-2 rounded-lg">
+                        <div class="text-[10px] opacity-50">سود/ضرر لحظه‌ای</div>
+                        <div id="trade-pl" class="text-sm font-bold latin-nums mt-1 text-slate-400">0</div>
+                    </div>
+                </div>
+                <div class="mt-2 text-center text-[10px] opacity-40">میانگین خرید: <span id="trade-avg-buy" class="latin-nums">0</span></div>
+            </div>
+
+            <!-- Input Form -->
+            <div class="space-y-3">
+                <div class="flex bg-slate-800/50 p-1 rounded-lg">
+                    <button onclick="setTradeSide('buy')" id="btn-side-buy" class="flex-1 py-1.5 rounded-md text-xs font-bold bg-emerald-600 text-white transition-all">خرید</button>
+                    <button onclick="setTradeSide('sell')" id="btn-side-sell" class="flex-1 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:text-white transition-all">فروش</button>
+                </div>
+
+                <div class="flex items-center gap-2 bg-slate-800/30 p-2 rounded-lg border border-white/5">
+                    <input type="number" id="input-weight" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="وزن..." step="0.01">
+                    <div class="flex gap-1 bg-black/20 p-1 rounded">
+                        <span onclick="setUnit('gram')" id="unit-gram" class="unit-toggle active">g</span>
+                        <span onclick="setUnit('mesghal')" id="unit-mesghal" class="unit-toggle">مثقال</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 bg-slate-800/30 p-2 rounded-lg border border-white/5">
+                    <input type="text" id="input-price" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="قیمت واحد (تومان)..." onkeyup="formatPriceInput(this)">
+                    <button onclick="fetchCurrentPrice()" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/30">نرخ روز</button>
+                </div>
+
+                <button onclick="addOrder()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    ثبت معامله
+                </button>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="mt-4">
+                <div class="text-[10px] font-bold opacity-50 mb-2 border-b border-white/5 pb-1 flex justify-between">
+                    <span>لیست معاملات (Session)</span>
+                    <button onclick="clearSession()" class="text-red-400 hover:text-red-300">بستن / جدید</button>
+                </div>
+                <div id="orders-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <!-- Orders will appear here -->
+                    <div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -335,6 +464,14 @@
     const PURITY_18K = 0.75;
     const DIRHAM_TO_DOLLAR = 3.6725;
     const COIN_SPECS = { full: { weight: 8.133 }, half: { weight: 4.0665 }, quarter: { weight: 2.03325 } };
+
+    // --- Trade Logic Variables ---
+    let tradeSide = 'buy';
+    let inputUnit = 'gram';
+    let currentSession = {
+        orders: []
+    };
+    let currentLiveGoldPrice = 0; // To store live gold price for calculator
 
     function getSupabaseClient() {
         if (supabaseClient) return supabaseClient;
@@ -567,6 +704,13 @@
             const ouncePrice = parsePrice(ounceRes.data?.[0]?.price_blue);
             const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar : 0;
 
+            // --- TRADE LOGIC UPDATE: Update live price for calculator ---
+            let magholiGold = parsePrice(magholiRes.data?.[0]?.gram_sell_magholi);
+            if (magholiGold > 100000000) magholiGold /= 10;
+            currentLiveGoldPrice = magholiGold;
+            updateTradeStats(); // Recalculate trade P/L with new price
+            // ------------------------------------------------------------
+
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
                 <div class="flex flex-col gap-2 pt-2 text-[11px]">
@@ -604,7 +748,7 @@
             if (oLow === Infinity) oLow = 0;
 
             const goldSources = [
-                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: parsePrice(magholiRes.data?.[0]?.gram_sell_magholi) > 100000000 ? parsePrice(magholiRes.data?.[0]?.gram_sell_magholi)/10 : parsePrice(magholiRes.data?.[0]?.gram_sell_magholi), gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow },
+                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow },
                 { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow }
             ];
 
@@ -730,6 +874,159 @@
     function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
     function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; localStorage.setItem('numScale', val); const widgetMain = document.querySelectorAll('.widget-main-num'); widgetMain.forEach(el => el.style.fontSize = val > 2.5 ? '1.5rem' : '2.25rem'); }
     function loadSettings() { const s = localStorage.getItem('numScale'); if (s) { updateNumberScale(parseFloat(s)); document.getElementById('fontScaleSlider').value = s; } }
+
+    // --- TRADE ASSISTANT LOGIC ---
+    function toggleTradePanel() {
+        document.getElementById('trade-panel').classList.toggle('open');
+    }
+
+    function initTradeSession() {
+        const storedSession = localStorage.getItem('trade_session');
+        if (storedSession) {
+            currentSession = JSON.parse(storedSession);
+            renderSessionUI();
+        }
+    }
+
+    function setTradeSide(side) {
+        tradeSide = side;
+        if(side === 'buy') {
+            document.getElementById('btn-side-buy').classList.add('bg-emerald-600', 'text-white');
+            document.getElementById('btn-side-buy').classList.remove('text-slate-400');
+            document.getElementById('btn-side-sell').classList.remove('bg-red-600', 'text-white');
+            document.getElementById('btn-side-sell').classList.add('text-slate-400');
+        } else {
+            document.getElementById('btn-side-sell').classList.add('bg-red-600', 'text-white');
+            document.getElementById('btn-side-sell').classList.remove('text-slate-400');
+            document.getElementById('btn-side-buy').classList.remove('bg-emerald-600', 'text-white');
+            document.getElementById('btn-side-buy').classList.add('text-slate-400');
+        }
+    }
+
+    function setUnit(unit) {
+        inputUnit = unit;
+        if(unit === 'gram') {
+            document.getElementById('unit-gram').classList.add('active');
+            document.getElementById('unit-mesghal').classList.remove('active');
+        } else {
+            document.getElementById('unit-mesghal').classList.add('active');
+            document.getElementById('unit-gram').classList.remove('active');
+        }
+    }
+
+    function formatPriceInput(el) {
+        let val = el.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+        if(val) el.value = parseInt(val).toLocaleString();
+    }
+
+    function fetchCurrentPrice() {
+        if(currentLiveGoldPrice > 0) {
+            document.getElementById('input-price').value = Math.round(currentLiveGoldPrice).toLocaleString();
+        }
+    }
+
+    function addOrder() {
+        const weightInput = parseFloat(document.getElementById('input-weight').value);
+        const priceInput = parsePrice(document.getElementById('input-price').value);
+
+        if(!weightInput || !priceInput) return;
+
+        let weightGram = weightInput;
+        if (inputUnit === 'mesghal') {
+            weightGram = weightInput * 4.3318;
+        }
+
+        const order = {
+            id: Date.now(),
+            side: tradeSide,
+            weight_gram: weightGram,
+            unit: inputUnit,
+            display_weight: weightInput,
+            price: priceInput,
+            timestamp: new Date().toISOString()
+        };
+
+        currentSession.orders.unshift(order); // Add to top
+        localStorage.setItem('trade_session', JSON.stringify(currentSession));
+        
+        renderSessionUI();
+        
+        // Reset inputs slightly for ease
+        document.getElementById('input-weight').value = '';
+    }
+
+    function clearSession() {
+        if(confirm('آیا مطمئن هستید؟ تمام معاملات پاک خواهند شد.')) {
+            currentSession.orders = [];
+            localStorage.removeItem('trade_session');
+            renderSessionUI();
+        }
+    }
+
+    function renderSessionUI() {
+        const listEl = document.getElementById('orders-list');
+        listEl.innerHTML = '';
+
+        if(currentSession.orders.length === 0) {
+            listEl.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
+        } else {
+            currentSession.orders.forEach(order => {
+                const sideColor = order.side === 'buy' ? 'text-emerald-400' : 'text-red-400';
+                const sideText = order.side === 'buy' ? 'خرید' : 'فروش';
+                const unitText = order.unit === 'gram' ? 'g' : 'مثقال';
+                
+                const item = document.createElement('div');
+                item.className = 'bg-white/5 rounded p-2 text-xs flex justify-between items-center';
+                item.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="${sideColor} font-bold">${sideText} ${order.display_weight} <span class="text-[9px] opacity-50">${unitText}</span></span>
+                        <span class="text-[9px] opacity-30 latin-nums">${new Date(order.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="latin-nums font-mono opacity-80">${order.price.toLocaleString()}</div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+        updateTradeStats();
+    }
+
+    function updateTradeStats() {
+        let totalBuyWeight = 0;
+        let totalBuyCost = 0;
+        let totalSellWeight = 0;
+        let totalSellRevenue = 0;
+
+        currentSession.orders.forEach(o => {
+            if(o.side === 'buy') {
+                totalBuyWeight += o.weight_gram;
+                totalBuyCost += (o.weight_gram * o.price);
+            } else {
+                totalSellWeight += o.weight_gram;
+                totalSellRevenue += (o.weight_gram * o.price);
+            }
+        });
+
+        const netWeight = totalBuyWeight - totalSellWeight;
+        const avgBuy = totalBuyWeight > 0 ? (totalBuyCost / totalBuyWeight) : 0;
+        
+        // Calculate P/L
+        // Unrealized P/L = (Current Price - Avg Buy) * Net Weight + (Realized P/L from sales)
+        // Simplified for this dashboard: (Value of current holdings at market price) - (Cost of remaining holdings)
+        // Or simpler: (Market Price * Net Weight) + Total Sales - Total Cost
+        // If Net Weight is negative (Short), logic reverses. Assuming simple Long mostly.
+        
+        let pl = 0;
+        if(currentLiveGoldPrice > 0) {
+             pl = (netWeight * currentLiveGoldPrice) + totalSellRevenue - totalBuyCost;
+        }
+
+        document.getElementById('trade-net-weight').innerText = netWeight.toFixed(2);
+        document.getElementById('trade-avg-buy').innerText = Math.round(avgBuy).toLocaleString();
+        
+        const plEl = document.getElementById('trade-pl');
+        plEl.innerText = Math.round(pl).toLocaleString();
+        plEl.className = `text-sm font-bold latin-nums mt-1 ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+    }
 </script>
 </body>
 </html>
