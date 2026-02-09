@@ -630,49 +630,6 @@
         } catch (err) { console.error('Fetch error:', err); }
     }
 
-    // --- Historical Date Range Fetching (NEW) ---
-    async function fetchDateRange() {
-        if (typeof sb === 'undefined') return;
-        try {
-            // Get Min
-            const { data: minData } = await sb
-                .from('ArchiveTgju_gram18_Mordad_92')
-                .select('date_gregorian')
-                .order('date_gregorian', { ascending: true })
-                .limit(1)
-                .maybeSingle();
-
-            // Get Max
-            const { data: maxData } = await sb
-                .from('ArchiveTgju_gram18_Mordad_92')
-                .select('date_gregorian')
-                .order('date_gregorian', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (minData && maxData) {
-                const minG = minData.date_gregorian;
-                const maxG = maxData.date_gregorian;
-
-                // Convert to Jalali
-                const [minY, minM, minD] = minG.split('-').map(Number);
-                const minJ = jalaali.toJalaali(minY, minM, minD);
-                const minJStr = `${minJ.jy}/${String(minJ.jm).padStart(2, '0')}/${String(minJ.jd).padStart(2, '0')}`;
-
-                const [maxY, maxM, maxD] = maxG.split('-').map(Number);
-                const maxJ = jalaali.toJalaali(maxY, maxM, maxD);
-                const maxJStr = `${maxJ.jy}/${String(maxJ.jm).padStart(2, '0')}/${String(maxJ.jd).padStart(2, '0')}`;
-
-                const hintEl = document.getElementById('dateRangeHint');
-                if (hintEl) {
-                    hintEl.innerText = `محدوده تاریخ مجاز: ${minJStr} تا ${maxJStr}`;
-                }
-            }
-        } catch (e) {
-            console.error("Error fetching date range", e);
-        }
-    }
-
     // --- Historical Gold Weight Calculation ---
     async function calculateAutomaticGoldWeight() {
         if (typeof sb === 'undefined') {
@@ -713,10 +670,13 @@
             // LOGIC SPLIT BASED ON DATE
             if (gDateStr >= '2026-01-01') {
                 // Use new table
+                // FIX: Use slashes for date to match DB format shown in screenshot (2026/02/07)
+                const gDateStrSlash = `${gObj.gy}/${String(gObj.gm).padStart(2,'0')}/${String(gObj.gd).padStart(2,'0')}`;
+                
                  const res = await sb
                     .from('irancurrency_price')
                     .select('gold_18k, date')
-                    .lte('date', gDateStr) 
+                    .lte('date', gDateStrSlash) 
                     .order('date', { ascending: false })
                     .limit(1)
                     .maybeSingle();
@@ -725,8 +685,8 @@
                 error = res.error;
 
                 if (data && data.gold_18k) {
-                    // Assuming irancurrency_price stores in Rials like the archive table
-                    priceInTomans = data.gold_18k / 10; 
+                    // Use the raw value from the column as requested.
+                    priceInTomans = data.gold_18k;
                     foundDateGregorian = data.date;
                 }
 
@@ -765,8 +725,10 @@
                 
                 // Convert found Gregorian back to Jalali for "Equivalent" display
                 // Handle potential different date formats if irancurrency_price uses time or something else
-                // But assuming YYYY-MM-DD
-                const [gY, gM, gD] = gDateFound.split('-').map(Number);
+                // But assuming YYYY-MM-DD or YYYY/MM/DD based on context
+                // Replace slashes with dashes for consistent parsing if needed, but simple split works for both if delimiters align
+                const separator = gDateFound.includes('/') ? '/' : '-';
+                const [gY, gM, gD] = gDateFound.split(separator).map(Number);
                 const jObjFound = jalaali.toJalaali(gY, gM, gD);
                 const jDateFound = `${jObjFound.jy}/${String(jObjFound.jm).padStart(2, '0')}/${String(jObjFound.jd).padStart(2, '0')}`;
                 
@@ -1379,7 +1341,7 @@
         fetchLoansDB();
         initCalendar();
         fetchLiveGoldPrice();
-        fetchDateRange();
+        // Removed fetchDateRange() as requested
     });
 
     // --- Date Picker Logic (New) ---
