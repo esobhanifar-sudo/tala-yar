@@ -291,6 +291,8 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 </button>
                             </div>
+                            <!-- Added hint text for date range -->
+                            <p id="dateRangeHint" class="text-[10px] text-indigo-400 mt-1 text-center font-mono h-4"></p>
                         </div>
                         
                         <div class="input-group">
@@ -343,7 +345,7 @@
                          <span id="overdueTotalBadge" class="bg-red-200 text-red-800 text-xs px-2 py-1 rounded-full font-bold">0</span>
                          <svg id="overdueChevron" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
                              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                         </svg>
+                          </svg>
                     </div>
                 </div>
 
@@ -630,6 +632,49 @@
         } catch (err) { console.error('Fetch error:', err); }
     }
 
+    // --- Historical Date Range Fetching (NEW) ---
+    async function fetchDateRange() {
+        if (typeof sb === 'undefined') return;
+        try {
+            // Get Min
+            const { data: minData } = await sb
+                .from('ArchiveTgju_gram18_Mordad_92')
+                .select('date_gregorian')
+                .order('date_gregorian', { ascending: true })
+                .limit(1)
+                .maybeSingle();
+
+            // Get Max
+            const { data: maxData } = await sb
+                .from('ArchiveTgju_gram18_Mordad_92')
+                .select('date_gregorian')
+                .order('date_gregorian', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (minData && maxData) {
+                const minG = minData.date_gregorian;
+                const maxG = maxData.date_gregorian;
+
+                // Convert to Jalali
+                const [minY, minM, minD] = minG.split('-').map(Number);
+                const minJ = jalaali.toJalaali(minY, minM, minD);
+                const minJStr = `${minJ.jy}/${String(minJ.jm).padStart(2, '0')}/${String(minJ.jd).padStart(2, '0')}`;
+
+                const [maxY, maxM, maxD] = maxG.split('-').map(Number);
+                const maxJ = jalaali.toJalaali(maxY, maxM, maxD);
+                const maxJStr = `${maxJ.jy}/${String(maxJ.jm).padStart(2, '0')}/${String(maxJ.jd).padStart(2, '0')}`;
+
+                const hintEl = document.getElementById('dateRangeHint');
+                if (hintEl) {
+                    hintEl.innerText = `محدوده تاریخ مجاز: ${minJStr} تا ${maxJStr}`;
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching date range", e);
+        }
+    }
+
     // --- Historical Gold Weight Calculation ---
     async function calculateAutomaticGoldWeight() {
         if (typeof sb === 'undefined') {
@@ -687,11 +732,17 @@
                     const weight = principal / priceInTomans;
                     weightInput.value = weight.toFixed(3);
                     
-                    // Feedback on date used
-                    if (data.date_jalali !== dateStr) {
-                        if(msgEl) msgEl.innerText = `قیمت ${data.date_jalali} (معادل ${data.date_gregorian}): ${formatNumber(priceInTomans)} تومان`;
-                    } else {
-                        if(msgEl) msgEl.innerText = `قیمت ${dateStr}: ${formatNumber(priceInTomans)} تومان`;
+                    // Display text logic updated as requested:
+                    // Only show Gregorian and Calculated Jalali (ignore DB's date_jalali text)
+                    const gDateFound = data.date_gregorian;
+                    
+                    // Convert found Gregorian back to Jalali for "Equivalent" display
+                    const [gY, gM, gD] = gDateFound.split('-').map(Number);
+                    const jObjFound = jalaali.toJalaali(gY, gM, gD);
+                    const jDateFound = `${jObjFound.jy}/${String(jObjFound.jm).padStart(2, '0')}/${String(jObjFound.jd).padStart(2, '0')}`;
+                    
+                    if(msgEl) {
+                        msgEl.innerText = `قیمت ${gDateFound} (معادل ${jDateFound}): ${formatNumber(priceInTomans)} تومان`;
                     }
                     
                     showToast(`محاسبه شد: ${weight.toFixed(3)} گرم`);
@@ -1300,6 +1351,7 @@
         fetchLoansDB();
         initCalendar();
         fetchLiveGoldPrice();
+        fetchDateRange();
     });
 
     // --- Date Picker Logic (New) ---
