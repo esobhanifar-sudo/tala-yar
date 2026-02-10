@@ -700,6 +700,26 @@
                     return;
                 }
 
+                if (asset.id === 'bubble_range_18k') {
+                    if (s.label === 'طلای معقولی' && s.range_high > 0 && s.inherent_gold > 0) {
+                        const bubbleHigh = s.range_high - s.inherent_gold;
+                        const bubbleLow = s.range_low - s.inherent_gold;
+                        
+                        const highClass = bubbleHigh >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        const lowClass = bubbleLow >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        
+                        // Add explicit '+' sign for positive values
+                        const highSign = bubbleHigh > 0 ? '+' : '';
+                        const lowSign = bubbleLow > 0 ? '+' : '';
+                        
+                        html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
+                                <div class="num-sm text-[10px] ${highClass} font-bold ltr latin-nums">↑ <span class="font-mono">${highSign}${Math.round(bubbleHigh).toLocaleString()}</span></div>
+                                <div class="num-sm text-[10px] ${lowClass} font-bold ltr latin-nums">↓ <span class="font-mono">${lowSign}${Math.round(bubbleLow).toLocaleString()}</span></div>
+                            </div></td>`;
+                    } else { html += `<td class="text-xs opacity-40">-</td>`; }
+                    return;
+                }
+
                 if (!price || price === 0) { html += `<td class="text-xs opacity-50 p-3">-</td>`; } 
                 else {
                     let cellHTML = `<div class="flex flex-col items-center gap-0.5">`;
@@ -863,6 +883,7 @@
 
             const goldAssets = [
                 { id: 'ounce_range', label: 'نوسان انس (سقف/کف)' },
+                { id: 'bubble_range_18k', label: 'نوسان حباب ۱۸ عیار' },
                 { id: 'gold', label: 'طلای ۱۸ عیار (فروش)' },
                 { id: 'gold_intrinsic', label: 'ارزش ذاتی ۱۸ عیار', isIntrinsic: true },
                 { id: 'gold_buy', label: 'طلای ۱۸ عیار (خرید)' }, 
