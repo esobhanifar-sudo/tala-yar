@@ -27,8 +27,8 @@
             // Load Settings
             loadSettings();
             
-            // Initialize Trade Session (Fetch from DB)
-            fetchOrders();
+            // Initialize Session Manager (Replaces direct fetchOrders)
+            initSessionManager();
 
             // Initial Fetch (Timer will start automatically after fetch)
             fetchLiveTicker();
@@ -213,6 +213,16 @@
             margin-bottom: 2px;
             display: block;
         }
+        select.trade-select {
+            background: rgba(0,0,0,0.3);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            outline: none;
+            width: 100%;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20">
@@ -256,14 +266,37 @@
 
     <!-- Trade Assistant Side Panel -->
     <div id="trade-panel" class="backdrop-blur-xl">
-        <div class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
-            <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                ماشین‌حساب ترید
-            </h3>
-            <button onclick="toggleTradePanel()" class="p-1 rounded-lg hover:bg-white/10 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+        <div class="p-3 border-b border-white/10 bg-slate-900/50">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                    ماشین‌حساب ترید
+                </h3>
+                <button onclick="toggleTradePanel()" class="p-1 rounded-lg hover:bg-white/10 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <!-- Session Manager UI -->
+            <div class="flex items-center gap-2">
+                <select id="session-select" onchange="switchSession(this.value)" class="trade-select flex-1">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+                <button onclick="promptNewSession()" class="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 p-1.5 rounded-lg border border-emerald-500/20" title="نشست جدید">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                </button>
+                <div class="relative group">
+                    <button class="bg-slate-700/50 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-white/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                    </button>
+                    <!-- Session Menu -->
+                    <div class="absolute left-0 mt-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-xl hidden group-hover:block z-50 overflow-hidden">
+                        <button onclick="toggleSessionStatus()" class="block w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5" id="btn-session-status">بستن نشست</button>
+                        <button onclick="renameSession()" class="block w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5">تغییر نام</button>
+                        <button onclick="deleteSession()" class="block w-full text-right px-3 py-2 text-xs text-red-400 hover:bg-red-900/20">حذف نشست</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -306,7 +339,7 @@
             </div>
 
             <!-- Input Form -->
-            <div class="space-y-3">
+            <div id="trade-input-form" class="space-y-3 transition-opacity">
                 <div class="flex bg-slate-800/50 p-1 rounded-lg">
                     <button onclick="setTradeSide('buy')" id="btn-side-buy" class="flex-1 py-1.5 rounded-md text-xs font-bold bg-emerald-600 text-white transition-all">خرید</button>
                     <button onclick="setTradeSide('sell')" id="btn-side-sell" class="flex-1 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:text-white transition-all">فروش</button>
@@ -347,12 +380,17 @@
                     </button>
                 </div>
             </div>
+            
+            <!-- Closed Session Overlay -->
+            <div id="session-closed-overlay" class="hidden text-center p-4 bg-amber-900/20 rounded-xl border border-amber-500/20">
+                <p class="text-amber-200 text-xs font-bold">این نشست بسته شده است.</p>
+                <p class="text-slate-400 text-[10px] mt-1">برای ثبت معامله جدید، نشست را باز کنید یا نشست جدیدی بسازید.</p>
+            </div>
 
             <!-- Recent Orders -->
             <div class="mt-4">
                 <div class="text-[10px] font-bold opacity-50 mb-2 border-b border-white/5 pb-1 flex justify-between">
                     <span>لیست معاملات (Session)</span>
-                    <button onclick="clearSession()" class="text-red-400 hover:text-red-300">بستن / جدید</button>
                 </div>
                 <div id="orders-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                     <!-- Orders will appear here -->
@@ -372,17 +410,32 @@
             <p id="confirm-message" class="text-slate-300 text-sm mb-6 leading-relaxed">آیا از انجام این کار اطمینان دارید؟</p>
             <div class="flex justify-end gap-3">
                 <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-white/5 text-sm transition-colors">انصراف</button>
-                <button id="confirm-action-btn" class="px-6 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-900/20 transition-all">تایید و حذف</button>
+                <button id="confirm-action-btn" class="px-6 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-900/20 transition-all">تایید</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Input Modal -->
+    <div id="input-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 hidden backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4" id="input-modal-title">عنوان</h3>
+            <input type="text" id="input-modal-value" class="w-full bg-black/30 border border-slate-600 rounded-xl p-3 text-white mb-6 outline-none focus:border-emerald-500 transition-colors" placeholder="...">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeInputModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-white/5 text-sm">انصراف</button>
+                <button id="input-modal-action" class="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg">تایید</button>
             </div>
         </div>
     </div>
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
+        <!-- ... (Rest of layout remains unchanged) ... -->
+        
         <div class="lg:col-span-3 space-y-6">
             
             <!-- Header Widgets Area -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- ... Widgets code ... -->
                 <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-8 flex flex-col justify-center shadow-xl">
                     <div class="flex justify-between items-start mb-4">
                         <h2 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
@@ -528,23 +581,20 @@
     let inputWeightUnit = 'gram';
     let inputPriceUnit = 'gram';
     let editingOrderId = null; // Track if we are editing
-    let currentSession = {
-        orders: []
-    };
-    let currentLiveGoldPrice = 0; // To store live gold price for calculator
+    let currentSession = { orders: [] }; // Legacy structure, will be replaced by activeSession
+    let activeSession = null; // New Session Object
+    let sessions = []; // List of sessions
+    let currentLiveGoldPrice = 0; 
     
     // --- Confirmation Modal Logic ---
     let confirmCallback = null;
 
     function showConfirmModal(message, callback) {
         const modal = document.getElementById('confirm-modal');
-        const content = modal.querySelector('div'); // The inner container
-        
+        const content = modal.querySelector('div'); 
         document.getElementById('confirm-message').innerText = message;
         confirmCallback = callback;
-        
         modal.classList.remove('hidden');
-        // Small delay to allow display:block to apply before opacity transition
         requestAnimationFrame(() => {
             modal.classList.remove('opacity-0');
             content.classList.remove('scale-95');
@@ -555,24 +605,54 @@
     function closeConfirmModal() {
         const modal = document.getElementById('confirm-modal');
         const content = modal.querySelector('div');
-        
         modal.classList.add('opacity-0');
         content.classList.remove('scale-100');
         content.classList.add('scale-95');
-        
         setTimeout(() => {
             modal.classList.add('hidden');
             confirmCallback = null;
-        }, 200); // Match transition duration
+        }, 200); 
     }
 
-    // Attach event listener once
+    // --- Input Modal Logic ---
+    let inputModalCallback = null;
+    function showInputModal(title, callback) {
+        const modal = document.getElementById('input-modal');
+        const content = modal.querySelector('div');
+        document.getElementById('input-modal-title').innerText = title;
+        document.getElementById('input-modal-value').value = '';
+        inputModalCallback = callback;
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+        });
+        document.getElementById('input-modal-value').focus();
+    }
+
+    function closeInputModal() {
+        const modal = document.getElementById('input-modal');
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            inputModalCallback = null;
+        }, 200);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const confirmBtn = document.getElementById('confirm-action-btn');
         if(confirmBtn) {
             confirmBtn.addEventListener('click', () => {
                 if (confirmCallback) confirmCallback();
                 closeConfirmModal();
+            });
+        }
+        
+        const inputActionBtn = document.getElementById('input-modal-action');
+        if(inputActionBtn) {
+            inputActionBtn.addEventListener('click', () => {
+                const val = document.getElementById('input-modal-value').value;
+                if(val && inputModalCallback) inputModalCallback(val);
+                closeInputModal();
             });
         }
     });
@@ -1011,18 +1091,183 @@
         document.getElementById('trade-panel').classList.toggle('open');
     }
 
-    function initTradeSession() {
-        // Migration to DB-based fetch
-        // No local init needed beyond ensuring UI is ready
+    // --- SESSION MANAGEMENT ---
+    async function initSessionManager() {
+        await fetchSessions();
+        // If no sessions, prompt to create one or create default? 
+        // Let's create a default one if none exist to avoid friction.
+        if (sessions.length === 0) {
+            await createNewSession('نشست پیش‌فرض');
+        }
     }
 
-    async function fetchOrders() {
+    async function fetchSessions() {
         const client = getSupabaseClient();
         if (!client) return;
 
         const { data, error } = await client
+            .from('trade_sessions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching sessions:', error);
+            return;
+        }
+
+        sessions = data;
+        const selector = document.getElementById('session-select');
+        selector.innerHTML = '';
+        
+        sessions.forEach(s => {
+            const option = document.createElement('option');
+            option.value = s.id;
+            option.text = `${s.name} ${s.status === 'closed' ? '(بسته)' : ''}`;
+            selector.appendChild(option);
+        });
+
+        // Set active session
+        if (!activeSession && sessions.length > 0) {
+            // Prefer first open session, otherwise first session
+            const firstOpen = sessions.find(s => s.status === 'open');
+            activeSession = firstOpen || sessions[0];
+            selector.value = activeSession.id;
+        } else if (activeSession) {
+            // Restore selection if exists in list
+            if (sessions.find(s => s.id === activeSession.id)) {
+                selector.value = activeSession.id;
+            } else if (sessions.length > 0) {
+                activeSession = sessions[0];
+                selector.value = activeSession.id;
+            } else {
+                activeSession = null;
+            }
+        }
+
+        updateSessionUIState();
+        if (activeSession) {
+            await fetchOrders();
+        }
+    }
+
+    async function switchSession(id) {
+        activeSession = sessions.find(s => s.id === id);
+        updateSessionUIState();
+        await fetchOrders();
+    }
+
+    function updateSessionUIState() {
+        if (!activeSession) return;
+        
+        const isClosed = activeSession.status === 'closed';
+        const form = document.getElementById('trade-input-form');
+        const closedOverlay = document.getElementById('session-closed-overlay');
+        const statusBtn = document.getElementById('btn-session-status');
+
+        if (isClosed) {
+            form.classList.add('hidden');
+            closedOverlay.classList.remove('hidden');
+            statusBtn.innerText = 'باز کردن مجدد نشست';
+            statusBtn.onclick = () => updateSessionStatus(activeSession.id, 'open');
+        } else {
+            form.classList.remove('hidden');
+            closedOverlay.classList.add('hidden');
+            statusBtn.innerText = 'بستن نشست';
+            statusBtn.onclick = () => updateSessionStatus(activeSession.id, 'closed');
+        }
+    }
+
+    function promptNewSession() {
+        showInputModal('نام نشست جدید', async (name) => {
+            await createNewSession(name);
+        });
+    }
+
+    async function createNewSession(name) {
+        const client = getSupabaseClient();
+        if (!client || !name) return;
+
+        const { data, error } = await client
+            .from('trade_sessions')
+            .insert([{ name: name, status: 'open' }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating session:', error);
+            alert('خطا در ایجاد نشست');
+            return;
+        }
+
+        // Set as active and reload
+        await fetchSessions();
+        activeSession = sessions.find(s => s.id === data.id);
+        document.getElementById('session-select').value = activeSession.id;
+        updateSessionUIState();
+        await fetchOrders();
+    }
+
+    function renameSession() {
+        if (!activeSession) return;
+        showInputModal('نام جدید', async (newName) => {
+            const client = getSupabaseClient();
+            if (!client || !newName) return;
+
+            const { error } = await client.from('trade_sessions')
+                .update({ name: newName })
+                .eq('id', activeSession.id);
+
+            if (!error) await fetchSessions();
+        });
+    }
+
+    async function updateSessionStatus(id, status) {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const { error } = await client.from('trade_sessions')
+            .update({ status: status })
+            .eq('id', id);
+
+        if (!error) {
+            await fetchSessions(); // Refresh list/state
+        }
+    }
+
+    function deleteSession() {
+        if (!activeSession) return;
+        showConfirmModal('آیا مطمئن هستید؟ با حذف نشست، تمام معاملات آن نیز حذف خواهند شد.', async () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+
+            // 1. Delete Orders manually (if no cascade)
+            await client.from('trade_orders').delete().eq('session_ref', activeSession.id);
+            
+            // 2. Delete Session
+            await client.from('trade_sessions').delete().eq('id', activeSession.id);
+
+            activeSession = null;
+            await initSessionManager(); // Reload
+        });
+    }
+
+    // --- ORDER MANAGEMENT (Updated) ---
+
+    async function fetchOrders() {
+        const client = getSupabaseClient();
+        if (!client) return;
+        
+        // Clear if no active session
+        if (!activeSession) {
+            currentSession.orders = [];
+            renderSessionUI();
+            return;
+        }
+
+        const { data, error } = await client
             .from('trade_orders')
             .select('*')
+            .eq('session_ref', activeSession.id) // Filter by active session
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -1030,10 +1275,9 @@
             return;
         }
 
-        // Map DB fields to App fields
         currentSession.orders = data.map(o => ({
             ...o,
-            timestamp: o.created_at // map created_at to timestamp for existing logic
+            timestamp: o.created_at
         }));
         
         renderSessionUI();
@@ -1095,6 +1339,11 @@
     async function addOrder() {
         const client = getSupabaseClient();
         if (!client) return;
+        
+        if (!activeSession) {
+            alert('لطفا ابتدا یک نشست ایجاد یا انتخاب کنید.');
+            return;
+        }
 
         const weightInput = parseFloat(document.getElementById('input-weight').value);
         const priceInputRaw = parsePrice(document.getElementById('input-price').value);
@@ -1121,7 +1370,8 @@
             input_weight_unit: inputWeightUnit,
             input_price: priceInputRaw,
             input_price_unit: inputPriceUnit,
-            asset_type: 'gold_18k'
+            asset_type: 'gold_18k',
+            session_ref: activeSession.id // Link to active session
         };
 
         if (editingOrderId) {
@@ -1201,12 +1451,12 @@
     }
 
     function clearSession() {
+        // Replaced by deleteSession logic generally, but can keep as "Delete All" shortcut
         showConfirmModal('آیا مطمئن هستید؟ تمام معاملات این نشست پاک خواهند شد.', async () => {
             const client = getSupabaseClient();
-            if (!client) return;
+            if (!client || !activeSession) return;
 
-            // Delete all visible rows (RLS ensures user only deletes their own)
-            await client.from('trade_orders').delete().gt('id', 0);
+            await client.from('trade_orders').delete().eq('session_ref', activeSession.id);
             
             cancelEdit(); 
             await fetchOrders();
