@@ -27,8 +27,8 @@
             // Load Settings
             loadSettings();
             
-            // Initialize Trade Session State
-            initTradeSession();
+            // Initialize Trade Session (Fetch from DB)
+            fetchOrders();
 
             // Initial Fetch (Timer will start automatically after fetch)
             fetchLiveTicker();
@@ -1012,29 +1012,31 @@
     }
 
     function initTradeSession() {
-        const storedSession = localStorage.getItem('trade_session');
-        if (storedSession) {
-            currentSession = JSON.parse(storedSession);
-            // Migrate old data structure if necessary
-            currentSession.orders = currentSession.orders.map(o => {
-                if (typeof o.price_per_gram === 'undefined') {
-                    // Migration logic: Assume old orders were simple. 
-                    // This is a rough fix, better to clear if structure changed drastically, 
-                    // but we try to preserve what we can.
-                    return {
-                        ...o,
-                        price_per_gram: o.unit === 'mesghal' ? o.price / MESGHAL_TO_GRAM : o.price,
-                        weight_gram: o.unit === 'mesghal' ? o.display_weight * MESGHAL_TO_GRAM : o.display_weight,
-                        input_weight: o.display_weight || 0,
-                        input_weight_unit: o.unit || 'gram',
-                        input_price: o.price || 0,
-                        input_price_unit: 'gram' // Old logic implicitly assumed price was per unit entered, effectively
-                    };
-                }
-                return o;
-            });
-            renderSessionUI();
+        // Migration to DB-based fetch
+        // No local init needed beyond ensuring UI is ready
+    }
+
+    async function fetchOrders() {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const { data, error } = await client
+            .from('trade_orders')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching trades:', error);
+            return;
         }
+
+        // Map DB fields to App fields
+        currentSession.orders = data.map(o => ({
+            ...o,
+            timestamp: o.created_at // map created_at to timestamp for existing logic
+        }));
+        
+        renderSessionUI();
     }
 
     function setTradeSide(side) {
@@ -1090,7 +1092,10 @@
         }
     }
 
-    function addOrder() {
+    async function addOrder() {
+        const client = getSupabaseClient();
+        if (!client) return;
+
         const weightInput = parseFloat(document.getElementById('input-weight').value);
         const priceInputRaw = parsePrice(document.getElementById('input-price').value);
 
@@ -1108,47 +1113,38 @@
             finalPricePerGram = priceInputRaw / MESGHAL_TO_GRAM;
         }
 
+        const orderData = {
+            side: tradeSide,
+            weight_gram: finalWeightGram,
+            price_per_gram: finalPricePerGram,
+            input_weight: weightInput,
+            input_weight_unit: inputWeightUnit,
+            input_price: priceInputRaw,
+            input_price_unit: inputPriceUnit,
+            asset_type: 'gold_18k'
+        };
+
         if (editingOrderId) {
-            // --- UPDATE EXISTING ORDER ---
-            const index = currentSession.orders.findIndex(o => o.id === editingOrderId);
-            if (index !== -1) {
-                currentSession.orders[index] = {
-                    ...currentSession.orders[index],
-                    side: tradeSide,
-                    weight_gram: finalWeightGram,
-                    price_per_gram: finalPricePerGram,
-                    input_weight: weightInput,
-                    input_weight_unit: inputWeightUnit,
-                    input_price: priceInputRaw,
-                    input_price_unit: inputPriceUnit
-                };
-            }
-            cancelEdit(); // Reset UI
-        } else {
-            // --- CREATE NEW ORDER ---
-            const order = {
-                id: Date.now(),
-                side: tradeSide,
-                timestamp: new Date().toISOString(),
-                
-                // Standardized Data (Golden Rule)
-                weight_gram: finalWeightGram,
-                price_per_gram: finalPricePerGram,
-                
-                // UI Data (What user entered)
-                input_weight: weightInput,
-                input_weight_unit: inputWeightUnit,
-                input_price: priceInputRaw,
-                input_price_unit: inputPriceUnit
-            };
-            currentSession.orders.unshift(order); // Add to top
+            // Update Existing
+            const { error } = await client
+                .from('trade_orders')
+                .update(orderData)
+                .eq('id', editingOrderId);
             
-            // Reset inputs slightly for ease (only on new add)
-            document.getElementById('input-weight').value = '';
+            if (!error) cancelEdit();
+        } else {
+            // Insert New
+            const { error } = await client
+                .from('trade_orders')
+                .insert([orderData]);
+            
+            if (!error) {
+                // Reset inputs slightly for ease
+                document.getElementById('input-weight').value = '';
+            }
         }
 
-        localStorage.setItem('trade_session', JSON.stringify(currentSession));
-        renderSessionUI();
+        await fetchOrders(); // Refresh from DB
     }
 
     function editOrder(id) {
@@ -1178,16 +1174,16 @@
     }
 
     function deleteOrder(id) {
-        showConfirmModal('آیا از حذف این معامله اطمینان دارید؟', () => {
-            currentSession.orders = currentSession.orders.filter(o => o.id !== id);
-            localStorage.setItem('trade_session', JSON.stringify(currentSession));
+        showConfirmModal('آیا از حذف این معامله اطمینان دارید؟', async () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+
+            await client.from('trade_orders').delete().eq('id', id);
             
-            // If we were editing this specific order, cancel edit
             if (editingOrderId === id) {
                 cancelEdit();
-            } else {
-                renderSessionUI();
             }
+            await fetchOrders();
         });
     }
 
@@ -1205,11 +1201,15 @@
     }
 
     function clearSession() {
-        showConfirmModal('آیا مطمئن هستید؟ تمام معاملات این نشست پاک خواهند شد.', () => {
-            currentSession.orders = [];
-            localStorage.removeItem('trade_session');
-            cancelEdit(); // Reset any edit state
-            renderSessionUI();
+        showConfirmModal('آیا مطمئن هستید؟ تمام معاملات این نشست پاک خواهند شد.', async () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+
+            // Delete all visible rows (RLS ensures user only deletes their own)
+            await client.from('trade_orders').delete().gt('id', 0);
+            
+            cancelEdit(); 
+            await fetchOrders();
         });
     }
 
