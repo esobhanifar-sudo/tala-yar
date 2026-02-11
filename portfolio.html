@@ -92,6 +92,25 @@
                 <div class="col-span-full text-center py-10 text-slate-500 text-sm">در حال بارگذاری دارایی‌ها...</div>
             </div>
 
+            <!-- Charts and Analysis -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Pie Chart Card -->
+                <div class="glass-panel rounded-2xl p-6 flex flex-col items-center">
+                    <h3 class="text-sm font-bold text-slate-300 mb-6 w-full">توزیع سبد دارایی (درصد)</h3>
+                    <div class="relative w-full max-w-[240px]">
+                        <canvas id="portfolioPieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Asset Summary Metrics -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <h3 class="text-sm font-bold text-slate-300 mb-4">جزئیات دسته‌بندی‌ها</h3>
+                    <div id="categoryMetrics" class="space-y-4">
+                        <!-- Metrics injected here -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Transaction History -->
             <div class="glass-panel rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -253,13 +272,13 @@
 <script>
     // --- System Configuration ---
     const SYSTEM_ASSETS = {
-        'GOLD_18K': { label: 'طلای آبشده', unit: 'گرم', color: 'text-amber-400', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', system: true },
-        'FULL_COIN': { label: 'تمام سکه', unit: 'عدد', color: 'text-yellow-300', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
-        'HALF_COIN': { label: 'نیم سکه', unit: 'عدد', color: 'text-yellow-200', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
-        'QUARTER_COIN': { label: 'ربع سکه', unit: 'عدد', color: 'text-yellow-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
-        'IRR': { label: 'ریال (نقد)', unit: 'تومان', color: 'text-green-400', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', system: true },
-        'USD': { label: 'دلار', unit: '$', color: 'text-emerald-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
-        'EUR': { label: 'یورو', unit: '€', color: 'text-blue-400', icon: 'M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4', system: true }
+        'GOLD_18K': { label: 'طلای آبشده', unit: 'گرم', color: 'text-amber-400', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', system: true, category: 'GOLD' },
+        'FULL_COIN': { label: 'تمام سکه', unit: 'عدد', color: 'text-yellow-300', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true, category: 'GOLD' },
+        'HALF_COIN': { label: 'نیم سکه', unit: 'عدد', color: 'text-yellow-200', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true, category: 'GOLD' },
+        'QUARTER_COIN': { label: 'ربع سکه', unit: 'عدد', color: 'text-yellow-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true, category: 'GOLD' },
+        'IRR': { label: 'ریال (نقد)', unit: 'تومان', color: 'text-green-400', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', system: true, category: 'CASH' },
+        'USD': { label: 'دلار', unit: '$', color: 'text-emerald-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true, category: 'FOREX' },
+        'EUR': { label: 'یورو', unit: '€', color: 'text-blue-400', icon: 'M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4', system: true, category: 'FOREX' }
     };
 
     // --- State ---
@@ -269,6 +288,7 @@
     let manualPrices = JSON.parse(localStorage.getItem('rahdis_manual_prices') || '{}');
     let supabaseClient = null;
     let editingTxId = null; 
+    let pieChartInstance = null;
     
     // --- Supabase Config ---
     const FB_URL = 'https://otlechriihxznnoamzbx.supabase.co';
@@ -310,7 +330,8 @@
                     color: 'text-slate-300',
                     icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
                     id: a.id,
-                    system: false
+                    system: false,
+                    category: 'GOODS'
                 };
             });
             initOptions(); // Re-init options with new assets
@@ -383,7 +404,7 @@
         renderPortfolio();
     }
 
-    // --- Transaction Logic (Same as before) ---
+    // --- Transaction Logic ---
     async function addTransaction(type, assetKey, qty, refId = null) {
         const client = getSupabaseClient();
         if (!client) return;
@@ -469,7 +490,6 @@
         const allAssets = getAllAssets();
         Object.keys(allAssets).forEach(key => balances[key] = 0);
         transactions.forEach(tx => {
-            // Even if asset deleted, we might track it? For now only track existing definitions
             if (allAssets[tx.asset]) {
                 balances[tx.asset] += tx.qty;
             }
@@ -478,7 +498,6 @@
     }
 
     async function fetchPrices() {
-        // ... (Same price fetching logic for system assets) ...
         const client = getSupabaseClient();
         if (!client) return;
         const indicator = document.getElementById('priceStatusIndicator');
@@ -511,17 +530,16 @@
         const allAssets = getAllAssets();
         let grandTotal = 0;
         
+        // Categorical tracking
+        const catTotals = { CASH: 0, GOLD: 0, FOREX: 0, GOODS: 0 };
+        
         container.innerHTML = '';
 
         Object.entries(allAssets).forEach(([key, spec]) => {
             const bal = balances[key] || 0;
-            // Only show cards if user has balance OR it's a system asset OR user explicitly added it
-            // Show all defined assets for clarity
-            
             const displayBal = bal % 1 === 0 ? bal : bal.toFixed(3);
             const formatted = (key === 'IRR') ? parseInt(bal).toLocaleString() : displayBal;
 
-            // Value Calc
             let val = 0;
             let priceInputHtml = '';
             
@@ -529,7 +547,6 @@
                 if (currentPrices[key]) val = bal * currentPrices[key];
                 priceInputHtml = currentPrices[key] ? `<div class="text-[10px] text-emerald-400 mt-1 pt-1 border-t border-slate-700/50">≈ ${parseInt(val).toLocaleString()} تومان</div>` : '';
             } else {
-                // Manual Price for Custom Assets
                 const manualPrice = manualPrices[key] || 0;
                 val = bal * manualPrice;
                 priceInputHtml = `
@@ -546,6 +563,9 @@
             }
             
             grandTotal += val;
+            if (catTotals.hasOwnProperty(spec.category)) {
+                catTotals[spec.category] += val;
+            }
 
             container.innerHTML += `
                 <div class="glass-panel rounded-xl p-4 asset-card border border-slate-700">
@@ -570,6 +590,68 @@
         totalValueEl.innerText = parseInt(grandTotal).toLocaleString();
         if (currentPrices['GOLD_18K'] > 0) {
             totalGoldEl.innerText = formatWeight(grandTotal / currentPrices['GOLD_18K']);
+        }
+
+        updateCharts(catTotals, grandTotal);
+    }
+
+    function updateCharts(catTotals, grandTotal) {
+        const ctx = document.getElementById('portfolioPieChart');
+        if (!ctx) return;
+
+        const labels = ['نقد', 'طلا و سکه', 'ارزها', 'کالا و سایر'];
+        const values = [catTotals.CASH, catTotals.GOLD, catTotals.FOREX, catTotals.GOODS];
+        const colors = ['#10b981', '#f59e0b', '#3b82f6', '#6366f1'];
+        
+        const percentages = values.map(v => grandTotal > 0 ? ((v / grandTotal) * 100).toFixed(1) : 0);
+
+        // Render category metrics
+        const metricsContainer = document.getElementById('categoryMetrics');
+        metricsContainer.innerHTML = labels.map((label, i) => `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full" style="background-color: ${colors[i]}"></div>
+                    <span class="text-xs text-slate-300">${label}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-mono font-bold text-white">${percentages[i]}%</span>
+                    <span class="text-[10px] text-slate-500 ltr font-mono">${parseInt(values[i]).toLocaleString()}</span>
+                </div>
+            </div>
+        `).join('');
+
+        if (pieChartInstance) {
+            pieChartInstance.data.datasets[0].data = values;
+            pieChartInstance.update();
+        } else {
+            pieChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: '#0f172a',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw || 0;
+                                    const perc = percentages[context.dataIndex];
+                                    return ` ${context.label}: ${perc}% (${parseInt(val).toLocaleString()} تومان)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
 
