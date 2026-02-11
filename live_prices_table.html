@@ -17,13 +17,20 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Safe check for auth guard if it exists in auth.js
             if (typeof checkAuthGuard === 'function') {
                 checkAuthGuard();
             } else {
                 console.log("Standalone mode: skipping auth check.");
             }
+            
+            // Load Settings
             loadSettings();
+            
+            // Initialize Session Manager (Replaces direct fetchOrders)
             initSessionManager();
+
+            // Initial Fetch (Timer will start automatically after fetch)
             fetchLiveTicker();
         });
     </script>
@@ -33,7 +40,7 @@
         :root {
             --num-scale: 1;
             --bg-color: #0f172a;
-            --text-color: #f8fafc;
+            --text-color: #f8fafc; /* Higher contrast white for dark mode */
             --panel-bg: rgba(30, 41, 59, 0.8);
             --panel-border: rgba(255, 255, 255, 0.15);
             --item-hover: rgba(255,255,255,0.05);
@@ -118,7 +125,7 @@
             text-align: center;
             background: rgba(51, 65, 85, 0.4);
             text-transform: lowercase;
-            opacity: 1;
+            opacity: 1; /* Maximum contrast for headers */
         }
         .excel-table td {
             border: 1px solid var(--border-color);
@@ -145,7 +152,7 @@
             background-color: rgba(245, 158, 11, 0.12);
         }
         .intrinsic-text {
-            color: #fbbf24 !important;
+            color: #fbbf24 !important; /* Brighter amber for contrast */
         }
         .live-price-text {
             color: #ffffff !important;
@@ -154,10 +161,11 @@
             color: #0f172a !important;
         }
 
+        /* Trade Assistant Panel Styles */
         #trade-panel {
             position: fixed;
             top: 0;
-            left: -400px;
+            left: -400px; /* Hidden by default */
             width: 100%;
             max-width: var(--trade-panel-width);
             height: 100vh;
@@ -269,6 +277,7 @@
                 </button>
             </div>
             
+            <!-- Session Manager UI -->
             <div class="flex items-center gap-2">
                 <select id="session-select" onchange="switchSession(this.value)" class="trade-select flex-1">
                     <option value="">در حال بارگذاری...</option>
@@ -280,6 +289,7 @@
                     <button class="bg-slate-700/50 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-white/10">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
                     </button>
+                    <!-- Session Menu -->
                     <div class="absolute left-0 mt-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-xl hidden group-hover:block z-50 overflow-hidden">
                         <button onclick="toggleSessionStatus()" class="block w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5" id="btn-session-status">بستن نشست</button>
                         <button onclick="renameSession()" class="block w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5">تغییر نام</button>
@@ -290,6 +300,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <!-- Asset Selector & Summary -->
             <div class="bg-white/5 rounded-xl p-3 border border-white/5">
                 <div class="flex justify-between text-xs mb-3 opacity-60">
                     <span>دارایی فعال:</span>
@@ -327,6 +338,7 @@
                 </div>
             </div>
 
+            <!-- Input Form -->
             <div id="trade-input-form" class="space-y-3 transition-opacity">
                 <div class="flex bg-slate-800/50 p-1 rounded-lg">
                     <button onclick="setTradeSide('buy')" id="btn-side-buy" class="flex-1 py-1.5 rounded-md text-xs font-bold bg-emerald-600 text-white transition-all">خرید</button>
@@ -369,22 +381,26 @@
                 </div>
             </div>
             
+            <!-- Closed Session Overlay -->
             <div id="session-closed-overlay" class="hidden text-center p-4 bg-amber-900/20 rounded-xl border border-amber-500/20">
                 <p class="text-amber-200 text-xs font-bold">این نشست بسته شده است.</p>
                 <p class="text-slate-400 text-[10px] mt-1">برای ثبت معامله جدید، نشست را باز کنید یا نشست جدیدی بسازید.</p>
             </div>
 
+            <!-- Recent Orders -->
             <div class="mt-4">
                 <div class="text-[10px] font-bold opacity-50 mb-2 border-b border-white/5 pb-1 flex justify-between">
                     <span>لیست معاملات (Session)</span>
                 </div>
                 <div id="orders-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <!-- Orders will appear here -->
                     <div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Custom Confirmation Modal -->
     <div id="confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 hidden backdrop-blur-sm transition-opacity opacity-0" style="transition: opacity 0.2s ease-in-out;">
         <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform" style="transition: transform 0.2s ease-out;">
             <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
@@ -399,6 +415,7 @@
         </div>
     </div>
     
+    <!-- Input Modal -->
     <div id="input-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 hidden backdrop-blur-sm transition-opacity opacity-0">
         <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
             <h3 class="text-lg font-bold text-white mb-4" id="input-modal-title">عنوان</h3>
@@ -411,7 +428,10 @@
     </div>
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
         <div class="lg:col-span-3 space-y-6">
+            
+            <!-- Header Widgets Area -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-8 flex flex-col justify-center shadow-xl">
                     <div class="flex justify-between items-start mb-4">
@@ -442,6 +462,7 @@
                 </div>
             </div>
 
+            <!-- Main Display Container -->
             <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5 flex flex-col">
                 <div class="bg-slate-800/40 p-2 flex gap-2 border-b border-gray-500/10">
                     <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn active-amber flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
@@ -461,14 +482,17 @@
                     <span id="lastUpdateTime" class="text-[10px] opacity-70 font-mono">--:--:--</span>
                 </div>
 
+                <!-- Gold Table Content -->
                 <div id="section-gold" class="p-2 md:p-4 text-xs overflow-x-auto">
                     <div id="goldTable" class="min-h-[300px]"></div>
                 </div>
 
+                <!-- Currency Table Content -->
                 <div id="section-currency" class="hidden p-4 md:p-10 text-xs overflow-x-auto">
                     <div id="currencyTable" class="min-h-[300px]"></div>
                 </div>
 
+                <!-- Candlestick Chart -->
                 <div id="maqholi-chart-container" class="p-6 border-t border-white/5 relative overflow-hidden bg-slate-900/10">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                         <div>
@@ -491,6 +515,7 @@
             <div id="errorLog" class="mt-4 p-4 bg-red-900/10 border border-red-900/20 rounded-2xl text-[10px] text-red-400 hidden font-mono break-all"></div>
         </div>
 
+        <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-4">
             <div class="glass-panel rounded-3xl p-6 sticky top-4 shadow-xl border border-white/5">
                 <h3 class="text-sm font-bold opacity-100 mb-6 border-b border-gray-500/10 pb-3 flex items-center gap-2 text-amber-500">
@@ -540,7 +565,7 @@
     let isLightMode = false;
     let activeTab = 'gold'; 
     let maqholiChart = null;
-    let timerInterval = null;
+    let timerInterval = null; // To hold the countdown interval ID
     
     const OUNCE_TO_GRAM = 31.1035;
     const PURITY_18K = 0.75;
@@ -548,15 +573,17 @@
     const COIN_SPECS = { full: { weight: 8.133 }, half: { weight: 4.0665 }, quarter: { weight: 2.03325 } };
     const MESGHAL_TO_GRAM = 4.3318;
 
+    // --- Trade Logic Variables ---
     let tradeSide = 'buy';
     let inputWeightUnit = 'gram';
     let inputPriceUnit = 'gram';
-    let editingOrderId = null;
-    let currentSession = { orders: [] };
-    let activeSession = null;
-    let sessions = [];
+    let editingOrderId = null; // Track if we are editing
+    let currentSession = { orders: [] }; // Legacy structure, will be replaced by activeSession
+    let activeSession = null; // New Session Object
+    let sessions = []; // List of sessions
     let currentLiveGoldPrice = 0; 
     
+    // --- Confirmation Modal Logic ---
     let confirmCallback = null;
 
     function showConfirmModal(message, callback) {
@@ -584,6 +611,7 @@
         }, 200); 
     }
 
+    // --- Input Modal Logic ---
     let inputModalCallback = null;
     function showInputModal(title, callback) {
         const modal = document.getElementById('input-modal');
@@ -615,6 +643,7 @@
                 closeConfirmModal();
             });
         }
+        
         const inputActionBtn = document.getElementById('input-modal-action');
         if(inputActionBtn) {
             inputActionBtn.addEventListener('click', () => {
@@ -634,11 +663,15 @@
         return null;
     }
 
+    // --- Timer Logic ---
     function startTimer() {
         let timeLeft = 60;
         const timerEl = document.getElementById('refreshTimer');
+        
         if (timerInterval) clearInterval(timerInterval);
+        
         if (timerEl) timerEl.innerText = `(تا بروزرسانی: ${timeLeft})`;
+
         timerInterval = setInterval(() => {
             timeLeft--;
             if (timerEl) {
@@ -646,8 +679,8 @@
                     timerEl.innerText = `(تا بروزرسانی: ${timeLeft})`;
                 } else {
                     timerEl.innerText = '(در حال دریافت...)';
-                    clearInterval(timerInterval);
-                    fetchLiveTicker();
+                    clearInterval(timerInterval); // Stop timer
+                    fetchLiveTicker(); // Trigger fetch
                 }
             }
         }, 1000);
@@ -660,6 +693,7 @@
         const curSec = document.getElementById('section-currency');
         const goldSec = document.getElementById('section-gold');
         const chartCont = document.getElementById('maqholi-chart-container');
+
         if (tab === 'currency') {
             curBtn.className = "tab-btn active-blue flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
             goldBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
@@ -680,6 +714,12 @@
         return parseFloat(value.toString().replace(/,/g, '').replace(/[^\d.]/g, '')) || 0;
     }
 
+    function calculateBubble(price, weight, goldPrice) {
+        if (!price || !goldPrice) return 0;
+        const intrinsic = weight * (goldPrice * 1.2);
+        return ((price - intrinsic) / intrinsic) * 100;
+    }
+
     function generateGoldTableHTML(sources, assets) {
         let html = `<table class="w-full min-w-[500px] text-right comparison-table border-collapse">
             <thead><tr class="text-[11px] text-slate-400"><th class="p-4 text-right">شاخص پایه</th>
@@ -689,18 +729,34 @@
         assets.forEach(asset => {
             const rowClass = asset.isIntrinsic ? 'intrinsic-row' : 'group transition-colors';
             const textColorClass = asset.isIntrinsic ? 'intrinsic-text' : 'font-bold opacity-100';
+
             html += `<tr class="${rowClass}">
                 <td class="text-xs ${textColorClass} p-4 border-l border-white/5">
                     ${asset.label}
                     ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-80 font-normal intrinsic-text">محاسبات رهدیس</span>' : ''}
                 </td>`;
+            
             sources.forEach(s => {
                 const price = s[asset.id];
+                
                 if (asset.isIntrinsic) {
-                    let value = (asset.id === 'gold_intrinsic') ? s.inherent_gold : (asset.weight ? asset.weight * (s.inherent_gold * 1.2) : 0);
-                    html += `<td class="p-4"><div class="num-sm latin-nums font-bold intrinsic-text">${value > 0 ? Math.round(value).toLocaleString() : '-'}</div></td>`;
+                    let value = 0;
+                    if (asset.id === 'gold_intrinsic') {
+                        value = s.inherent_gold;
+                    } else if (asset.weight) {
+                        value = asset.weight * (s.inherent_gold * 1.2);
+                    }
+                    
+                    if (!value || value === 0) {
+                        html += `<td class="text-xs opacity-50 p-3">-</td>`;
+                    } else {
+                        html += `<td class="p-4">
+                            <div class="num-sm latin-nums font-bold intrinsic-text">${Math.round(value).toLocaleString()}</div>
+                        </td>`;
+                    }
                     return;
                 }
+
                 if (asset.id === 'mesghal_range') {
                     if (s.label === 'طلای معقولی' && s.range_high > 0) {
                         html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
@@ -710,6 +766,7 @@
                     } else { html += `<td class="text-xs opacity-40">-</td>`; }
                     return;
                 }
+                
                 if (asset.id === 'ounce_range') {
                     if (s.ounce_high > 0) {
                         html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
@@ -719,35 +776,46 @@
                     } else { html += `<td class="text-xs opacity-40">-</td>`; }
                     return;
                 }
+
                 if (asset.id === 'bubble_range_18k') {
-                    if (s.label === 'طلای معقولی' && s.bubble_max !== -Infinity) {
-                        const hSign = s.bubble_max > 0 ? '+' : '';
-                        const lSign = s.bubble_min > 0 ? '+' : '';
+                    if (s.label === 'طلای معقولی' && s.range_high > 0 && s.inherent_gold > 0) {
+                        const bubbleHigh = s.range_high - s.inherent_gold;
+                        const bubbleLow = s.range_low - s.inherent_gold;
+                        
+                        const highClass = bubbleHigh >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        const lowClass = bubbleLow >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        
+                        // Add explicit '+' sign for positive values
+                        const highSign = bubbleHigh > 0 ? '+' : '';
+                        const lowSign = bubbleLow > 0 ? '+' : '';
+                        
                         html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[8px] opacity-50 font-mono latin-nums">${s.bubble_max_time}</span>
-                                    <div class="num-sm text-[10px] ${s.bubble_max >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold ltr latin-nums">↑ <span class="font-mono">${hSign}${Math.round(s.bubble_max).toLocaleString()}</span></div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[8px] opacity-50 font-mono latin-nums">${s.bubble_min_time}</span>
-                                    <div class="num-sm text-[10px] ${s.bubble_min >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold ltr latin-nums">↓ <span class="font-mono">${lSign}${Math.round(s.bubble_min).toLocaleString()}</span></div>
-                                </div>
+                                <div class="num-sm text-[10px] ${highClass} font-bold ltr latin-nums">↑ <span class="font-mono">${highSign}${Math.round(bubbleHigh).toLocaleString()}</span></div>
+                                <div class="num-sm text-[10px] ${lowClass} font-bold ltr latin-nums">↓ <span class="font-mono">${lowSign}${Math.round(bubbleLow).toLocaleString()}</span></div>
                             </div></td>`;
                     } else { html += `<td class="text-xs opacity-40">-</td>`; }
                     return;
                 }
+
                 if (!price || price === 0) { html += `<td class="text-xs opacity-50 p-3">-</td>`; } 
                 else {
-                    let cellHTML = `<div class="flex flex-col items-center gap-0.5"><div class="num-sm latin-nums font-bold text-lg live-price-text">${Math.round(price).toLocaleString()}</div>`;
+                    let cellHTML = `<div class="flex flex-col items-center gap-0.5">`;
+                    cellHTML += `<div class="num-sm latin-nums font-bold text-lg live-price-text">${Math.round(price).toLocaleString()}</div>`;
+                    
                     if (s.inherent_gold > 0 && asset.id !== 'gold_buy') {
                         let intrinsicValue = (asset.id === 'gold') ? s.inherent_gold : (asset.weight ? asset.weight * (s.inherent_gold * 1.2) : null);
                         if (intrinsicValue !== null) {
                             let diff = price - intrinsicValue;
-                            let bPct = (diff / intrinsicValue) * 100;
-                            cellHTML += `<div class="${bPct > 0 ? 'text-emerald-500' : 'text-red-500'} text-[10px] font-bold ltr latin-nums num-sm bubble-val">${bPct.toFixed(1)}% حباب (${Math.round(diff).toLocaleString()})</div>`;
+                            let bubblePct = (diff / intrinsicValue) * 100;
+                            let bClass = bubblePct > 0 ? 'text-emerald-500' : 'text-red-500';
+                            cellHTML += `
+                                <div class="${bClass} text-[10px] font-bold ltr latin-nums num-sm bubble-val">
+                                    ${bubblePct.toFixed(1)}% حباب (${Math.round(diff).toLocaleString()})
+                                </div>`;
                         }
                     }
-                    html += `<td class="p-4 group-hover:bg-white/5">${cellHTML}</div></td>`;
+                    cellHTML += `</div>`;
+                    html += `<td class="p-4 group-hover:bg-white/5">${cellHTML}</td>`;
                 }
             });
             html += `</tr>`;
@@ -756,16 +824,31 @@
     }
 
     function generateExcelCurrencyHTML(dataRows, intrinsicValue) {
-        let html = `<table class="excel-table latin-nums"><thead><tr><th class="w-1/4">source</th><th class="w-1/4">price</th><th class="w-1/4">item</th><th class="w-1/4">bubble (درهم)</th></tr></thead><tbody>`;
+        let html = `<table class="excel-table latin-nums">
+            <thead><tr><th class="w-1/4">source</th><th class="w-1/4">price</th><th class="w-1/4">item</th><th class="w-1/4">bubble (درهم)</th></tr></thead>
+            <tbody>`;
         dataRows.forEach(row => {
             const displayPrice = row.price > 0 ? Math.round(row.price).toLocaleString() : '-';
             let bubbleHTML = '<span class="opacity-40">-</span>';
+            
             if (row.isDollar && row.price > 0 && intrinsicValue > 0) {
                 const diff = row.price - intrinsicValue;
                 const bubblePct = (diff / intrinsicValue) * 100;
-                bubbleHTML = `<div class="${bubblePct > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold flex flex-col items-center leading-tight bubble-val"><span class="text-xs opacity-100">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span><span class="text-xl num-sm">(${Math.round(diff).toLocaleString()})</span></div>`;
+                const bubbleClass = bubblePct > 0 ? 'text-emerald-400' : 'text-red-400';
+                bubbleHTML = `
+                    <div class="${bubbleClass} font-bold flex flex-col items-center leading-tight bubble-val">
+                        <span class="text-xs opacity-100">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
+                        <span class="text-xl num-sm">(${Math.round(diff).toLocaleString()})</span>
+                    </div>`;
             }
-            html += `<tr><td class="text-xs opacity-90 live-price-text">${row.source}</td><td class="text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td><td class="text-sm font-bold intrinsic-text">${row.item}</td><td>${bubbleHTML}</td></tr>`;
+
+            html += `
+                <tr>
+                    <td class="text-xs opacity-90 live-price-text">${row.source}</td>
+                    <td class="text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
+                    <td class="text-sm font-bold intrinsic-text">${row.item}</td>
+                    <td>${bubbleHTML}</td>
+                </tr>`;
         });
         return html + `</tbody></table>`;
     }
@@ -774,7 +857,12 @@
         const client = getSupabaseClient();
         if (client) {
             const { error } = await client.auth.signOut();
-            if (!error) window.location.href = 'index.html';
+            if (!error) {
+                window.location.href = 'index.html';
+            } else {
+                console.error('Logout error:', error);
+                alert('خطا در خروج از حساب');
+            }
         }
     }
 
@@ -782,6 +870,8 @@
         const client = getSupabaseClient();
         if (!client) return;
         document.getElementById('connectionStatus').innerText = "درحال دریافت...";
+        
+        // Stop timer while fetching
         if (timerInterval) clearInterval(timerInterval);
         const timerEl = document.getElementById('refreshTimer');
         if(timerEl) timerEl.innerText = '';
@@ -809,6 +899,7 @@
             const tether = tetherRes.data?.[0] || {};
             const dirhamRate = dirhamRateRes.data?.[0] || {};
 
+            // --- Updated: Using Dirham Rate source for inherent dollar calculation ---
             let dhsPrice = parsePrice(dirhamRate.rate_value_dirham_rate); 
             if (dhsPrice > 200000) dhsPrice /= 10;
             const dhsTime = dirhamRate.created_at ? new Date(dirhamRate.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
@@ -818,61 +909,63 @@
             const ouncePrice = parsePrice(ounceRes.data?.[0]?.price_blue);
             const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar : 0;
 
+            // --- TRADE LOGIC UPDATE: Update live price for calculator ---
             let magholiGold = parsePrice(magholiRes.data?.[0]?.gram_sell_magholi);
             if (magholiGold > 100000000) magholiGold /= 10;
+
             let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
             if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
+            
+            // Use Buy Price for Trade Assistant P/L as requested
             currentLiveGoldPrice = magholiGoldBuy; 
             updateTradeStats(); 
-
-            // --- Updated Daily Bubble Fluctuations Logic ---
-            let bMax = -Infinity, bMin = Infinity, bMaxTime = '-', bMinTime = '-';
-            if (magholiGold > 0 && inherentGold > 0) {
-                const currentBubble = magholiGold - inherentGold;
-                await client.from('bubble_fluctuations').insert([{ bubble_value: currentBubble, created_at: new Date().toISOString() }]);
-                const { data: bLogs } = await client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString());
-                if (bLogs && bLogs.length > 0) {
-                    bLogs.forEach(l => {
-                        const dateObj = new Date(l.created_at);
-                        const timeStr = dateObj.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'});
-                        const dateStr = dateObj.toLocaleDateString('fa-IR', {month:'2-digit', day:'2-digit'});
-                        const fullStr = `${timeStr} (${dateStr})`;
-                        
-                        if (l.bubble_value > bMax) {
-                            bMax = l.bubble_value;
-                            bMaxTime = fullStr;
-                        }
-                        if (l.bubble_value < bMin) {
-                            bMin = l.bubble_value;
-                            bMinTime = fullStr;
-                        }
-                    });
-                }
-            }
+            // ------------------------------------------------------------
 
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
-            document.getElementById('inherent-gold-info').innerHTML = `<div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان (فردایی): <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div><div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">⚖️ انس JustOunce: <span class="num-sm font-bold live-price-text">${ouncePrice.toLocaleString()}</span></span></div></div>`;
+            document.getElementById('inherent-gold-info').innerHTML = `
+                <div class="flex flex-col gap-2 pt-2 text-[11px]">
+                    <div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان (فردایی): <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div>
+                    <div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">⚖️ انس JustOunce: <span class="num-sm font-bold live-price-text">${ouncePrice.toLocaleString()}</span></span></div>
+                </div>`;
+            
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
-            document.getElementById('inherent-dollar-info').innerHTML = `<div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">🇦🇪 نرخ درهم (منبع: Dirham Rate): <span class="num-sm font-bold live-price-text">${dhsPrice.toLocaleString()}</span></span><span class="opacity-80 latin-nums text-[9px]">${dhsTime}</span></div></div>`;
+            document.getElementById('inherent-dollar-info').innerHTML = `
+                <div class="flex flex-col gap-2 pt-2 text-[11px]">
+                    <div class="flex justify-between items-center opacity-100">
+                        <span class="flex items-center gap-1">🇦🇪 نرخ درهم (منبع: Dirham Rate): <span class="num-sm font-bold live-price-text">${dhsPrice.toLocaleString()}</span></span>
+                        <span class="opacity-80 latin-nums text-[9px]">${dhsTime}</span>
+                    </div>
+                </div>`;
 
             let mHigh = 0, mLow = Infinity;
-            if (magRangeRes.data) {
+            if (magRangeRes.data && magRangeRes.data.length > 0) {
                 magRangeRes.data.forEach(r => {
                     let p = parsePrice(r.mesghal_sell_magholi);
                     if (p > 200000000) p /= 10;
-                    if (p > 0) { const g18 = p / 4.3318; if (g18 > mHigh) mHigh = g18; if (g18 < mLow) mLow = g18; }
+                    if (p > 0) {
+                        const gram18 = p / 4.3318;
+                        if (gram18 > mHigh) mHigh = gram18;
+                        if (gram18 < mLow) mLow = gram18;
+                    }
                 });
             }
             if (mLow === Infinity) mLow = 0;
+            
             let oHigh = 0, oLow = Infinity;
-            if (ounceRangeRes.data) {
-                ounceRangeRes.data.forEach(r => { let p = parsePrice(r.price_blue); if (p > 0) { if (p > oHigh) oHigh = p; if (p < oLow) oLow = p; } });
+            if (ounceRangeRes.data && ounceRangeRes.data.length > 0) {
+                ounceRangeRes.data.forEach(r => {
+                    let p = parsePrice(r.price_blue);
+                    if (p > 0) {
+                        if (p > oHigh) oHigh = p;
+                        if (p < oLow) oLow = p;
+                    }
+                });
             }
             if (oLow === Infinity) oLow = 0;
 
             const goldSources = [
-                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow, bubble_max: bMax, bubble_min: bMin, bubble_max_time: bMaxTime, bubble_min_time: bMinTime },
-                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow, bubble_max: -Infinity, bubble_min: Infinity, bubble_max_time: '-', bubble_min_time: '-' }
+                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow },
+                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow }
             ];
 
             const goldAssets = [
@@ -905,11 +998,18 @@
                 { source: 'iran currency', price: parsePrice(curr.pound), item: 'پوند', isDollar: false }
             ];
             document.getElementById('currencyTable').innerHTML = generateExcelCurrencyHTML(currencyData, inherentDollar);
+            
             document.getElementById('connectionStatus').innerText = "آنلاین";
             document.getElementById('lastUpdateTime').innerText = new Date().toLocaleTimeString('fa-IR');
+            
+            // Restart timer
             startTimer();
+            
             if (!maqholiChart) loadMaqholiChart('today');
-        } catch (e) { startTimer(); }
+        } catch (e) { 
+            console.error(e);
+            startTimer(); // Ensure timer restarts even on error
+        }
     }
 
     async function loadMaqholiChart(timeframe) {
@@ -918,131 +1018,488 @@
         if (!client) return;
         try {
             let filterDate = new Date(); if (timeframe === 'today') filterDate.setHours(0,0,0,0); else filterDate.setDate(filterDate.getDate() - 7);
-            const { data } = await client.from('gold_magholi').select('mesghal_sell_magholi, created_at').gte('created_at', filterDate.toISOString()).order('created_at', { ascending: true });
+            const { data } = await client.from('gold_magholi').select('mesghal_sell_magholi, date_magholi, time_magholi, created_at').gte('created_at', filterDate.toISOString()).order('created_at', { ascending: true });
+            
             const groups = {};
             data.forEach(r => {
-                const date = new Date(r.created_at); if (isNaN(date.getTime())) return;
-                let key = timeframe === 'today' ? `${date.getHours().toString().padStart(2, '0')}:${(Math.floor(date.getMinutes() / 15) * 15).toString().padStart(2, '0')}` : date.toISOString().split('T')[0];
-                let p = parsePrice(r.mesghal_sell_magholi); if (p > 200000000) p /= 10;
+                const date = new Date(r.created_at);
+                if (isNaN(date.getTime())) return;
+                
+                let key;
+                if (timeframe === 'today') {
+                    // Grouping by 15-minute intervals
+                    const minutes = date.getMinutes();
+                    const quarter = Math.floor(minutes / 15) * 15;
+                    key = `${date.getHours().toString().padStart(2, '0')}:${quarter.toString().padStart(2, '0')}`;
+                } else {
+                    key = r.date_magholi;
+                }
+                
+                let p = parsePrice(r.mesghal_sell_magholi); 
+                if (p > 200000000) p /= 10;
+                
                 if (p > 0) {
-                    const g18 = p / 4.3318;
-                    if (!groups[key]) groups[key] = { open: g18, high: g18, low: g18, close: g18, time: date.getTime() };
-                    groups[key].high = Math.max(groups[key].high, g18); groups[key].low = Math.min(groups[key].low, g18); groups[key].close = g18;
+                    const gram18 = p / 4.3318;
+                    if (!groups[key]) {
+                        groups[key] = { open: gram18, high: gram18, low: gram18, close: gram18, time: date.getTime() };
+                    }
+                    groups[key].high = Math.max(groups[key].high, gram18); 
+                    groups[key].low = Math.min(groups[key].low, gram18); 
+                    groups[key].close = gram18;
                 }
             });
+
             const options = {
-                series: [{ data: Object.keys(groups).sort().map(key => ({ x: timeframe === 'today' ? key : new Date(groups[key].time), y: [Math.round(groups[key].open), Math.round(groups[key].high), Math.round(groups[key].low), Math.round(groups[key].close)] })) }],
-                chart: { type: 'candlestick', height: 280, toolbar: { show: false }, animations: { enabled: false }, foreColor: '#94a3b8' },
+                series: [{ 
+                    data: Object.keys(groups).sort().map(key => ({ 
+                        x: timeframe === 'today' ? key : new Date(groups[key].time), 
+                        y: [Math.round(groups[key].open), Math.round(groups[key].high), Math.round(groups[key].low), Math.round(groups[key].close)] 
+                    })) 
+                }],
+                chart: { 
+                    type: 'candlestick', 
+                    height: 280, 
+                    toolbar: { show: false },
+                    animations: { enabled: false },
+                    foreColor: '#94a3b8'
+                },
                 plotOptions: { candlestick: { colors: { upward: '#10b981', downward: '#ef4444' } } },
-                xaxis: { type: timeframe === 'today' ? 'category' : 'datetime' },
-                yaxis: { labels: { formatter: (v) => Math.round(v).toLocaleString() } },
+                xaxis: { 
+                    type: timeframe === 'today' ? 'category' : 'datetime',
+                    labels: { 
+                        datetimeUTC: false,
+                        style: { colors: '#94a3b8' }
+                    }
+                },
+                yaxis: { 
+                    labels: { 
+                        formatter: (v) => Math.round(v).toLocaleString(),
+                        style: { colors: '#94a3b8' }
+                    }
+                },
                 grid: { borderColor: '#334155' }
             };
+
             if (maqholiChart) maqholiChart.destroy(); 
-            maqholiChart = new ApexCharts(container, options); maqholiChart.render();
-        } catch (e) {}
+            maqholiChart = new ApexCharts(container, options); 
+            maqholiChart.render();
+        } catch (e) {
+            console.error("Chart Error:", e);
+        }
     }
 
     function toggleTheme() { isLightMode = !isLightMode; document.body.classList.toggle('light-mode', isLightMode); }
     function toggleEyeCare() { document.body.classList.toggle('eye-care-mode'); }
-    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; localStorage.setItem('numScale', val); }
+    function updateNumberScale(val) { document.documentElement.style.setProperty('--num-scale', val); document.getElementById('scaleValueDisplay').innerText = val + 'x'; localStorage.setItem('numScale', val); const widgetMain = document.querySelectorAll('.widget-main-num'); widgetMain.forEach(el => el.style.fontSize = val > 2.5 ? '1.5rem' : '2.25rem'); }
     function loadSettings() { const s = localStorage.getItem('numScale'); if (s) { updateNumberScale(parseFloat(s)); document.getElementById('fontScaleSlider').value = s; } }
 
-    function toggleTradePanel() { document.getElementById('trade-panel').classList.toggle('open'); }
-
-    async function initSessionManager() { await fetchSessions(); if (sessions.length === 0) await createNewSession('نشست پیش‌فرض'); }
-    async function fetchSessions() {
-        const client = getSupabaseClient(); if (!client) return;
-        const { data } = await client.from('trade_sessions').select('*').order('created_at', { ascending: false });
-        sessions = data || [];
-        const selector = document.getElementById('session-select'); selector.innerHTML = '';
-        sessions.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.text = `${s.name} ${s.status === 'closed' ? '(بسته)' : ''}`; selector.appendChild(o); });
-        if (!activeSession && sessions.length > 0) activeSession = sessions.find(s => s.status === 'open') || sessions[0];
-        if (activeSession) { selector.value = activeSession.id; updateSessionUIState(); await fetchOrders(); }
+    // --- TRADE ASSISTANT LOGIC ---
+    function toggleTradePanel() {
+        document.getElementById('trade-panel').classList.toggle('open');
     }
 
-    async function switchSession(id) { activeSession = sessions.find(s => s.id === id); updateSessionUIState(); await fetchOrders(); }
-    function updateSessionUIState() {
-        if (!activeSession) return;
-        const closed = activeSession.status === 'closed';
-        document.getElementById('trade-input-form').classList.toggle('hidden', closed);
-        document.getElementById('session-closed-overlay').classList.toggle('hidden', !closed);
-        document.getElementById('btn-session-status').innerText = closed ? 'باز کردن مجدد نشست' : 'بستن نشست';
-    }
-
-    function promptNewSession() { showInputModal('نام نشست جدید', async (n) => await createNewSession(n)); }
-    async function createNewSession(n) {
-        const client = getSupabaseClient(); if (!client || !n) return;
-        const { data } = await client.from('trade_sessions').insert([{ name: n, status: 'open' }]).select().single();
+    // --- SESSION MANAGEMENT ---
+    async function initSessionManager() {
         await fetchSessions();
-    }
-    function renameSession() { if (activeSession) showInputModal('نام جدید', async (n) => { const client = getSupabaseClient(); await client.from('trade_sessions').update({ name: n }).eq('id', activeSession.id); await fetchSessions(); }); }
-    async function updateSessionStatus(id, s) { const client = getSupabaseClient(); await client.from('trade_sessions').update({ status: s }).eq('id', id); await fetchSessions(); }
-    function deleteSession() { if (activeSession) showConfirmModal('با حذف نشست، تمام معاملات آن نیز حذف خواهند شد.', async () => { const client = getSupabaseClient(); await client.from('trade_orders').delete().eq('session_ref', activeSession.id); await client.from('trade_sessions').delete().eq('id', activeSession.id); activeSession = null; await initSessionManager(); }); }
-
-    async function fetchOrders() {
-        const client = getSupabaseClient(); if (!client || !activeSession) return;
-        const { data } = await client.from('trade_orders').select('*').eq('session_ref', activeSession.id).order('created_at', { ascending: false });
-        currentSession.orders = data || []; renderSessionUI();
+        if (sessions.length === 0) {
+            await createNewSession('نشست پیش‌فرض');
+        }
     }
 
-    function setTradeSide(s) { tradeSide = s; document.getElementById('btn-side-buy').classList.toggle('bg-emerald-600', s==='buy'); document.getElementById('btn-side-sell').classList.toggle('bg-red-600', s==='sell'); updateTradeStats(); }
-    function setWeightUnit(u) { inputWeightUnit = u; document.getElementById('weight-unit-gram').classList.toggle('active', u==='gram'); document.getElementById('weight-unit-mesghal').classList.toggle('active', u==='mesghal'); }
-    function setPriceUnit(u) { inputPriceUnit = u; document.getElementById('price-unit-gram').classList.toggle('active', u==='gram'); document.getElementById('price-unit-mesghal').classList.toggle('active', u==='mesghal'); }
-    function formatPriceInput(el) { let v = el.value.replace(/,/g, '').replace(/[^\d.]/g, ''); if(v) el.value = parseInt(v).toLocaleString(); }
-    function fetchCurrentPrice() { if(currentLiveGoldPrice > 0) document.getElementById('input-price').value = Math.round(inputPriceUnit === 'mesghal' ? currentLiveGoldPrice * MESGHAL_TO_GRAM : currentLiveGoldPrice).toLocaleString(); }
+    async function fetchSessions() {
+        const client = getSupabaseClient();
+        if (!client) return;
 
-    async function addOrder() {
-        const client = getSupabaseClient(); if (!client || !activeSession) return;
-        const w = parseFloat(document.getElementById('input-weight').value);
-        const pRaw = parsePrice(document.getElementById('input-price').value);
-        if(!w || !pRaw) return;
-        const data = { side: tradeSide, weight_gram: inputWeightUnit==='mesghal'?w*MESGHAL_TO_GRAM:w, price_per_gram: inputPriceUnit==='mesghal'?pRaw/MESGHAL_TO_GRAM:pRaw, input_weight: w, input_weight_unit: inputWeightUnit, input_price: pRaw, input_price_unit: inputPriceUnit, asset_type: 'gold_18k', session_ref: activeSession.id };
-        if (editingOrderId) { await client.from('trade_orders').update(data).eq('id', editingOrderId); cancelEdit(); }
-        else { await client.from('trade_orders').insert([data]); document.getElementById('input-weight').value = ''; }
+        const { data, error } = await client
+            .from('trade_sessions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching sessions:', error);
+            return;
+        }
+
+        sessions = data;
+        const selector = document.getElementById('session-select');
+        selector.innerHTML = '';
+        
+        sessions.forEach(s => {
+            const option = document.createElement('option');
+            option.value = s.id;
+            option.text = `${s.name} ${s.status === 'closed' ? '(بسته)' : ''}`;
+            selector.appendChild(option);
+        });
+
+        // Set active session
+        if (!activeSession && sessions.length > 0) {
+            const firstOpen = sessions.find(s => s.status === 'open');
+            activeSession = firstOpen || sessions[0];
+            selector.value = activeSession.id;
+        } else if (activeSession) {
+            if (sessions.find(s => s.id === activeSession.id)) {
+                selector.value = activeSession.id;
+            } else if (sessions.length > 0) {
+                activeSession = sessions[0];
+                selector.value = activeSession.id;
+            } else {
+                activeSession = null;
+            }
+        }
+
+        updateSessionUIState();
+        if (activeSession) {
+            await fetchOrders();
+        }
+    }
+
+    async function switchSession(id) {
+        activeSession = sessions.find(s => s.id === id);
+        updateSessionUIState();
         await fetchOrders();
     }
 
+    function updateSessionUIState() {
+        if (!activeSession) return;
+        
+        const isClosed = activeSession.status === 'closed';
+        const form = document.getElementById('trade-input-form');
+        const closedOverlay = document.getElementById('session-closed-overlay');
+        const statusBtn = document.getElementById('btn-session-status');
+
+        if (isClosed) {
+            form.classList.add('hidden');
+            closedOverlay.classList.remove('hidden');
+            statusBtn.innerText = 'باز کردن مجدد نشست';
+            statusBtn.onclick = () => updateSessionStatus(activeSession.id, 'open');
+        } else {
+            form.classList.remove('hidden');
+            closedOverlay.classList.add('hidden');
+            statusBtn.innerText = 'بستن نشست';
+            statusBtn.onclick = () => updateSessionStatus(activeSession.id, 'closed');
+        }
+    }
+
+    function promptNewSession() {
+        showInputModal('نام نشست جدید', async (name) => {
+            await createNewSession(name);
+        });
+    }
+
+    async function createNewSession(name) {
+        const client = getSupabaseClient();
+        if (!client || !name) return;
+
+        const { data, error } = await client
+            .from('trade_sessions')
+            .insert([{ name: name, status: 'open' }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating session:', error);
+            alert('خطا در ایجاد نشست');
+            return;
+        }
+
+        await fetchSessions();
+        activeSession = sessions.find(s => s.id === data.id);
+        document.getElementById('session-select').value = activeSession.id;
+        updateSessionUIState();
+        await fetchOrders();
+    }
+
+    function renameSession() {
+        if (!activeSession) return;
+        showInputModal('نام جدید', async (newName) => {
+            const client = getSupabaseClient();
+            if (!client || !newName) return;
+
+            const { error } = await client.from('trade_sessions')
+                .update({ name: newName })
+                .eq('id', activeSession.id);
+
+            if (!error) await fetchSessions();
+        });
+    }
+
+    async function updateSessionStatus(id, status) {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const { error } = await client.from('trade_sessions')
+            .update({ status: status })
+            .eq('id', id);
+
+        if (!error) {
+            await fetchSessions();
+        }
+    }
+
+    function deleteSession() {
+        if (!activeSession) return;
+        showConfirmModal('آیا مطمئن هستید؟ با حذف نشست، تمام معاملات آن نیز حذف خواهند شد.', async () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+            await client.from('trade_orders').delete().eq('session_ref', activeSession.id);
+            await client.from('trade_sessions').delete().eq('id', activeSession.id);
+            activeSession = null;
+            await initSessionManager(); 
+        });
+    }
+
+    // --- ORDER MANAGEMENT ---
+
+    async function fetchOrders() {
+        const client = getSupabaseClient();
+        if (!client) return;
+        
+        if (!activeSession) {
+            currentSession.orders = [];
+            renderSessionUI();
+            return;
+        }
+
+        const { data, error } = await client
+            .from('trade_orders')
+            .select('*')
+            .eq('session_ref', activeSession.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching trades:', error);
+            return;
+        }
+
+        currentSession.orders = data.map(o => ({
+            ...o,
+            timestamp: o.created_at
+        }));
+        
+        renderSessionUI();
+    }
+
+    function setTradeSide(side) {
+        tradeSide = side;
+        if(side === 'buy') {
+            document.getElementById('btn-side-buy').classList.add('bg-emerald-600', 'text-white');
+            document.getElementById('btn-side-buy').classList.remove('text-slate-400');
+            document.getElementById('btn-side-sell').classList.remove('bg-red-600', 'text-white');
+            document.getElementById('btn-side-sell').classList.add('text-slate-400');
+        } else {
+            document.getElementById('btn-side-sell').classList.add('bg-red-600', 'text-white');
+            document.getElementById('btn-side-sell').classList.remove('text-slate-400');
+            document.getElementById('btn-side-buy').classList.remove('bg-emerald-600', 'text-white');
+            document.getElementById('btn-side-buy').classList.add('text-slate-400');
+        }
+        updateTradeStats();
+    }
+
+    function setWeightUnit(unit) {
+        inputWeightUnit = unit;
+        if(unit === 'gram') {
+            document.getElementById('weight-unit-gram').classList.add('active');
+            document.getElementById('weight-unit-mesghal').classList.remove('active');
+        } else {
+            document.getElementById('weight-unit-mesghal').classList.add('active');
+            document.getElementById('weight-unit-gram').classList.remove('active');
+        }
+    }
+
+    function setPriceUnit(unit) {
+        inputPriceUnit = unit;
+        if(unit === 'gram') {
+            document.getElementById('price-unit-gram').classList.add('active');
+            document.getElementById('price-unit-mesghal').classList.remove('active');
+        } else {
+            document.getElementById('price-unit-mesghal').classList.add('active');
+            document.getElementById('price-unit-gram').classList.remove('active');
+        }
+    }
+
+    function formatPriceInput(el) {
+        let val = el.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+        if(val) el.value = parseInt(val).toLocaleString();
+    }
+
+    function fetchCurrentPrice() {
+        if(currentLiveGoldPrice > 0) {
+            let p = currentLiveGoldPrice; 
+            if(inputPriceUnit === 'mesghal') {
+                p = currentLiveGoldPrice * MESGHAL_TO_GRAM;
+            }
+            document.getElementById('input-price').value = Math.round(p).toLocaleString();
+        }
+    }
+
+    async function addOrder() {
+        const client = getSupabaseClient();
+        if (!client) return;
+        
+        if (!activeSession) {
+            alert('لطفا ابتدا یک نشست ایجاد یا انتخاب کنید.');
+            return;
+        }
+
+        const weightInput = parseFloat(document.getElementById('input-weight').value);
+        const priceInputRaw = parsePrice(document.getElementById('input-price').value);
+
+        if(!weightInput || !priceInputRaw) return;
+
+        let finalWeightGram = inputWeightUnit === 'mesghal' ? weightInput * MESGHAL_TO_GRAM : weightInput;
+        let finalPricePerGram = inputPriceUnit === 'mesghal' ? priceInputRaw / MESGHAL_TO_GRAM : priceInputRaw;
+
+        const orderData = {
+            side: tradeSide,
+            weight_gram: finalWeightGram,
+            price_per_gram: finalPricePerGram,
+            input_weight: weightInput,
+            input_weight_unit: inputWeightUnit,
+            input_price: priceInputRaw,
+            input_price_unit: inputPriceUnit,
+            asset_type: 'gold_18k',
+            session_ref: activeSession.id
+        };
+
+        if (editingOrderId) {
+            const { error } = await client.from('trade_orders').update(orderData).eq('id', editingOrderId);
+            if (!error) cancelEdit();
+        } else {
+            const { error } = await client.from('trade_orders').insert([orderData]);
+            if (!error) document.getElementById('input-weight').value = '';
+        }
+
+        await fetchOrders(); 
+    }
+
     function editOrder(id) {
-        const o = currentSession.orders.find(x => x.id === id); if (!o) return;
-        editingOrderId = id; setTradeSide(o.side); setWeightUnit(o.input_weight_unit); setPriceUnit(o.input_price_unit);
-        document.getElementById('input-weight').value = o.input_weight;
-        document.getElementById('input-price').value = Math.round(o.input_price).toLocaleString();
-        document.getElementById('btn-submit-order').innerText = "ذخیره تغییرات";
+        const order = currentSession.orders.find(o => o.id === id);
+        if (!order) return;
+        editingOrderId = id;
+        setTradeSide(order.side);
+        setWeightUnit(order.input_weight_unit);
+        setPriceUnit(order.input_price_unit);
+        document.getElementById('input-weight').value = order.input_weight;
+        document.getElementById('input-price').value = Math.round(order.input_price).toLocaleString();
+        const btn = document.getElementById('btn-submit-order');
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> ذخیره تغییرات`;
+        btn.classList.replace('bg-slate-700', 'bg-amber-600');
         document.getElementById('btn-cancel-edit').classList.remove('hidden');
     }
 
-    function deleteOrder(id) { showConfirmModal('آیا از حذف این معامله اطمینان دارید؟', async () => { const client = getSupabaseClient(); await client.from('trade_orders').delete().eq('id', id); if (editingOrderId === id) cancelEdit(); await fetchOrders(); }); }
-    function cancelEdit() { editingOrderId = null; document.getElementById('input-weight').value = ''; document.getElementById('input-price').value = ''; document.getElementById('btn-submit-order').innerText = "ثبت معامله"; document.getElementById('btn-cancel-edit').classList.add('hidden'); }
+    function deleteOrder(id) {
+        showConfirmModal('آیا از حذف این معامله اطمینان دارید؟', async () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+            await client.from('trade_orders').delete().eq('id', id);
+            if (editingOrderId === id) cancelEdit();
+            await fetchOrders();
+        });
+    }
+
+    function cancelEdit() {
+        editingOrderId = null;
+        document.getElementById('input-weight').value = '';
+        document.getElementById('input-price').value = '';
+        const btn = document.getElementById('btn-submit-order');
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg> ثبت معامله`;
+        btn.classList.replace('bg-amber-600', 'bg-slate-700');
+        document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
 
     function renderSessionUI() {
-        const el = document.getElementById('orders-list'); el.innerHTML = '';
-        if(currentSession.orders.length === 0) el.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
-        else {
-            currentSession.orders.forEach(o => {
-                const item = document.createElement('div'); item.className = 'bg-white/5 rounded p-2 text-xs flex justify-between items-center group relative';
-                if (o.id === editingOrderId) item.className += ' border border-amber-500/50 bg-amber-500/10';
-                item.innerHTML = `<div class="flex flex-col"><span class="${o.side==='buy'?'text-emerald-400':'text-red-400'} font-bold">${o.side==='buy'?'خرید':'فروش'} ${o.input_weight} <span class="text-[9px] opacity-50">${o.input_weight_unit==='gram'?'g':'مثقال'}</span></span><span class="text-[9px] opacity-30 latin-nums">${new Date(o.created_at).toLocaleTimeString()}</span></div><div class="flex items-center gap-3"><div class="text-right"><div class="latin-nums font-mono opacity-90">${Math.round(o.input_price).toLocaleString()} <span class="text-[9px] opacity-50">${o.input_price_unit==='gram'?'/g':'/مثقال'}</span></div></div><div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="editOrder(${o.id})" class="p-1.5 rounded bg-blue-500/20 text-blue-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button><button onclick="deleteOrder(${o.id})" class="p-1.5 rounded bg-red-500/20 text-red-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>`;
-                el.appendChild(item);
+        const listEl = document.getElementById('orders-list');
+        listEl.innerHTML = '';
+        if(currentSession.orders.length === 0) {
+            listEl.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
+        } else {
+            currentSession.orders.forEach(order => {
+                const sideColor = order.side === 'buy' ? 'text-emerald-400' : 'text-red-400';
+                const sideText = order.side === 'buy' ? 'خرید' : 'فروش';
+                const displayWeightUnit = order.input_weight_unit === 'gram' ? 'g' : 'مثقال';
+                const displayPriceUnit = order.input_price_unit === 'gram' ? '/g' : '/مثقال';
+                const item = document.createElement('div');
+                item.className = 'bg-white/5 rounded p-2 text-xs flex justify-between items-center group relative';
+                if (order.id === editingOrderId) item.className += ' border border-amber-500/50 bg-amber-500/10';
+                item.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="${sideColor} font-bold">${sideText} ${order.input_weight} <span class="text-[9px] opacity-50">${displayWeightUnit}</span></span>
+                        <span class="text-[9px] opacity-30 latin-nums">${new Date(order.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="latin-nums font-mono opacity-90">${Math.round(order.input_price).toLocaleString()} <span class="text-[9px] opacity-50">${displayPriceUnit}</span></div>
+                        </div>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editOrder(${order.id})" class="p-1.5 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button onclick="deleteOrder(${order.id})" class="p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                listEl.appendChild(item);
             });
         }
         updateTradeStats();
     }
 
     function updateTradeStats() {
-        const sorted = [...currentSession.orders].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        let inv = 0, avgBuy = 0, rPL = 0, tBW = 0, tBV = 0, tSW = 0, tSV = 0;
-        sorted.forEach(o => {
-            const v = o.weight_gram * o.price_per_gram;
-            if (o.side === 'buy') { tBW += o.weight_gram; tBV += v; avgBuy = (inv*avgBuy + v)/(inv + o.weight_gram); inv += o.weight_gram; }
-            else { tSW += o.weight_gram; tSV += v; if (inv > 0) { rPL += (o.price_per_gram - avgBuy) * o.weight_gram; inv -= o.weight_gram; } else inv -= o.weight_gram; }
+        const sortedOrders = [...currentSession.orders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        let inventoryGram = 0;
+        let weightedAvgBuyPrice = 0; 
+        let realizedPL = 0;
+        let totalBuyWeight = 0;
+        let totalBuyValue = 0;
+        let totalSellWeight = 0;
+        let totalSellValue = 0;
+
+        sortedOrders.forEach(o => {
+            const weight = o.weight_gram;
+            const pricePerGram = o.price_per_gram;
+            const totalValue = weight * pricePerGram;
+            if (o.side === 'buy') {
+                totalBuyWeight += weight;
+                totalBuyValue += totalValue;
+                const oldTotalValue = inventoryGram * weightedAvgBuyPrice;
+                const newTotalValue = oldTotalValue + totalValue;
+                const newInventory = inventoryGram + weight;
+                weightedAvgBuyPrice = newInventory > 0 ? newTotalValue / newInventory : 0;
+                inventoryGram = newInventory;
+            } else {
+                totalSellWeight += weight;
+                totalSellValue += totalValue;
+                if (inventoryGram > 0) {
+                    realizedPL += (pricePerGram - weightedAvgBuyPrice) * weight;
+                    inventoryGram -= weight;
+                } else {
+                    const oldTotalValue = inventoryGram * weightedAvgBuyPrice;
+                    inventoryGram -= weight;
+                }
+            }
         });
-        const uPL = (currentLiveGoldPrice > 0 && inv !== 0) ? (inv * currentLiveGoldPrice) - (inv * avgBuy) : 0;
-        document.getElementById('trade-net-weight').innerText = inv.toFixed(2);
-        document.getElementById('trade-avg-buy-display').innerText = Math.round(tBW>0?tBV/tBW:0).toLocaleString();
-        document.getElementById('trade-avg-sell-display').innerText = Math.round(tSW>0?tSV/tSW:0).toLocaleString();
-        const draw = (v, id) => { const el = document.getElementById(id); el.innerText = Math.round(v).toLocaleString(); el.className = `font-bold latin-nums ${id==='trade-total-pl'?'text-sm':'text-xs'} ${v>0?'text-emerald-400':v<0?'text-red-400':'text-slate-400'}`; };
-        draw(rPL, 'trade-realized-pl'); draw(uPL, 'trade-unrealized-pl'); draw(rPL+uPL, 'trade-total-pl');
+
+        let unrealizedPL = (currentLiveGoldPrice > 0 && inventoryGram !== 0) ? (inventoryGram * currentLiveGoldPrice) - (inventoryGram * weightedAvgBuyPrice) : 0;
+        const totalPL = realizedPL + unrealizedPL;
+        const sessionAvgBuy = totalBuyWeight > 0 ? totalBuyValue / totalBuyWeight : 0;
+        const sessionAvgSell = totalSellWeight > 0 ? totalSellValue / totalSellWeight : 0;
+
+        document.getElementById('trade-net-weight').innerText = inventoryGram.toFixed(2);
+        document.getElementById('trade-avg-buy-display').innerText = Math.round(sessionAvgBuy).toLocaleString();
+        document.getElementById('trade-avg-sell-display').innerText = Math.round(sessionAvgSell).toLocaleString();
+
+        const colorize = (val, elId) => {
+            const el = document.getElementById(elId);
+            el.innerText = Math.round(val).toLocaleString();
+            const colorClass = val > 0 ? 'text-emerald-400' : val < 0 ? 'text-red-400' : (elId === 'trade-total-pl' ? 'text-slate-200' : 'text-slate-400');
+            el.className = `font-bold latin-nums ${elId === 'trade-total-pl' ? 'text-sm' : 'text-xs'} ${colorClass}`;
+        };
+
+        colorize(realizedPL, 'trade-realized-pl');
+        colorize(unrealizedPL, 'trade-unrealized-pl');
+        colorize(totalPL, 'trade-total-pl');
     }
 </script>
 </body>
