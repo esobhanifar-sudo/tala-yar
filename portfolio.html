@@ -285,7 +285,7 @@
     let transactions = [];
     let customAssets = {}; // Dynamically fetched
     let currentPrices = {}; 
-    let manualPrices = JSON.parse(localStorage.getItem('rahdis_manual_prices') || '{}');
+    let manualPrices = {}; // Will be synced with DB
     let supabaseClient = null;
     let editingTxId = null; 
     let pieChartInstance = null;
@@ -323,6 +323,9 @@
         const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
         if (!assetsError && assetsData) {
             customAssets = {};
+            // Also reset manualPrices to sync from DB
+            manualPrices = {}; 
+            
             assetsData.forEach(a => {
                 customAssets[a.asset_key] = {
                     label: a.label,
@@ -333,6 +336,8 @@
                     system: false,
                     category: 'GOODS'
                 };
+                // Load saved price from database column (if exists, else 0)
+                manualPrices[a.asset_key] = parseFloat(a.price) || 0;
             });
             initOptions(); // Re-init options with new assets
             renderCustomAssetsList();
@@ -377,7 +382,8 @@
         const { error } = await client.from('custom_assets').insert([{
             asset_key: key,
             label: label,
-            unit: unit
+            unit: unit,
+            price: 0 // Initialize price at 0
         }]);
 
         if (error) {
@@ -398,10 +404,34 @@
         if(!error) loadData();
     }
 
-    function updateManualPrice(key, price) {
-        manualPrices[key] = parseFloat(price);
+    /**
+     * Updated: Now saves the price directly to Supabase custom_assets table
+     */
+    async function updateManualPrice(key, price) {
+        const numericPrice = parseFloat(price) || 0;
+        manualPrices[key] = numericPrice;
+        
+        // Sync to localStorage as fallback
         localStorage.setItem('rahdis_manual_prices', JSON.stringify(manualPrices));
+        
+        // Re-render immediately for UI responsiveness
         renderPortfolio();
+
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        // Find the record ID to update the database
+        const assetRecord = customAssets[key];
+        if (assetRecord && assetRecord.id) {
+            const { error } = await client
+                .from('custom_assets')
+                .update({ price: numericPrice })
+                .eq('id', assetRecord.id);
+            
+            if (error) {
+                console.error("Failed to save price to database:", error);
+            }
+        }
     }
 
     // --- Transaction Logic ---
