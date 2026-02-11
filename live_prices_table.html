@@ -234,7 +234,7 @@
                 <div class="p-2 bg-amber-500/10 rounded-2xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
-                رهدیس لایو
+                 رهدیس لایو
             </h1>
             <p class="text-xs opacity-90 mt-1 mr-1 text-slate-200">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
@@ -437,7 +437,7 @@
                     <div class="flex justify-between items-start mb-4">
                         <h2 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-                            ارزش ذاتی طلای ۱۸ عیار
+                             ارزش ذاتی طلای ۱۸ عیار
                         </h2>
                         <span class="text-[9px] opacity-80 font-bold text-amber-500">فرمول جهانی</span>
                     </div>
@@ -451,7 +451,7 @@
                     <div class="flex justify-between items-start mb-4">
                         <h2 class="text-sm font-extrabold text-blue-400 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            ارزش ذاتی دلار (از درهم)
+                             ارزش ذاتی دلار (از درهم)
                         </h2>
                         <span class="text-[9px] opacity-80 font-bold text-blue-400">فرمول درهم</span>
                     </div>
@@ -551,6 +551,7 @@
                         <li><b>ارزش ذاتی ۱۸:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار</li>
                         <li><b>ارزش ذاتی دلار:</b> نرخ درهم × ۳.۶۷۲۵</li>
                         <li><b>نوسان روزانه:</b> سقف و کف قیمت ۱۸ عیار منطبق با دیتابیس معقولی.</li>
+                        <li><b>نوسان حباب:</b> ثبت لحظه‌ای اختلاف قیمت با ارزش ذاتی در دیتابیس و نمایش Max/Min.</li>
                     </ul>
                 </div>
             </div>
@@ -778,20 +779,25 @@
                 }
 
                 if (asset.id === 'bubble_range_18k') {
-                    if (s.label === 'طلای معقولی' && s.range_high > 0 && s.inherent_gold > 0) {
-                        const bubbleHigh = s.range_high - s.inherent_gold;
-                        const bubbleLow = s.range_low - s.inherent_gold;
+                    if (s.label === 'طلای معقولی' && s.bubble_high !== undefined && s.bubble_low !== undefined && s.bubble_high !== -Infinity && s.bubble_low !== Infinity) {
                         
-                        const highClass = bubbleHigh >= 0 ? 'text-emerald-400' : 'text-red-400';
-                        const lowClass = bubbleLow >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        const highClass = s.bubble_high >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        const lowClass = s.bubble_low >= 0 ? 'text-emerald-400' : 'text-red-400';
                         
-                        // Add explicit '+' sign for positive values
-                        const highSign = bubbleHigh > 0 ? '+' : '';
-                        const lowSign = bubbleLow > 0 ? '+' : '';
+                        const highSign = s.bubble_high > 0 ? '+' : '';
+                        const lowSign = s.bubble_low > 0 ? '+' : '';
                         
+                        const fmtTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour12: false }) : '-';
+
                         html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
-                                <div class="num-sm text-[10px] ${highClass} font-bold ltr latin-nums">↑ <span class="font-mono">${highSign}${Math.round(bubbleHigh).toLocaleString()}</span></div>
-                                <div class="num-sm text-[10px] ${lowClass} font-bold ltr latin-nums">↓ <span class="font-mono">${lowSign}${Math.round(bubbleLow).toLocaleString()}</span></div>
+                                <div class="num-sm text-[10px] ${highClass} font-bold ltr latin-nums">
+                                    Max <span class="font-mono">${highSign}${Math.round(s.bubble_high).toLocaleString()}</span>
+                                    <div class="text-[9px] text-slate-400 font-normal mt-0.5 opacity-80">${fmtTime(s.bubble_high_time)}</div>
+                                </div>
+                                <div class="num-sm text-[10px] ${lowClass} font-bold ltr latin-nums">
+                                    Min <span class="font-mono">${lowSign}${Math.round(s.bubble_low).toLocaleString()}</span>
+                                    <div class="text-[9px] text-slate-400 font-normal mt-0.5 opacity-80">${fmtTime(s.bubble_low_time)}</div>
+                                </div>
                             </div></td>`;
                     } else { html += `<td class="text-xs opacity-40">-</td>`; }
                     return;
@@ -878,7 +884,7 @@
 
         try {
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes] = await Promise.all([
+            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes, bubbleFluctuationsRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('price_logs').select('*').eq('info', 'هرات معامله فردایی ⏳').order('id', { ascending: false }).limit(1),
@@ -889,7 +895,8 @@
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString()),
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
                 client.from('justOunce').select('price_blue').gte('created_at', startOfToday.toISOString()),
-                client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1)
+                client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
+                client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString()) // Modified select
             ]);
 
             const curr = currRes.data?.[0] || {};
@@ -920,6 +927,49 @@
             currentLiveGoldPrice = magholiGoldBuy; 
             updateTradeStats(); 
             // ------------------------------------------------------------
+            
+            // --- NEW BUBBLE LOGIC ---
+            // 1. Calculate Current Bubble (on Sell Price)
+            const currentBubble = (magholiGold > 0 && inherentGold > 0) ? (magholiGold - inherentGold) : null;
+            
+            // 2. Insert into DB (fire and forget for performance)
+            if (currentBubble !== null) {
+                client.from('bubble_fluctuations').insert([{ bubble_value: currentBubble }]).then(({error}) => {
+                    if(error) console.error("Error logging bubble:", error);
+                });
+            }
+
+            // 3. Determine Max/Min Bubble from fetched data + current
+            let bHigh = -Infinity;
+            let bLow = Infinity;
+            let bHighTime = null;
+            let bLowTime = null;
+
+            if (bubbleFluctuationsRes.data && bubbleFluctuationsRes.data.length > 0) {
+                bubbleFluctuationsRes.data.forEach(b => {
+                    if (b.bubble_value > bHigh) {
+                        bHigh = b.bubble_value;
+                        bHighTime = b.created_at;
+                    }
+                    if (b.bubble_value < bLow) {
+                        bLow = b.bubble_value;
+                        bLowTime = b.created_at;
+                    }
+                });
+            }
+            // Include current bubble in range if it's new extreme
+            if (currentBubble !== null) {
+                const nowISO = new Date().toISOString();
+                if (currentBubble > bHigh) {
+                    bHigh = currentBubble;
+                    bHighTime = nowISO;
+                }
+                if (currentBubble < bLow) {
+                    bLow = currentBubble;
+                    bLowTime = nowISO;
+                }
+            }
+            // ------------------------
 
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
@@ -964,7 +1014,8 @@
             if (oLow === Infinity) oLow = 0;
 
             const goldSources = [
-                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow },
+                // Pass calculated bubble Max/Min to the table
+                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
                 { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow }
             ];
 
