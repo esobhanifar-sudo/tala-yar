@@ -250,8 +250,8 @@
                         <input type="text" id="newAssetLabel" placeholder="مثال: زمین شمال" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white text-xs outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">واحد شمارش</label>
-                        <input type="text" id="newAssetUnit" placeholder="مثال: متر" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white text-xs outline-none">
+                        <label class="block text-xs text-slate-400 mb-1">ارزش (قیمت هر واحد)</label>
+                        <input type="number" id="newAssetValue" placeholder="مثال: 5000000" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white text-xs outline-none ltr">
                     </div>
                 </div>
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2 rounded-lg transition">
@@ -285,7 +285,7 @@
     let transactions = [];
     let customAssets = {}; // Dynamically fetched
     let currentPrices = {}; 
-    let manualPrices = {}; // Will be synced with DB
+    let manualPrices = {}; // Will be synced with DB 'value' column
     let supabaseClient = null;
     let editingTxId = null; 
     let pieChartInstance = null;
@@ -319,27 +319,26 @@
             return;
         }
 
-        // 1. Fetch Custom Assets
+        // 1. Fetch Custom Assets (Updated to reflect 'value' column)
         const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
         if (!assetsError && assetsData) {
             customAssets = {};
-            // Also reset manualPrices to sync from DB
             manualPrices = {}; 
             
             assetsData.forEach(a => {
                 customAssets[a.asset_key] = {
                     label: a.label,
-                    unit: a.unit,
+                    unit: '', // No longer using 'unit' column from DB
                     color: 'text-slate-300',
                     icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
                     id: a.id,
                     system: false,
                     category: 'GOODS'
                 };
-                // Load saved price from database column (if exists, else 0)
-                manualPrices[a.asset_key] = parseFloat(a.price) || 0;
+                // Use 'value' column for current manual price assessment
+                manualPrices[a.asset_key] = parseFloat(a.value) || 0;
             });
-            initOptions(); // Re-init options with new assets
+            initOptions(); 
             renderCustomAssetsList();
         }
 
@@ -374,7 +373,7 @@
         modal.classList.toggle('hidden');
     }
 
-    async function addCustomAsset(label, unit) {
+    async function addCustomAsset(label, initialValue) {
         const client = getSupabaseClient();
         if (!client) return;
 
@@ -382,8 +381,7 @@
         const { error } = await client.from('custom_assets').insert([{
             asset_key: key,
             label: label,
-            unit: unit,
-            price: 0 // Initialize price at 0
+            value: initialValue || "0" // Updated to 'value' column for assessment
         }]);
 
         if (error) {
@@ -391,7 +389,7 @@
             console.error(error);
         } else {
             document.getElementById('addAssetForm').reset();
-            loadData(); // Reload everything
+            loadData(); 
         }
     }
 
@@ -404,32 +402,25 @@
         if(!error) loadData();
     }
 
-    /**
-     * Updated: Now saves the price directly to Supabase custom_assets table
-     */
     async function updateManualPrice(key, price) {
         const numericPrice = parseFloat(price) || 0;
         manualPrices[key] = numericPrice;
         
-        // Sync to localStorage as fallback
-        localStorage.setItem('rahdis_manual_prices', JSON.stringify(manualPrices));
-        
-        // Re-render immediately for UI responsiveness
         renderPortfolio();
 
         const client = getSupabaseClient();
         if (!client) return;
 
-        // Find the record ID to update the database
         const assetRecord = customAssets[key];
         if (assetRecord && assetRecord.id) {
+            // Update the 'value' column in the database for assessment
             const { error } = await client
                 .from('custom_assets')
-                .update({ price: numericPrice })
+                .update({ value: numericPrice.toString() })
                 .eq('id', assetRecord.id);
             
             if (error) {
-                console.error("Failed to save price to database:", error);
+                console.error("Failed to save value to database:", error);
             }
         }
     }
@@ -465,7 +456,7 @@
         }
 
         if (data && data[0]) {
-            loadData(); // Reload to ensure sync
+            loadData(); 
             if (editingTxId) cancelEdit();
         }
     }
@@ -560,7 +551,6 @@
         const allAssets = getAllAssets();
         let grandTotal = 0;
         
-        // Categorical tracking
         const catTotals = { CASH: 0, GOLD: 0, FOREX: 0, GOODS: 0 };
         
         container.innerHTML = '';
@@ -635,7 +625,6 @@
         
         const percentages = values.map(v => grandTotal > 0 ? ((v / grandTotal) * 100).toFixed(1) : 0);
 
-        // Render category metrics
         const metricsContainer = document.getElementById('categoryMetrics');
         metricsContainer.innerHTML = labels.map((label, i) => `
             <div class="flex items-center justify-between">
@@ -748,11 +737,13 @@
         }
 
         items.forEach(asset => {
+            // Display manual price from manualPrices (DB 'value' column)
+            const price = manualPrices[asset.asset_key] || 0;
             list.innerHTML += `
                 <div class="flex justify-between items-center bg-slate-800 p-2 rounded-lg">
                     <div class="flex flex-col">
                         <span class="text-xs text-white">${asset.label}</span>
-                        <span class="text-[10px] text-slate-500">واحد: ${asset.unit}</span>
+                        <span class="text-[10px] text-slate-500">ارزش (ارزیابی): ${price.toLocaleString()} تومان</span>
                     </div>
                     <button onclick="deleteCustomAsset('${asset.id}')" class="text-red-400 hover:text-red-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -801,8 +792,8 @@
     document.getElementById('addAssetForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const label = document.getElementById('newAssetLabel').value;
-        const unit = document.getElementById('newAssetUnit').value;
-        if(label && unit) addCustomAsset(label, unit);
+        const val = document.getElementById('newAssetValue').value;
+        if(label) addCustomAsset(label, val);
     });
 
     document.addEventListener('DOMContentLoaded', () => {
