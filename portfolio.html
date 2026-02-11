@@ -17,8 +17,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof checkAuthGuard === 'function') {
                 checkAuthGuard();
-            } else {
-                console.warn("Auth system not loaded. Skipping access check.");
             }
         });
     </script>
@@ -77,7 +75,7 @@
                 مدیریت دارایی‌ها
             </button>
             <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition">بازگشت</a>
-            <button onclick="signOut()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition">خروج</button>
+            <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition">خروج</button>
         </div>
     </div>
 
@@ -287,6 +285,20 @@
         return null;
     }
 
+    // --- Auth Logic ---
+    async function handleLogout() {
+        const client = getSupabaseClient();
+        if (client) {
+            const { error } = await client.auth.signOut();
+            if (!error) {
+                window.location.href = 'index.html';
+            } else {
+                console.error('Logout error:', error);
+                alert('خطا در خروج');
+            }
+        }
+    }
+
     // --- Core Logic (Supabase) ---
 
     async function loadData() {
@@ -299,10 +311,10 @@
         const indicator = document.getElementById('priceStatusIndicator');
         
         try {
-            // Check if user is logged in
-            const { data: { user }, error: authError } = await client.auth.getUser();
+            // Check if user is logged in (use getSession for faster/local check)
+            const { data: { session }, error: authError } = await client.auth.getSession();
             
-            if (authError || !user) {
+            if (authError || !session) {
                 console.warn("User not logged in:", authError);
                 indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
                 indicator.title = "کاربر وارد نشده است";
@@ -323,7 +335,6 @@
             
             if (assetsError) {
                 console.error("Error fetching custom assets:", assetsError);
-                // If table not found (404-like error in Supabase usually shows as code '42P01' for undefined table)
                 if (assetsError.code === '42P01') {
                     alert("خطای پیکربندی: جداول دیتابیس یافت نشدند. لطفاً کدهای SQL مربوطه را اجرا کنید.");
                 }
@@ -339,7 +350,7 @@
                         system: false
                     };
                 });
-                initOptions(); // Re-init options with new assets
+                initOptions(); 
                 renderCustomAssetsList();
             }
 
@@ -397,7 +408,7 @@
             console.error(error);
         } else {
             document.getElementById('addAssetForm').reset();
-            loadData(); // Reload everything
+            loadData(); 
         }
     }
 
@@ -421,7 +432,6 @@
         const client = getSupabaseClient();
         if (!client) return { error: { message: "Client not initialized" } };
 
-        // 1. Check Auth State
         const { data: { session } } = await client.auth.getSession();
         if (!session) {
             alert('برای ثبت تراکنش باید وارد حساب کاربری شوید.');
@@ -454,11 +464,7 @@
         }
 
         if (data && data[0]) {
-            if (!refId) loadData(); // Reload unless part of a batch
-            else {
-                // If batch, update local state temporarily or wait for caller to reload
-                // For simplicity, we just return data
-            }
+            if (!refId) loadData(); 
             if (editingTxId) cancelEdit();
             return { data: data[0] };
         }
@@ -525,7 +531,6 @@
     }
 
     async function fetchPrices() {
-        // ... (Same price fetching logic for system assets) ...
         const client = getSupabaseClient();
         if (!client) return;
         const indicator = document.getElementById('priceStatusIndicator');
