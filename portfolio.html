@@ -72,6 +72,10 @@
         </div>
 
         <div class="flex gap-2 self-end md:self-center">
+            <button onclick="toggleAssetModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                مدیریت دارایی‌ها
+            </button>
             <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition">بازگشت</a>
             <button onclick="signOut()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition">خروج</button>
         </div>
@@ -85,6 +89,7 @@
             <!-- Asset Grid -->
             <div id="assetGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <!-- Assets will be injected here -->
+                <div class="col-span-full text-center py-10 text-slate-500 text-sm">در حال بارگذاری دارایی‌ها...</div>
             </div>
 
             <!-- Transaction History -->
@@ -102,7 +107,7 @@
                                 <th class="pb-3">دارایی</th>
                                 <th class="pb-3">مقدار</th>
                                 <th class="pb-3 text-left">شناسه / لینک</th>
-                                <th class="pb-3 w-10"></th>
+                                <th class="pb-3 w-20 text-center">عملیات</th>
                             </tr>
                         </thead>
                         <tbody id="txTableBody" class="text-slate-300">
@@ -117,7 +122,10 @@
         <div class="lg:col-span-4 space-y-6">
             
             <!-- Add Transaction Form -->
-            <div class="glass-panel rounded-2xl p-6 bg-slate-800/50">
+            <div class="glass-panel rounded-2xl p-6 bg-slate-800/50 relative overflow-hidden">
+                <!-- Edit Mode Indicator -->
+                <div id="editModeIndicator" class="absolute top-0 left-0 w-full h-1 bg-amber-500 hidden"></div>
+
                 <div class="flex space-x-1 space-x-reverse bg-slate-700/50 p-1 rounded-lg mb-6">
                     <button onclick="switchTab('single')" id="tab-single" class="flex-1 py-2 text-xs font-bold rounded-md transition bg-indigo-600 text-white shadow">تراکنش ساده</button>
                     <button onclick="switchTab('convert')" id="tab-convert" class="flex-1 py-2 text-xs font-bold rounded-md transition text-slate-400 hover:text-white">تبدیل دارایی</button>
@@ -125,6 +133,11 @@
 
                 <!-- Single Transaction Form -->
                 <form id="singleForm" class="space-y-4">
+                    <div id="editMessage" class="hidden text-xs text-amber-400 bg-amber-500/10 p-2 rounded mb-2 border border-amber-500/20 flex justify-between items-center">
+                        <span>در حال ویرایش تراکنش...</span>
+                        <button type="button" onclick="cancelEdit()" class="text-slate-400 hover:text-white">✕</button>
+                    </div>
+
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">نوع عملیات</label>
                         <select id="txType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none">
@@ -146,8 +159,12 @@
                         <input type="number" id="txQty" step="0.001" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none ltr text-left">
                     </div>
 
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2 action-btn">
+                    <button type="submit" id="txSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2 action-btn">
                         ثبت تراکنش
+                    </button>
+                    
+                    <button type="button" id="txCancelBtn" onclick="cancelEdit()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 rounded-xl transition mt-1 hidden text-xs">
+                        انصراف
                     </button>
                 </form>
 
@@ -197,166 +214,338 @@
 
     </div>
 
+    <!-- Manage Assets Modal -->
+    <div id="assetModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md mx-4 shadow-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-white">مدیریت دارایی‌ها</h3>
+                <button onclick="toggleAssetModal()" class="text-slate-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <form id="addAssetForm" class="mb-6 space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">نام دارایی</label>
+                        <input type="text" id="newAssetLabel" placeholder="مثال: زمین شمال" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">واحد شمارش</label>
+                        <input type="text" id="newAssetUnit" placeholder="مثال: متر" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white text-xs outline-none">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2 rounded-lg transition">
+                    + افزودن دارایی جدید
+                </button>
+            </form>
+
+            <div class="border-t border-slate-700 pt-4">
+                <h4 class="text-xs text-slate-400 mb-3">دارایی‌های شخصی شما:</h4>
+                <div id="customAssetsList" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    <!-- Custom assets injected here -->
+                    <div class="text-center text-slate-600 text-xs py-2">موردی یافت نشد</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
-    // --- Configuration ---
-    const ASSETS = {
-        'GOLD_18K': { label: 'طلای آبشده', unit: 'گرم', color: 'text-amber-400', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-        'FULL_COIN': { label: 'تمام سکه', unit: 'عدد', color: 'text-yellow-300', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        'HALF_COIN': { label: 'نیم سکه', unit: 'عدد', color: 'text-yellow-200', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        'QUARTER_COIN': { label: 'ربع سکه', unit: 'عدد', color: 'text-yellow-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        'IRR': { label: 'ریال (نقد)', unit: 'تومان', color: 'text-green-400', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
-        'USD': { label: 'دلار', unit: '$', color: 'text-emerald-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        'EUR': { label: 'یورو', unit: '€', color: 'text-blue-400', icon: 'M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4' }
+    // --- System Configuration ---
+    const SYSTEM_ASSETS = {
+        'GOLD_18K': { label: 'طلای آبشده', unit: 'گرم', color: 'text-amber-400', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', system: true },
+        'FULL_COIN': { label: 'تمام سکه', unit: 'عدد', color: 'text-yellow-300', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
+        'HALF_COIN': { label: 'نیم سکه', unit: 'عدد', color: 'text-yellow-200', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
+        'QUARTER_COIN': { label: 'ربع سکه', unit: 'عدد', color: 'text-yellow-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
+        'IRR': { label: 'ریال (نقد)', unit: 'تومان', color: 'text-green-400', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', system: true },
+        'USD': { label: 'دلار', unit: '$', color: 'text-emerald-400', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', system: true },
+        'EUR': { label: 'یورو', unit: '€', color: 'text-blue-400', icon: 'M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4', system: true }
     };
 
     // --- State ---
     let transactions = [];
-    let currentPrices = {}; // Store fetched prices
+    let customAssets = {}; // Dynamically fetched
+    let currentPrices = {}; 
+    let manualPrices = JSON.parse(localStorage.getItem('rahdis_manual_prices') || '{}');
+    let supabaseClient = null;
+    let editingTxId = null; 
     
+    // --- Supabase Config ---
+    const FB_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+    const FB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+
     // --- Utils ---
     const formatWeight = (num) => num.toFixed(3);
+    const getAllAssets = () => ({ ...SYSTEM_ASSETS, ...customAssets });
 
-    // --- Core Logic ---
-
-    function loadData() {
-        const saved = localStorage.getItem('rahdis_portfolio_v1');
-        if (saved) {
-            transactions = JSON.parse(saved);
+    function getSupabaseClient() {
+        if (supabaseClient) return supabaseClient;
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(FB_URL, FB_KEY);
+            return supabaseClient;
         }
-        renderPortfolio();
-        renderHistory();
-        fetchPrices(); // Fetch real-time values
+        return null;
     }
 
-    function saveData() {
-        localStorage.setItem('rahdis_portfolio_v1', JSON.stringify(transactions));
+    // --- Core Logic (Supabase) ---
+
+    async function loadData() {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) {
+            console.warn("User not logged in. Portfolio disabled.");
+            return;
+        }
+
+        // 1. Fetch Custom Assets
+        const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
+        if (!assetsError && assetsData) {
+            customAssets = {};
+            assetsData.forEach(a => {
+                customAssets[a.asset_key] = {
+                    label: a.label,
+                    unit: a.unit,
+                    color: 'text-slate-300',
+                    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+                    id: a.id,
+                    system: false
+                };
+            });
+            initOptions(); // Re-init options with new assets
+            renderCustomAssetsList();
+        }
+
+        // 2. Fetch Transactions
+        const { data, error } = await client
+            .from('portfolio_transactions')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching transactions:', error);
+            return;
+        }
+
+        transactions = data.map(row => ({
+            id: row.id,
+            date: row.created_at,
+            type: row.operation_type,
+            asset: row.asset_type,
+            qty: parseFloat(row.quantity),
+            ref_id: row.reference_id
+        }));
+
         renderPortfolio();
         renderHistory();
+        fetchPrices(); 
     }
 
-    function addTransaction(type, assetKey, qty, refId = null) {
+    // --- Custom Asset Logic ---
+    function toggleAssetModal() {
+        const modal = document.getElementById('assetModal');
+        modal.classList.toggle('hidden');
+    }
+
+    async function addCustomAsset(label, unit) {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const key = 'CUSTOM_' + Date.now();
+        const { error } = await client.from('custom_assets').insert([{
+            asset_key: key,
+            label: label,
+            unit: unit
+        }]);
+
+        if (error) {
+            alert('خطا در افزودن دارایی');
+            console.error(error);
+        } else {
+            document.getElementById('addAssetForm').reset();
+            loadData(); // Reload everything
+        }
+    }
+
+    async function deleteCustomAsset(id) {
+        if(!confirm('آیا از حذف این نوع دارایی اطمینان دارید؟ تراکنش‌های مرتبط ممکن است نمایش داده نشوند.')) return;
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const { error } = await client.from('custom_assets').delete().eq('id', id);
+        if(!error) loadData();
+    }
+
+    function updateManualPrice(key, price) {
+        manualPrices[key] = parseFloat(price);
+        localStorage.setItem('rahdis_manual_prices', JSON.stringify(manualPrices));
+        renderPortfolio();
+    }
+
+    // --- Transaction Logic (Same as before) ---
+    async function addTransaction(type, assetKey, qty, refId = null) {
+        const client = getSupabaseClient();
+        if (!client) return;
+
         let finalQty = parseFloat(qty);
         if (type === 'SELL') finalQty = -Math.abs(finalQty);
         else finalQty = Math.abs(finalQty);
 
-        const tx = {
-            id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-            date: new Date().toISOString(),
-            type: type,
-            asset: assetKey,
-            qty: finalQty,
-            ref_id: refId
+        const txData = {
+            asset_type: assetKey,
+            operation_type: type,
+            quantity: finalQty,
+            reference_id: refId
         };
 
-        transactions.push(tx);
-        saveData();
-    }
+        let data, error;
+        if (editingTxId) {
+            const result = await client.from('portfolio_transactions').update(txData).eq('id', editingTxId).select();
+            data = result.data; error = result.error;
+        } else {
+            const result = await client.from('portfolio_transactions').insert([txData]).select();
+            data = result.data; error = result.error;
+        }
 
-    function deleteTransaction(id) {
-        if(confirm('آیا از حذف این تراکنش اطمینان دارید؟')) {
-            transactions = transactions.filter(t => t.id !== id);
-            saveData();
+        if (error) {
+            alert('خطا: ' + error.message);
+            return;
+        }
+
+        if (data && data[0]) {
+            loadData(); // Reload to ensure sync
+            if (editingTxId) cancelEdit();
         }
     }
 
-    function clearAllData() {
-        if(confirm('هشدار: تمام تاریخچه تراکنش‌ها و موجودی پورتفولیو پاک خواهد شد.')) {
-            transactions = [];
-            saveData();
-        }
+    async function deleteTransaction(id) {
+        if(!confirm('حذف شود؟')) return;
+        const client = getSupabaseClient();
+        await client.from('portfolio_transactions').delete().eq('id', id);
+        if (editingTxId === id) cancelEdit();
+        loadData();
     }
 
-    // --- Calculation ---
+    async function clearAllData() {
+        if(!confirm('هشدار: همه داده‌ها پاک شوند؟')) return;
+        const client = getSupabaseClient();
+        await client.from('portfolio_transactions').delete().neq('id', 0);
+        loadData();
+    }
+
+    // --- UI Logic ---
+    function startEdit(id) {
+        const tx = transactions.find(t => t.id === id);
+        if (!tx) return;
+        switchTab('single');
+        editingTxId = id;
+        document.getElementById('txType').value = tx.type;
+        document.getElementById('txAsset').value = tx.asset;
+        document.getElementById('txQty').value = Math.abs(tx.qty);
+        document.getElementById('txSubmitBtn').innerText = "ذخیره تغییرات";
+        document.getElementById('txSubmitBtn').classList.replace('bg-indigo-600', 'bg-amber-600');
+        document.getElementById('txSubmitBtn').classList.replace('hover:bg-indigo-500', 'hover:bg-amber-500');
+        document.getElementById('txCancelBtn').classList.remove('hidden');
+        document.getElementById('editMessage').classList.remove('hidden');
+        document.getElementById('editModeIndicator').classList.remove('hidden');
+        document.getElementById('singleForm').scrollIntoView({behavior: 'smooth'});
+    }
+
+    function cancelEdit() {
+        editingTxId = null;
+        document.getElementById('singleForm').reset();
+        document.getElementById('txSubmitBtn').innerText = "ثبت تراکنش";
+        document.getElementById('txSubmitBtn').classList.replace('bg-amber-600', 'bg-indigo-600');
+        document.getElementById('txSubmitBtn').classList.replace('hover:bg-amber-500', 'hover:bg-indigo-500');
+        document.getElementById('txCancelBtn').classList.add('hidden');
+        document.getElementById('editMessage').classList.add('hidden');
+        document.getElementById('editModeIndicator').classList.add('hidden');
+    }
+
+    // --- Calculation & Rendering ---
     function getBalances() {
         const balances = {};
-        Object.keys(ASSETS).forEach(key => balances[key] = 0);
+        const allAssets = getAllAssets();
+        Object.keys(allAssets).forEach(key => balances[key] = 0);
         transactions.forEach(tx => {
-            if (balances[tx.asset] !== undefined) {
+            // Even if asset deleted, we might track it? For now only track existing definitions
+            if (allAssets[tx.asset]) {
                 balances[tx.asset] += tx.qty;
             }
         });
         return balances;
     }
 
-    // --- Real-time Price Fetching ---
     async function fetchPrices() {
-        // Fallback or auth.js 'sb'
-        let client = null;
-        if (typeof sb !== 'undefined') client = sb;
-        else if (typeof supabase !== 'undefined') {
-             // Fallback config from other tools
-             const FB_URL = 'https://otlechriihxznnoamzbx.supabase.co';
-             const FB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
-             client = supabase.createClient(FB_URL, FB_KEY);
-        }
-
-        if (!client) {
-            console.warn("No Supabase client available.");
-            return;
-        }
-
+        // ... (Same price fetching logic for system assets) ...
+        const client = getSupabaseClient();
+        if (!client) return;
         const indicator = document.getElementById('priceStatusIndicator');
-        indicator.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse absolute top-4 left-4";
-
+        
         try {
-            const { data, error } = await client
-                .from('Iran_Data')
+            const { data, error } = await client.from('Iran_Data')
                 .select('Gram_18K_Price, Emami_Coin_Price, Half_Coin_Price, Quarter_Coin_Price, USD_AZAD_Exchange')
-                .order('id', { ascending: false })
-                .limit(1)
-                .single();
+                .order('id', { ascending: false }).limit(1).single();
 
             if (data && !error) {
-                // Convert Rials to Tomans (/ 10)
                 currentPrices['GOLD_18K'] = parseFloat(data.Gram_18K_Price) / 10;
                 currentPrices['FULL_COIN'] = parseFloat(data.Emami_Coin_Price) / 10;
                 currentPrices['HALF_COIN'] = parseFloat(data.Half_Coin_Price) / 10;
                 currentPrices['QUARTER_COIN'] = parseFloat(data.Quarter_Coin_Price) / 10;
-                
-                // Currency
-                const usdPrice = parseFloat(data.USD_AZAD_Exchange) / 10; // Assuming DB is Rials
-                currentPrices['USD'] = usdPrice;
-                currentPrices['EUR'] = usdPrice * 1.05; // Estimate Euro (~1.05 USD)
-                currentPrices['IRR'] = 1; // 1 Toman = 1 Toman
-
+                const usd = parseFloat(data.USD_AZAD_Exchange) / 10;
+                currentPrices['USD'] = usd;
+                currentPrices['EUR'] = usd * 1.05;
+                currentPrices['IRR'] = 1;
                 indicator.className = "w-2 h-2 rounded-full bg-emerald-500 absolute top-4 left-4";
-                renderPortfolio(); // Re-render with prices
-            } else {
-                console.error("Price fetch error:", error);
-                indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
+                renderPortfolio();
             }
-        } catch (e) {
-            console.error("Price fetch exception:", e);
-            indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
-        }
+        } catch (e) { console.error(e); }
     }
-
-    // --- Rendering ---
 
     function renderPortfolio() {
         const container = document.getElementById('assetGrid');
         const totalValueEl = document.getElementById('totalPortfolioValue');
         const totalGoldEl = document.getElementById('totalPortfolioGold');
         const balances = getBalances();
+        const allAssets = getAllAssets();
         let grandTotal = 0;
         
         container.innerHTML = '';
 
-        Object.entries(ASSETS).forEach(([key, spec]) => {
-            const bal = balances[key];
+        Object.entries(allAssets).forEach(([key, spec]) => {
+            const bal = balances[key] || 0;
+            // Only show cards if user has balance OR it's a system asset OR user explicitly added it
+            // Show all defined assets for clarity
+            
             const displayBal = bal % 1 === 0 ? bal : bal.toFixed(3);
             const formatted = (key === 'IRR') ? parseInt(bal).toLocaleString() : displayBal;
 
-            // Calculate Value if price exists
-            let valueDisplay = '';
+            // Value Calc
             let val = 0;
-            if (currentPrices[key] && bal !== 0) {
-                val = bal * currentPrices[key];
-                grandTotal += val;
-                valueDisplay = `<div class="text-[10px] text-emerald-400 mt-1 border-t border-slate-700/50 pt-1">
-                    ≈ ${parseInt(val).toLocaleString()} تومان
-                </div>`;
+            let priceInputHtml = '';
+            
+            if (spec.system) {
+                if (currentPrices[key]) val = bal * currentPrices[key];
+                priceInputHtml = currentPrices[key] ? `<div class="text-[10px] text-emerald-400 mt-1 pt-1 border-t border-slate-700/50">≈ ${parseInt(val).toLocaleString()} تومان</div>` : '';
+            } else {
+                // Manual Price for Custom Assets
+                const manualPrice = manualPrices[key] || 0;
+                val = bal * manualPrice;
+                priceInputHtml = `
+                    <div class="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between">
+                        <input type="number" placeholder="قیمت واحد" 
+                            class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-white text-left ltr outline-none focus:border-indigo-500"
+                            value="${manualPrice > 0 ? manualPrice : ''}"
+                            onchange="updateManualPrice('${key}', this.value)"
+                        >
+                        <span class="text-[9px] text-slate-500">تومان</span>
+                    </div>
+                    <div class="text-[10px] text-emerald-400 mt-1 text-right">≈ ${parseInt(val).toLocaleString()}</div>
+                `;
             }
+            
+            grandTotal += val;
 
             container.innerHTML += `
                 <div class="glass-panel rounded-xl p-4 asset-card border border-slate-700">
@@ -365,27 +554,22 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${spec.icon}" /></svg>
                         </div>
                         <span class="text-sm font-bold text-slate-300">${spec.label}</span>
+                        ${!spec.system ? '<span class="text-[9px] bg-slate-700 px-1 rounded text-slate-400 mr-auto">شخصی</span>' : ''}
                     </div>
                     <div class="text-right mt-2">
                         <div class="text-2xl font-black text-white font-mono ltr">${formatted}</div>
                         <div class="flex justify-between items-center">
                             <span class="text-[10px] text-slate-500 font-bold">${spec.unit}</span>
-                             ${valueDisplay}
                         </div>
+                        ${priceInputHtml}
                     </div>
                 </div>
             `;
         });
 
-        // Update Total Toman
         totalValueEl.innerText = parseInt(grandTotal).toLocaleString();
-
-        // Update Total Gold Equivalent
-        if (currentPrices['GOLD_18K'] && currentPrices['GOLD_18K'] > 0) {
-            const totalGold = grandTotal / currentPrices['GOLD_18K'];
-            totalGoldEl.innerText = formatWeight(totalGold);
-        } else {
-            totalGoldEl.innerText = "0.000";
+        if (currentPrices['GOLD_18K'] > 0) {
+            totalGoldEl.innerText = formatWeight(grandTotal / currentPrices['GOLD_18K']);
         }
     }
 
@@ -393,6 +577,7 @@
         const tbody = document.getElementById('txTableBody');
         tbody.innerHTML = '';
         const history = [...transactions].reverse();
+        const allAssets = getAllAssets();
 
         if (history.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs">هنوز تراکنشی ثبت نشده است.</td></tr>`;
@@ -405,7 +590,9 @@
             else if (tx.type === 'BUY') typeBadge = '<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px]">خرید</span>';
             else if (tx.type === 'SELL') typeBadge = '<span class="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[10px]">فروش</span>';
 
-            const assetLabel = ASSETS[tx.asset] ? ASSETS[tx.asset].label : tx.asset;
+            const assetDef = allAssets[tx.asset];
+            const assetLabel = assetDef ? assetDef.label : tx.asset + ' (حذف شده)';
+            
             const dateStr = new Date(tx.date).toLocaleDateString('fa-IR') + ' ' + new Date(tx.date).toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'});
             
             const isNegative = tx.qty < 0;
@@ -413,110 +600,103 @@
             const qtySign = isNegative ? '' : '+';
             const qtyDisplay = (tx.asset === 'IRR') ? parseInt(tx.qty).toLocaleString() : tx.qty.toFixed(3);
             const refDisplay = tx.ref_id ? `<span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1 rounded font-mono" title="${tx.ref_id}">LINKED</span>` : '-';
+            const isEditing = editingTxId === tx.id;
+            const rowClass = isEditing ? 'bg-amber-500/10 border-l-4 border-l-amber-500' : 'hover:bg-slate-800/50';
 
             tbody.innerHTML += `
-                <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition">
+                <tr class="border-b border-slate-800 transition ${rowClass}">
                     <td class="py-3 px-1 text-[10px] text-slate-400">${dateStr}</td>
                     <td class="py-3 px-1">${typeBadge}</td>
                     <td class="py-3 px-1 text-xs font-bold text-slate-300">${assetLabel}</td>
                     <td class="py-3 px-1 text-sm font-mono ltr ${qtyClass}">${qtySign}${qtyDisplay}</td>
                     <td class="py-3 px-1 text-left">${refDisplay}</td>
-                    <td class="py-3 px-1 text-left">
-                        <button onclick="deleteTransaction('${tx.id}')" class="text-slate-600 hover:text-red-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
+                    <td class="py-3 px-1 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="startEdit('${tx.id}')" class="text-slate-500 hover:text-amber-400 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button onclick="deleteTransaction('${tx.id}')" class="text-slate-500 hover:text-red-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
         });
     }
 
-    // --- Tabs & Forms ---
+    function renderCustomAssetsList() {
+        const list = document.getElementById('customAssetsList');
+        list.innerHTML = '';
+        const items = Object.values(customAssets);
+        
+        if (items.length === 0) {
+            list.innerHTML = '<div class="text-center text-slate-600 text-xs py-2">موردی یافت نشد</div>';
+            return;
+        }
+
+        items.forEach(asset => {
+            list.innerHTML += `
+                <div class="flex justify-between items-center bg-slate-800 p-2 rounded-lg">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-white">${asset.label}</span>
+                        <span class="text-[10px] text-slate-500">واحد: ${asset.unit}</span>
+                    </div>
+                    <button onclick="deleteCustomAsset('${asset.id}')" class="text-red-400 hover:text-red-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                </div>
+            `;
+        });
+    }
 
     function switchTab(tab) {
-        const btnSingle = document.getElementById('tab-single');
-        const btnConvert = document.getElementById('tab-convert');
-        const formSingle = document.getElementById('singleForm');
-        const formConvert = document.getElementById('convertForm');
-
+        if (editingTxId && !confirm('لغو ویرایش؟')) return;
+        if (editingTxId) cancelEdit();
+        const single = document.getElementById('singleForm');
+        const convert = document.getElementById('convertForm');
         if (tab === 'single') {
-            btnSingle.classList.replace('text-slate-400', 'text-white');
-            btnSingle.classList.add('bg-indigo-600', 'shadow');
-            
-            btnConvert.classList.remove('bg-indigo-600', 'shadow', 'text-white');
-            btnConvert.classList.add('text-slate-400');
-
-            formSingle.classList.remove('hidden');
-            formConvert.classList.add('hidden');
+            single.classList.remove('hidden'); convert.classList.add('hidden');
+            document.getElementById('tab-single').classList.replace('text-slate-400', 'text-white');
+            document.getElementById('tab-single').classList.add('bg-indigo-600');
+            document.getElementById('tab-convert').classList.replace('text-white', 'text-slate-400');
+            document.getElementById('tab-convert').classList.remove('bg-indigo-600');
         } else {
-            btnConvert.classList.replace('text-slate-400', 'text-white');
-            btnConvert.classList.add('bg-indigo-600', 'shadow');
-            
-            btnSingle.classList.remove('bg-indigo-600', 'shadow', 'text-white');
-            btnSingle.classList.add('text-slate-400');
-
-            formConvert.classList.remove('hidden');
-            formSingle.classList.add('hidden');
+            convert.classList.remove('hidden'); single.classList.add('hidden');
+            document.getElementById('tab-convert').classList.replace('text-slate-400', 'text-white');
+            document.getElementById('tab-convert').classList.add('bg-indigo-600');
+            document.getElementById('tab-single').classList.replace('text-white', 'text-slate-400');
+            document.getElementById('tab-single').classList.remove('bg-indigo-600');
         }
     }
 
-    // Populate Select Options
     function initOptions() {
-        const singleSel = document.getElementById('txAsset');
-        const convFrom = document.getElementById('convAssetFrom');
-        const convTo = document.getElementById('convAssetTo');
-        
-        let opts = '';
-        Object.entries(ASSETS).forEach(([key, spec]) => {
-            opts += `<option value="${key}">${spec.label}</option>`;
-        });
-
-        singleSel.innerHTML = opts;
-        convFrom.innerHTML = opts;
-        convTo.innerHTML = opts;
+        const allAssets = getAllAssets();
+        const opts = Object.entries(allAssets).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+        document.getElementById('txAsset').innerHTML = opts;
+        document.getElementById('convAssetFrom').innerHTML = opts;
+        document.getElementById('convAssetTo').innerHTML = opts;
     }
 
-    // Handle Forms
+    // Forms
     document.getElementById('singleForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const type = document.getElementById('txType').value;
-        const asset = document.getElementById('txAsset').value;
         const qty = document.getElementById('txQty').value;
-        
-        if(!qty) return alert('لطفاً مقدار را وارد کنید');
-
-        addTransaction(type, asset, qty);
-        document.getElementById('singleForm').reset();
+        if(!qty) return alert('مقدار الزامی است');
+        addTransaction(document.getElementById('txType').value, document.getElementById('txAsset').value, qty);
     });
 
-    document.getElementById('convertForm').addEventListener('submit', (e) => {
+    document.getElementById('addAssetForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const assetFrom = document.getElementById('convAssetFrom').value;
-        const qtyFrom = document.getElementById('convQtyFrom').value;
-        const assetTo = document.getElementById('convAssetTo').value;
-        const qtyTo = document.getElementById('convQtyTo').value;
-
-        if(!qtyFrom || !qtyTo) return alert('لطفاً مقادیر مبدأ و مقصد را وارد کنید');
-        if(assetFrom === assetTo) return alert('دارایی مبدأ و مقصد نمی‌تواند یکسان باشد');
-
-        const refId = 'REF-' + Date.now().toString().substr(-6);
-
-        // 1. Sell From
-        addTransaction('SELL', assetFrom, qtyFrom, refId);
-        // 2. Buy To
-        addTransaction('BUY', assetTo, qtyTo, refId);
-
-        document.getElementById('convertForm').reset();
-        alert('تبدیل با موفقیت انجام شد.');
+        const label = document.getElementById('newAssetLabel').value;
+        const unit = document.getElementById('newAssetUnit').value;
+        if(label && unit) addCustomAsset(label, unit);
     });
 
-
-    // --- Boot ---
     document.addEventListener('DOMContentLoaded', () => {
         initOptions();
         loadData();
     });
-
 </script>
 </body>
 </html>
