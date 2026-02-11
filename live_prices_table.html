@@ -881,7 +881,7 @@
 
         try {
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes] = await Promise.all([
+            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('price_logs').select('*').eq('info', 'هرات معامله فردایی ⏳').order('id', { ascending: false }).limit(1),
@@ -891,7 +891,8 @@
                 client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString()),
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
-                client.from('justOunce').select('price_blue').gte('created_at', startOfToday.toISOString())
+                client.from('justOunce').select('price_blue').gte('created_at', startOfToday.toISOString()),
+                client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1)
             ]);
 
             const curr = currRes.data?.[0] || {};
@@ -899,6 +900,7 @@
             const sabza = sabzaRes.data?.[0] || {};
             const herat = heratRes.data?.[0] || {};
             const tether = tetherRes.data?.[0] || {};
+            const dirhamRate = dirhamRateRes.data?.[0] || {};
 
             let dhsPrice = parsePrice(prices.price); if (dhsPrice > 200000) dhsPrice /= 10;
             const dhsTime = prices.created_at ? new Date(prices.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
@@ -986,6 +988,7 @@
                 { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان (فردایی)', isDollar: true },
                 { source: 'DHS driham', price: inherentDollar, item: 'ارزش ذاتی دلار (از درهم)', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.euro), item: 'یورو', isDollar: false },
+                { source: 'Dirham Rate', price: parsePrice(dirhamRate.rate_value_dirham_rate), item: 'درهم', isDollar: false },
                 { source: 'DHS driham', price: dhsPrice, item: 'درهم', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.dirham), item: 'درهم', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.pound), item: 'پوند', isDollar: false }
