@@ -68,7 +68,7 @@
             </div>
 
             <!-- Live Indicator -->
-            <span id="priceStatusIndicator" class="w-2 h-2 rounded-full bg-slate-500 animate-pulse absolute top-4 left-4" title="وضعیت دریافت قیمت"></span>
+            <span id="priceStatusIndicator" class="w-2 h-2 rounded-full bg-slate-500 animate-pulse absolute top-4 left-4" title="در حال بررسی اتصال..."></span>
         </div>
 
         <div class="flex gap-2 self-end md:self-center">
@@ -291,55 +291,88 @@
 
     async function loadData() {
         const client = getSupabaseClient();
-        if (!client) return;
-
-        const { data: { user } } = await client.auth.getUser();
-        if (!user) {
-            console.warn("User not logged in. Portfolio disabled.");
+        if (!client) {
+            document.getElementById('assetGrid').innerHTML = '<div class="col-span-full text-center py-10 text-red-400 text-sm">خطا در بارگذاری کلاینت Supabase</div>';
             return;
         }
 
-        // 1. Fetch Custom Assets
-        const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
-        if (!assetsError && assetsData) {
-            customAssets = {};
-            assetsData.forEach(a => {
-                customAssets[a.asset_key] = {
-                    label: a.label,
-                    unit: a.unit,
-                    color: 'text-slate-300',
-                    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
-                    id: a.id,
-                    system: false
-                };
-            });
-            initOptions(); // Re-init options with new assets
-            renderCustomAssetsList();
+        const indicator = document.getElementById('priceStatusIndicator');
+        
+        try {
+            // Check if user is logged in
+            const { data: { user }, error: authError } = await client.auth.getUser();
+            
+            if (authError || !user) {
+                console.warn("User not logged in:", authError);
+                indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
+                indicator.title = "کاربر وارد نشده است";
+                document.getElementById('assetGrid').innerHTML = `
+                    <div class="col-span-full text-center py-10 text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        <p class="mb-2">برای مشاهده دارایی‌ها لطفاً وارد حساب خود شوید.</p>
+                        <a href="index.html" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">ورود به حساب</a>
+                    </div>`;
+                return;
+            }
+
+            indicator.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse absolute top-4 left-4";
+            indicator.title = "در حال دریافت داده‌ها...";
+
+            // 1. Fetch Custom Assets
+            const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
+            
+            if (assetsError) {
+                console.error("Error fetching custom assets:", assetsError);
+                // If table not found (404-like error in Supabase usually shows as code '42P01' for undefined table)
+                if (assetsError.code === '42P01') {
+                    alert("خطای پیکربندی: جداول دیتابیس یافت نشدند. لطفاً کدهای SQL مربوطه را اجرا کنید.");
+                }
+            } else if (assetsData) {
+                customAssets = {};
+                assetsData.forEach(a => {
+                    customAssets[a.asset_key] = {
+                        label: a.label,
+                        unit: a.unit,
+                        color: 'text-slate-300',
+                        icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+                        id: a.id,
+                        system: false
+                    };
+                });
+                initOptions(); // Re-init options with new assets
+                renderCustomAssetsList();
+            }
+
+            // 2. Fetch Transactions
+            const { data, error } = await client
+                .from('portfolio_transactions')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Error fetching transactions:', error);
+                indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
+                indicator.title = "خطا در دریافت تراکنش‌ها";
+                return;
+            }
+
+            transactions = data.map(row => ({
+                id: row.id,
+                date: row.created_at,
+                type: row.operation_type,
+                asset: row.asset_type,
+                qty: parseFloat(row.quantity),
+                ref_id: row.reference_id
+            }));
+
+            renderPortfolio();
+            renderHistory();
+            fetchPrices(); 
+
+        } catch (err) {
+            console.error("Critical load error:", err);
+            indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
         }
-
-        // 2. Fetch Transactions
-        const { data, error } = await client
-            .from('portfolio_transactions')
-            .select('*')
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('Error fetching transactions:', error);
-            return;
-        }
-
-        transactions = data.map(row => ({
-            id: row.id,
-            date: row.created_at,
-            type: row.operation_type,
-            asset: row.asset_type,
-            qty: parseFloat(row.quantity),
-            ref_id: row.reference_id
-        }));
-
-        renderPortfolio();
-        renderHistory();
-        fetchPrices(); 
     }
 
     // --- Custom Asset Logic ---
@@ -360,7 +393,7 @@
         }]);
 
         if (error) {
-            alert('خطا در افزودن دارایی');
+            alert('خطا در افزودن دارایی: ' + error.message);
             console.error(error);
         } else {
             document.getElementById('addAssetForm').reset();
@@ -512,6 +545,7 @@
                 currentPrices['EUR'] = usd * 1.05;
                 currentPrices['IRR'] = 1;
                 indicator.className = "w-2 h-2 rounded-full bg-emerald-500 absolute top-4 left-4";
+                indicator.title = "قیمت‌ها به‌روز هستند";
                 renderPortfolio();
             }
         } catch (e) { console.error(e); }
