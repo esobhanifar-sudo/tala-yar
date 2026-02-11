@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -456,7 +456,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             ارزش ذاتی دلار (از درهم)
                         </h2>
-                        <span class="text-[9px] opacity-80 font-bold text-blue-400">فرمول درهم</span>
+                        <span class="text-[9px] opacity-80 font-bold text-blue-400">منبع: Dirham Rate</span>
                     </div>
                     <div class="widget-main-num latin-nums tracking-tighter" id="inherent-dollar-value-container">
                         <span id="inherent-dollar-value" class="num-sm">---,---</span>
@@ -903,8 +903,24 @@
             const dirhamRate = dirhamRateRes.data?.[0] || {};
 
             let dhsPrice = parsePrice(prices.price); if (dhsPrice > 200000) dhsPrice /= 10;
+            // Removed usage of dhsPrice for inherent calculation
+            
+            // --- UPDATED LOGIC: Use Dirham Rate for Intrinsic Dollar ---
+            let drPrice = parsePrice(dirhamRate.rate_value_dirham_rate);
+            
+            // Calculate time for Dirham Rate
+            let drTime = '-';
+            if (dirhamRate.time_clock_dirham_rate) {
+                drTime = dirhamRate.time_clock_dirham_rate;
+            } else if (dirhamRate.created_at_dirham_rate) {
+                drTime = new Date(dirhamRate.created_at_dirham_rate).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            }
+
+            // Calculate Intrinsic Dollar using Dirham Rate
+            const inherentDollar = drPrice * DIRHAM_TO_DOLLAR;
+            // -----------------------------------------------------------
+
             const dhsTime = prices.created_at ? new Date(prices.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
-            const inherentDollar = dhsPrice * DIRHAM_TO_DOLLAR;
 
             const sabzaDollar = parsePrice(sabza.tahran_sabza_price_dollar);
             const ouncePrice = parsePrice(ounceRes.data?.[0]?.price_blue);
@@ -928,9 +944,11 @@
                     <div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">💵 دلار سبزه‌میدان (فردایی): <span class="num-sm font-bold live-price-text">${sabzaDollar.toLocaleString()}</span></span></div>
                     <div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">⚖️ انس JustOunce: <span class="num-sm font-bold live-price-text">${ouncePrice.toLocaleString()}</span></span></div>
                 </div>`;
+            
+            // Updated Widget to show Dirham Rate info
             document.getElementById('inherent-dollar-value').innerText = inherentDollar > 0 ? Math.round(inherentDollar).toLocaleString() : "---,---";
             document.getElementById('inherent-dollar-info').innerHTML = `
-                <div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">🇦🇪 نرخ درهم (DHS): <span class="num-sm font-bold live-price-text">${dhsPrice.toLocaleString()}</span></span><span class="opacity-80 latin-nums text-[9px]">${dhsTime}</span></div></div>`;
+                <div class="flex flex-col gap-2 pt-2 text-[11px]"><div class="flex justify-between items-center opacity-100"><span class="flex items-center gap-1">🇦🇪 نرخ درهم (DHS): <span class="num-sm font-bold live-price-text">${drPrice.toLocaleString()}</span></span><span class="opacity-80 latin-nums text-[9px]">${drTime}</span></div></div>`;
 
             let mHigh = 0, mLow = Infinity;
             if (magRangeRes.data && magRangeRes.data.length > 0) {
@@ -981,6 +999,8 @@
             document.getElementById('goldTable').innerHTML = generateGoldTableHTML(goldSources, goldAssets);
 
             let hPrice = parsePrice(herat.price); if (hPrice > 1000000) hPrice /= 10;
+            let drPrice = parsePrice(dirhamRate.rate_value_dirham_rate);
+
             const currencyData = [
                 { source: 'تتر پایتخت', price: parsePrice(tether.price_USDTTetherp), item: 'تتر فروش', isDollar: true },
                 { source: 'iran currency', price: parsePrice(curr.dollar), item: 'دلار آزاد', isDollar: true },
@@ -988,7 +1008,7 @@
                 { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان (فردایی)', isDollar: true },
                 { source: 'DHS driham', price: inherentDollar, item: 'ارزش ذاتی دلار (از درهم)', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.euro), item: 'یورو', isDollar: false },
-                { source: 'Dirham Rate', price: parsePrice(dirhamRate.rate_value_dirham_rate), item: 'درهم', isDollar: false },
+                { source: 'Dirham Rate', price: drPrice, item: 'درهم', isDollar: false },
                 { source: 'DHS driham', price: dhsPrice, item: 'درهم', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.dirham), item: 'درهم', isDollar: false },
                 { source: 'iran currency', price: parsePrice(curr.pound), item: 'پوند', isDollar: false }
