@@ -17,6 +17,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof checkAuthGuard === 'function') {
                 checkAuthGuard();
+            } else {
+                console.warn("Auth system not loaded. Skipping access check.");
             }
         });
     </script>
@@ -66,7 +68,7 @@
             </div>
 
             <!-- Live Indicator -->
-            <span id="priceStatusIndicator" class="w-2 h-2 rounded-full bg-slate-500 animate-pulse absolute top-4 left-4" title="در حال بررسی اتصال..."></span>
+            <span id="priceStatusIndicator" class="w-2 h-2 rounded-full bg-slate-500 animate-pulse absolute top-4 left-4" title="وضعیت دریافت قیمت"></span>
         </div>
 
         <div class="flex gap-2 self-end md:self-center">
@@ -75,7 +77,7 @@
                 مدیریت دارایی‌ها
             </button>
             <a href="index.html" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition">بازگشت</a>
-            <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition">خروج</button>
+            <button onclick="signOut()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition">خروج</button>
         </div>
     </div>
 
@@ -285,105 +287,59 @@
         return null;
     }
 
-    // --- Auth Logic ---
-    async function handleLogout() {
-        const client = getSupabaseClient();
-        if (client) {
-            const { error } = await client.auth.signOut();
-            if (!error) {
-                window.location.href = 'index.html';
-            } else {
-                console.error('Logout error:', error);
-                alert('خطا در خروج');
-            }
-        }
-    }
-
     // --- Core Logic (Supabase) ---
 
     async function loadData() {
         const client = getSupabaseClient();
-        if (!client) {
-            document.getElementById('assetGrid').innerHTML = '<div class="col-span-full text-center py-10 text-red-400 text-sm">خطا در بارگذاری کلاینت Supabase</div>';
+        if (!client) return;
+
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) {
+            console.warn("User not logged in. Portfolio disabled.");
             return;
         }
 
-        const indicator = document.getElementById('priceStatusIndicator');
-        
-        try {
-            // Check if user is logged in (use getSession for faster/local check)
-            const { data: { session }, error: authError } = await client.auth.getSession();
-            
-            if (authError || !session) {
-                console.warn("User not logged in:", authError);
-                indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
-                indicator.title = "کاربر وارد نشده است";
-                document.getElementById('assetGrid').innerHTML = `
-                    <div class="col-span-full text-center py-10 text-slate-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                        <p class="mb-2">برای مشاهده دارایی‌ها لطفاً وارد حساب خود شوید.</p>
-                        <a href="index.html" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">ورود به حساب</a>
-                    </div>`;
-                return;
-            }
-
-            indicator.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse absolute top-4 left-4";
-            indicator.title = "در حال دریافت داده‌ها...";
-
-            // 1. Fetch Custom Assets
-            const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
-            
-            if (assetsError) {
-                console.error("Error fetching custom assets:", assetsError);
-                if (assetsError.code === '42P01') {
-                    alert("خطای پیکربندی: جداول دیتابیس یافت نشدند. لطفاً کدهای SQL مربوطه را اجرا کنید.");
-                }
-            } else if (assetsData) {
-                customAssets = {};
-                assetsData.forEach(a => {
-                    customAssets[a.asset_key] = {
-                        label: a.label,
-                        unit: a.unit,
-                        color: 'text-slate-300',
-                        icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
-                        id: a.id,
-                        system: false
-                    };
-                });
-                initOptions(); 
-                renderCustomAssetsList();
-            }
-
-            // 2. Fetch Transactions
-            const { data, error } = await client
-                .from('portfolio_transactions')
-                .select('*')
-                .order('created_at', { ascending: true });
-
-            if (error) {
-                console.error('Error fetching transactions:', error);
-                indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
-                indicator.title = "خطا در دریافت تراکنش‌ها";
-                return;
-            }
-
-            transactions = data.map(row => ({
-                id: row.id,
-                date: row.created_at,
-                type: row.operation_type,
-                asset: row.asset_type,
-                qty: parseFloat(row.quantity),
-                ref_id: row.reference_id
-            }));
-
-            renderPortfolio();
-            renderHistory();
-            fetchPrices(); 
-
-        } catch (err) {
-            console.error("Critical load error:", err);
-            indicator.className = "w-2 h-2 rounded-full bg-red-500 absolute top-4 left-4";
+        // 1. Fetch Custom Assets
+        const { data: assetsData, error: assetsError } = await client.from('custom_assets').select('*');
+        if (!assetsError && assetsData) {
+            customAssets = {};
+            assetsData.forEach(a => {
+                customAssets[a.asset_key] = {
+                    label: a.label,
+                    unit: a.unit,
+                    color: 'text-slate-300',
+                    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+                    id: a.id,
+                    system: false
+                };
+            });
+            initOptions(); // Re-init options with new assets
+            renderCustomAssetsList();
         }
+
+        // 2. Fetch Transactions
+        const { data, error } = await client
+            .from('portfolio_transactions')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching transactions:', error);
+            return;
+        }
+
+        transactions = data.map(row => ({
+            id: row.id,
+            date: row.created_at,
+            type: row.operation_type,
+            asset: row.asset_type,
+            qty: parseFloat(row.quantity),
+            ref_id: row.reference_id
+        }));
+
+        renderPortfolio();
+        renderHistory();
+        fetchPrices(); 
     }
 
     // --- Custom Asset Logic ---
@@ -404,11 +360,11 @@
         }]);
 
         if (error) {
-            alert('خطا در افزودن دارایی: ' + error.message);
+            alert('خطا در افزودن دارایی');
             console.error(error);
         } else {
             document.getElementById('addAssetForm').reset();
-            loadData(); 
+            loadData(); // Reload everything
         }
     }
 
@@ -427,16 +383,10 @@
         renderPortfolio();
     }
 
-    // --- Transaction Logic ---
+    // --- Transaction Logic (Same as before) ---
     async function addTransaction(type, assetKey, qty, refId = null) {
         const client = getSupabaseClient();
-        if (!client) return { error: { message: "Client not initialized" } };
-
-        const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-            alert('برای ثبت تراکنش باید وارد حساب کاربری شوید.');
-            return { error: { message: "User not logged in" } };
-        }
+        if (!client) return;
 
         let finalQty = parseFloat(qty);
         if (type === 'SELL') finalQty = -Math.abs(finalQty);
@@ -460,15 +410,13 @@
 
         if (error) {
             alert('خطا: ' + error.message);
-            return { error };
+            return;
         }
 
         if (data && data[0]) {
-            if (!refId) loadData(); 
+            loadData(); // Reload to ensure sync
             if (editingTxId) cancelEdit();
-            return { data: data[0] };
         }
-        return { error: { message: "Unknown error" } };
     }
 
     async function deleteTransaction(id) {
@@ -521,16 +469,16 @@
         const allAssets = getAllAssets();
         Object.keys(allAssets).forEach(key => balances[key] = 0);
         transactions.forEach(tx => {
-            if (balances[tx.asset] !== undefined) {
+            // Even if asset deleted, we might track it? For now only track existing definitions
+            if (allAssets[tx.asset]) {
                 balances[tx.asset] += tx.qty;
-            } else if (allAssets[tx.asset]) {
-                 balances[tx.asset] += tx.qty;
             }
         });
         return balances;
     }
 
     async function fetchPrices() {
+        // ... (Same price fetching logic for system assets) ...
         const client = getSupabaseClient();
         if (!client) return;
         const indicator = document.getElementById('priceStatusIndicator');
@@ -550,7 +498,6 @@
                 currentPrices['EUR'] = usd * 1.05;
                 currentPrices['IRR'] = 1;
                 indicator.className = "w-2 h-2 rounded-full bg-emerald-500 absolute top-4 left-4";
-                indicator.title = "قیمت‌ها به‌روز هستند";
                 renderPortfolio();
             }
         } catch (e) { console.error(e); }
@@ -568,9 +515,13 @@
 
         Object.entries(allAssets).forEach(([key, spec]) => {
             const bal = balances[key] || 0;
+            // Only show cards if user has balance OR it's a system asset OR user explicitly added it
+            // Show all defined assets for clarity
+            
             const displayBal = bal % 1 === 0 ? bal : bal.toFixed(3);
             const formatted = (key === 'IRR') ? parseInt(bal).toLocaleString() : displayBal;
 
+            // Value Calc
             let val = 0;
             let priceInputHtml = '';
             
@@ -578,6 +529,7 @@
                 if (currentPrices[key]) val = bal * currentPrices[key];
                 priceInputHtml = currentPrices[key] ? `<div class="text-[10px] text-emerald-400 mt-1 pt-1 border-t border-slate-700/50">≈ ${parseInt(val).toLocaleString()} تومان</div>` : '';
             } else {
+                // Manual Price for Custom Assets
                 const manualPrice = manualPrices[key] || 0;
                 val = bal * manualPrice;
                 priceInputHtml = `
@@ -673,6 +625,31 @@
         });
     }
 
+    function renderCustomAssetsList() {
+        const list = document.getElementById('customAssetsList');
+        list.innerHTML = '';
+        const items = Object.values(customAssets);
+        
+        if (items.length === 0) {
+            list.innerHTML = '<div class="text-center text-slate-600 text-xs py-2">موردی یافت نشد</div>';
+            return;
+        }
+
+        items.forEach(asset => {
+            list.innerHTML += `
+                <div class="flex justify-between items-center bg-slate-800 p-2 rounded-lg">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-white">${asset.label}</span>
+                        <span class="text-[10px] text-slate-500">واحد: ${asset.unit}</span>
+                    </div>
+                    <button onclick="deleteCustomAsset('${asset.id}')" class="text-red-400 hover:text-red-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                </div>
+            `;
+        });
+    }
+
     function switchTab(tab) {
         if (editingTxId && !confirm('لغو ویرایش؟')) return;
         if (editingTxId) cancelEdit();
@@ -702,12 +679,11 @@
     }
 
     // Forms
-    document.getElementById('singleForm').addEventListener('submit', async (e) => {
+    document.getElementById('singleForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const qty = document.getElementById('txQty').value;
         if(!qty) return alert('مقدار الزامی است');
-        const res = await addTransaction(document.getElementById('txType').value, document.getElementById('txAsset').value, qty);
-        if (res.data) document.getElementById('singleForm').reset();
+        addTransaction(document.getElementById('txType').value, document.getElementById('txAsset').value, qty);
     });
 
     document.getElementById('addAssetForm').addEventListener('submit', (e) => {
@@ -715,35 +691,6 @@
         const label = document.getElementById('newAssetLabel').value;
         const unit = document.getElementById('newAssetUnit').value;
         if(label && unit) addCustomAsset(label, unit);
-    });
-
-    // Revised Convert Form Logic
-    document.getElementById('convertForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const assetFrom = document.getElementById('convAssetFrom').value;
-        const qtyFrom = document.getElementById('convQtyFrom').value;
-        const assetTo = document.getElementById('convAssetTo').value;
-        const qtyTo = document.getElementById('convQtyTo').value;
-
-        if(!qtyFrom || !qtyTo) return alert('مقادیر را وارد کنید');
-        if(assetFrom === assetTo) return alert('مبدأ و مقصد نمی‌تواند یکسان باشد');
-
-        const refId = 'REF-' + Date.now().toString().substr(-6);
-
-        // 1. Sell From (Wait)
-        const res1 = await addTransaction('SELL', assetFrom, qtyFrom, refId);
-        if (res1.error) return; // Stop if failed
-
-        // 2. Buy To (Wait)
-        const res2 = await addTransaction('BUY', assetTo, qtyTo, refId);
-        if (res2.error) {
-             alert('خطا در مرحله دوم تبدیل. لطفاً دستی بررسی کنید.');
-             return;
-        }
-
-        document.getElementById('convertForm').reset();
-        alert('تبدیل با موفقیت انجام شد.');
-        loadData(); // Ensure UI is synced
     });
 
     document.addEventListener('DOMContentLoaded', () => {
