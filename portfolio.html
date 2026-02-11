@@ -383,10 +383,17 @@
         renderPortfolio();
     }
 
-    // --- Transaction Logic (Same as before) ---
+    // --- Transaction Logic ---
     async function addTransaction(type, assetKey, qty, refId = null) {
         const client = getSupabaseClient();
-        if (!client) return;
+        if (!client) return { error: { message: "Client not initialized" } };
+
+        // 1. Check Auth State
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) {
+            alert('برای ثبت تراکنش باید وارد حساب کاربری شوید.');
+            return { error: { message: "User not logged in" } };
+        }
 
         let finalQty = parseFloat(qty);
         if (type === 'SELL') finalQty = -Math.abs(finalQty);
@@ -410,13 +417,19 @@
 
         if (error) {
             alert('خطا: ' + error.message);
-            return;
+            return { error };
         }
 
         if (data && data[0]) {
-            loadData(); // Reload to ensure sync
+            if (!refId) loadData(); // Reload unless part of a batch
+            else {
+                // If batch, update local state temporarily or wait for caller to reload
+                // For simplicity, we just return data
+            }
             if (editingTxId) cancelEdit();
+            return { data: data[0] };
         }
+        return { error: { message: "Unknown error" } };
     }
 
     async function deleteTransaction(id) {
@@ -469,9 +482,10 @@
         const allAssets = getAllAssets();
         Object.keys(allAssets).forEach(key => balances[key] = 0);
         transactions.forEach(tx => {
-            // Even if asset deleted, we might track it? For now only track existing definitions
-            if (allAssets[tx.asset]) {
+            if (balances[tx.asset] !== undefined) {
                 balances[tx.asset] += tx.qty;
+            } else if (allAssets[tx.asset]) {
+                 balances[tx.asset] += tx.qty;
             }
         });
         return balances;
@@ -515,13 +529,9 @@
 
         Object.entries(allAssets).forEach(([key, spec]) => {
             const bal = balances[key] || 0;
-            // Only show cards if user has balance OR it's a system asset OR user explicitly added it
-            // Show all defined assets for clarity
-            
             const displayBal = bal % 1 === 0 ? bal : bal.toFixed(3);
             const formatted = (key === 'IRR') ? parseInt(bal).toLocaleString() : displayBal;
 
-            // Value Calc
             let val = 0;
             let priceInputHtml = '';
             
@@ -529,7 +539,6 @@
                 if (currentPrices[key]) val = bal * currentPrices[key];
                 priceInputHtml = currentPrices[key] ? `<div class="text-[10px] text-emerald-400 mt-1 pt-1 border-t border-slate-700/50">≈ ${parseInt(val).toLocaleString()} تومان</div>` : '';
             } else {
-                // Manual Price for Custom Assets
                 const manualPrice = manualPrices[key] || 0;
                 val = bal * manualPrice;
                 priceInputHtml = `
@@ -625,31 +634,6 @@
         });
     }
 
-    function renderCustomAssetsList() {
-        const list = document.getElementById('customAssetsList');
-        list.innerHTML = '';
-        const items = Object.values(customAssets);
-        
-        if (items.length === 0) {
-            list.innerHTML = '<div class="text-center text-slate-600 text-xs py-2">موردی یافت نشد</div>';
-            return;
-        }
-
-        items.forEach(asset => {
-            list.innerHTML += `
-                <div class="flex justify-between items-center bg-slate-800 p-2 rounded-lg">
-                    <div class="flex flex-col">
-                        <span class="text-xs text-white">${asset.label}</span>
-                        <span class="text-[10px] text-slate-500">واحد: ${asset.unit}</span>
-                    </div>
-                    <button onclick="deleteCustomAsset('${asset.id}')" class="text-red-400 hover:text-red-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                </div>
-            `;
-        });
-    }
-
     function switchTab(tab) {
         if (editingTxId && !confirm('لغو ویرایش؟')) return;
         if (editingTxId) cancelEdit();
@@ -679,11 +663,12 @@
     }
 
     // Forms
-    document.getElementById('singleForm').addEventListener('submit', (e) => {
+    document.getElementById('singleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const qty = document.getElementById('txQty').value;
         if(!qty) return alert('مقدار الزامی است');
-        addTransaction(document.getElementById('txType').value, document.getElementById('txAsset').value, qty);
+        const res = await addTransaction(document.getElementById('txType').value, document.getElementById('txAsset').value, qty);
+        if (res.data) document.getElementById('singleForm').reset();
     });
 
     document.getElementById('addAssetForm').addEventListener('submit', (e) => {
@@ -691,6 +676,35 @@
         const label = document.getElementById('newAssetLabel').value;
         const unit = document.getElementById('newAssetUnit').value;
         if(label && unit) addCustomAsset(label, unit);
+    });
+
+    // Revised Convert Form Logic
+    document.getElementById('convertForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const assetFrom = document.getElementById('convAssetFrom').value;
+        const qtyFrom = document.getElementById('convQtyFrom').value;
+        const assetTo = document.getElementById('convAssetTo').value;
+        const qtyTo = document.getElementById('convQtyTo').value;
+
+        if(!qtyFrom || !qtyTo) return alert('مقادیر را وارد کنید');
+        if(assetFrom === assetTo) return alert('مبدأ و مقصد نمی‌تواند یکسان باشد');
+
+        const refId = 'REF-' + Date.now().toString().substr(-6);
+
+        // 1. Sell From (Wait)
+        const res1 = await addTransaction('SELL', assetFrom, qtyFrom, refId);
+        if (res1.error) return; // Stop if failed
+
+        // 2. Buy To (Wait)
+        const res2 = await addTransaction('BUY', assetTo, qtyTo, refId);
+        if (res2.error) {
+             alert('خطا در مرحله دوم تبدیل. لطفاً دستی بررسی کنید.');
+             return;
+        }
+
+        document.getElementById('convertForm').reset();
+        alert('تبدیل با موفقیت انجام شد.');
+        loadData(); // Ensure UI is synced
     });
 
     document.addEventListener('DOMContentLoaded', () => {
