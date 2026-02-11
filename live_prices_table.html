@@ -32,6 +32,9 @@
 
             // Initial Fetch (Timer will start automatically after fetch)
             fetchLiveTicker();
+
+            // Fetch Portfolio Distribution for Widget
+            fetchPortfolioStats();
         });
     </script>
 
@@ -559,6 +562,18 @@
 
         <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-4">
+            
+            <!-- NEW WIDGET: Portfolio Distribution -->
+            <div class="glass-panel rounded-3xl p-6 shadow-xl border border-white/5 relative overflow-hidden">
+                <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                    توزیع سبد دارایی (درصد)
+                </h3>
+                <div id="portfolio-pie-chart" class="flex justify-center items-center min-h-[200px]">
+                    <span class="text-xs opacity-50">در حال بارگذاری...</span>
+                </div>
+            </div>
+
             <div class="glass-panel rounded-3xl p-6 sticky top-4 shadow-xl border border-white/5">
                 <h3 class="text-sm font-bold opacity-100 mb-6 border-b border-gray-500/10 pb-3 flex items-center gap-2 text-amber-500">
                     شخصی‌سازی بصری
@@ -1801,6 +1816,117 @@
         colorize(realizedPL, 'trade-realized-pl');
         colorize(unrealizedPL, 'trade-unrealized-pl');
         colorize(totalPL, 'trade-total-pl');
+    }
+
+    async function fetchPortfolioStats() {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        // 1. Get Prices
+        const { data: priceData } = await client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1);
+        const p = priceData?.[0] || {};
+        const prices = {
+            'GOLD_18K': (parseFloat(p.Gram_18K_Price) || 0) / 10,
+            'FULL_COIN': (parseFloat(p.Emami_Coin_Price) || 0) / 10,
+            'HALF_COIN': (parseFloat(p.Half_Coin_Price) || 0) / 10,
+            'QUARTER_COIN': (parseFloat(p.Quarter_Coin_Price) || 0) / 10,
+            'USD': (parseFloat(p.USD_AZAD_Exchange) || 0) / 10,
+            'EUR': ((parseFloat(p.USD_AZAD_Exchange) || 0) / 10) * 1.05,
+            'IRR': 1
+        };
+
+        // 2. Get Assets & Transactions
+        const { data: assets } = await client.from('custom_assets').select('*');
+        const { data: txs } = await client.from('portfolio_transactions').select('*');
+
+        if (!txs || txs.length === 0) {
+            document.getElementById('portfolio-pie-chart').innerHTML = '<span class="text-xs opacity-50">داده‌ای یافت نشد</span>';
+            return;
+        }
+
+        // 3. Calc Balances
+        const balances = {};
+        txs.forEach(tx => {
+            const qty = parseFloat(tx.quantity);
+            if (!balances[tx.asset_type]) balances[tx.asset_type] = 0;
+            // Assuming quantity stored is already signed (positive for buy, negative for sell)
+            balances[tx.asset_type] += qty;
+        });
+
+        // 4. Calc Totals per Category
+        let cats = { 'نقد (IRR)': 0, 'طلا و سکه': 0, 'ارزها': 0, 'کالا/سایر': 0 };
+        
+        // System Assets Mapping
+        const sysCat = {
+            'GOLD_18K': 'طلا و سکه', 'FULL_COIN': 'طلا و سکه', 'HALF_COIN': 'طلا و سکه', 'QUARTER_COIN': 'طلا و سکه',
+            'IRR': 'نقد (IRR)', 'USD': 'ارزها', 'EUR': 'ارزها'
+        };
+
+        Object.keys(balances).forEach(key => {
+            const bal = balances[key];
+            if (bal <= 0.0001) return; // Ignore zero/dust
+
+            let val = 0;
+            let cat = 'کالا/سایر';
+
+            if (sysCat[key]) {
+                cat = sysCat[key];
+                val = bal * (prices[key] || 0);
+            } else {
+                // Custom Asset
+                const custom = assets?.find(a => a.asset_key === key);
+                if (custom) {
+                    const price = parseFloat(custom.value) || 0; 
+                    val = bal * price;
+                }
+            }
+            cats[cat] += val;
+        });
+
+        // 5. Render
+        const total = Object.values(cats).reduce((a,b)=>a+b, 0);
+        const series = Object.values(cats);
+        const labels = Object.keys(cats);
+
+        if (total === 0) {
+             document.getElementById('portfolio-pie-chart').innerHTML = '<span class="text-xs opacity-50">کیف دارایی خالی است</span>';
+             return;
+        }
+
+        const options = {
+            series: series,
+            labels: labels,
+            chart: { type: 'donut', height: 220, fontFamily: 'Vazirmatn', background: 'transparent' },
+            colors: ['#10b981', '#f59e0b', '#3b82f6', '#8b5cf6'],
+            stroke: { show: false },
+            dataLabels: { enabled: false },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '65%',
+                        labels: {
+                            show: true,
+                            name: { fontSize: '10px', color: '#94a3b8' },
+                            value: { 
+                                fontSize: '14px', color: '#e2e8f0', fontWeight: 'bold',
+                                formatter: (val) => Math.round((val/total)*100) + '%'
+                            },
+                            total: {
+                                show: true, showAlways: true, label: 'کل', fontSize: '10px', color: '#94a3b8',
+                                formatter: () => '100%'
+                            }
+                        }
+                    }
+                }
+            },
+            legend: { position: 'bottom', fontSize: '10px', labels: { colors: '#94a3b8' }, itemMargin: { horizontal: 5, vertical: 0 } },
+            tooltip: {
+                theme: 'dark',
+                y: { formatter: (val) => parseInt(val).toLocaleString() + ' تومان' }
+            }
+        };
+
+        new ApexCharts(document.querySelector("#portfolio-pie-chart"), options).render();
     }
 </script>
 </body>
