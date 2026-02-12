@@ -759,10 +759,37 @@
                 };
             };
 
-            const ounceStats = analyze(ounceRes.data, 'price_blue');
-            const sabzaStats = analyze(sabzaRes.data, 'tahran_sabza_price_dollar');
-            const dirhamStats = analyze(dirhamRes.data, 'rate_value_dirham_rate');
-            const heratStats = analyze(heratRes.data, 'price'); // Using price_logs structure
+            // --- Robust Fallback Mechanism ---
+            // If any endpoint returned empty for "yesterday" (e.g. holiday), fetch the latest available data
+            let oData = ounceRes.data;
+            if (!oData || oData.length === 0) {
+                const res = await client.from('justOunce').select('price_blue, created_at').order('id', { ascending: false }).limit(1);
+                oData = res.data || [];
+            }
+
+            let sData = sabzaRes.data;
+            if (!sData || sData.length === 0) {
+                const res = await client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').order('id', { ascending: false }).limit(1);
+                sData = res.data || [];
+            }
+
+            let dData = dirhamRes.data;
+            if (!dData || dData.length === 0) {
+                // Dirham often updates less frequently. Fallback to latest.
+                const res = await client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').order('id_dirham_rate', { ascending: false }).limit(1);
+                dData = res.data || [];
+            }
+
+            let hData = heratRes.data;
+            if (!hData || hData.length === 0) {
+                const res = await client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').order('id', { ascending: false }).limit(1);
+                hData = res.data || [];
+            }
+
+            const ounceStats = analyze(oData, 'price_blue');
+            const sabzaStats = analyze(sData, 'tahran_sabza_price_dollar');
+            const dirhamStats = analyze(dData, 'rate_value_dirham_rate');
+            const heratStats = analyze(hData, 'price');
 
             // Calculations
             let gpi = 0;
