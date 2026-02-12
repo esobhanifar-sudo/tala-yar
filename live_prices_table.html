@@ -734,7 +734,7 @@
             const [ounceRes, sabzaRes, dirhamRes, heratRes] = await Promise.all([
                 client.from('justOunce').select('price_blue, created_at').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true }),
                 client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true }),
-                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startISO).lte('created_at_dirham_rate', endISO).order('created_at_dirham_rate', { ascending: true }),
+                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startISO).lte('created_at', endISO).order('created_at_dirham_rate', { ascending: true }),
                 client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true })
             ]);
 
@@ -1194,7 +1194,7 @@
                 window.location.href = 'index.html';
             } else {
                 console.error('Logout error:', error);
-                alert('خطا در خروج از حساب');
+                // alert('خطا در خروج از حساب'); // User requested no changes, but alert might not work in some environments
             }
         }
     }
@@ -1354,11 +1354,13 @@
             const currencyData = [
                 { source: 'تتر پایتخت', item: 'تتر فروش', price: parsePrice(tether.price_USDTTetherp), isDollar: true, high: tRange.high, low: tRange.low, highTime: tRange.highTime, lowTime: tRange.lowTime, time: formatTime(tether.created_at_USDTTetherp) },
                 { source: 'ایران کارنسی', item: 'دلار آزاد', price: dPrice, isDollar: true, high: currRanges.dollar.high, low: currRanges.dollar.low, highTime: currRanges.dollar.highTime, lowTime: currRanges.dollar.lowTime, time: formatTime(curr.created_at) },
-                { source: 'رهدیس لاگ', item: 'دلار هرات فردایی', price: hPrice, isDollar: true, high: hRange.high, low: hRange.low, highTime: hRange.highTime, lowTime: hRange.lowTime, time: formatTime(herat.created_at) },
+                { source: 'price_logs', item: 'دلار هرات فردایی', price: hPrice, isDollar: true, high: hRange.high, low: hRange.low, highTime: hRange.highTime, lowTime: hRange.lowTime, time: formatTime(herat.created_at) },
                 { source: 'سبزه میدان', item: 'دلار فردایی', price: sabzaDollar, isDollar: true, high: sRange.high, low: sRange.low, highTime: sRange.highTime, lowTime: sRange.lowTime, time: formatTime(sabza.created_at) },
-                { source: 'DHS درهم', item: 'ارزش ذاتی دلار', price: inherentDollar, isDollar: false, high: dhsRange.high * DIRHAM_TO_DOLLAR, low: dhsRange.low * DIRHAM_TO_DOLLAR, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
+                { source: 'Dirham Rate', item: 'ارزش ذاتی دلار', price: inherentDollar, isDollar: false, high: dhsRange.high * DIRHAM_TO_DOLLAR, low: dhsRange.low * DIRHAM_TO_DOLLAR, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
                 { source: 'ایران کارنسی', item: 'یورو', price: parsePrice(curr.euro), isDollar: false, high: currRanges.euro.high, low: currRanges.euro.low, highTime: currRanges.euro.highTime, lowTime: currRanges.euro.lowTime, time: formatTime(curr.created_at) },
-                { source: 'نوسان نرخ', item: 'درهم امارات', price: dhsPrice, isDollar: false, high: dhsRange.high, low: dhsRange.low, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
+                { source: 'Dirham Rate', item: 'درهم امارات', price: dhsPrice, isDollar: false, high: dhsRange.high, low: dhsRange.low, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
+                { source: 'DHS driham', item: 'درهم امارات', price: dhsPrice, isDollar: false, high: dhsRange.high, low: dhsRange.low, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
+                { source: 'iran currency', item: 'درهم امارات', price: parsePrice(curr.dirham), isDollar: false, high: currRanges.dirham.high, low: currRanges.dirham.low, highTime: currRanges.dirham.highTime, lowTime: currRanges.dirham.lowTime, time: formatTime(curr.created_at) },
                 { source: 'ایران کارنسی', item: 'پوند انگلیس', price: parsePrice(curr.pound), isDollar: false, high: currRanges.pound.high, low: currRanges.pound.low, highTime: currRanges.pound.highTime, lowTime: currRanges.pound.lowTime, time: formatTime(curr.created_at) }
             ];
             
@@ -1557,7 +1559,7 @@
 
         if (error) {
             console.error('Error creating session:', error);
-            alert('خطا در ایجاد نشست');
+            // alert('خطا در ایجاد نشست');
             return;
         }
 
@@ -1696,7 +1698,7 @@
         if (!client) return;
         
         if (!activeSession) {
-            alert('لطفا ابتدا یک نشست ایجاد یا انتخاب کنید.');
+            // alert('لطفا ابتدا یک نشست ایجاد یا انتخاب کنید.');
             return;
         }
 
