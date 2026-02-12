@@ -533,7 +533,7 @@
                 </div>
 
                 <!-- Currency Table Content -->
-                <div id="section-currency" class="hidden p-4 md:p-10 text-xs overflow-x-auto">
+                <div id="section-currency" class="hidden p-2 md:p-4 text-xs overflow-x-auto">
                     <div id="currencyTable" class="min-h-[300px]"></div>
                 </div>
 
@@ -1122,9 +1122,26 @@
     }
 
     function generateExcelCurrencyHTML(dataRows, intrinsicValue) {
-        let html = `<table class="excel-table latin-nums">
-            <thead><tr><th class="w-1/4">source</th><th class="w-1/4">price</th><th class="w-1/4">item</th><th class="w-1/4">bubble (درهم)</th></tr></thead>
-            <tbody>`;
+        const now = new Date();
+        const jalaliDate = now.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        let html = `
+            <div class="flex justify-between items-center mb-3 px-2">
+                <span class="text-[10px] text-slate-400">📅 تاریخ پایش: ${jalaliDate}</span>
+                <span class="text-[10px] text-slate-400">قیمت‌ها بر مبنای تومان می‌باشد</span>
+            </div>
+            <table class="excel-table latin-nums">
+                <thead>
+                    <tr>
+                        <th class="text-right">آیتم (منبع)</th>
+                        <th>قیمت فعلی</th>
+                        <th>سقف / کف (امروز)</th>
+                        <th>حباب (درهم)</th>
+                        <th>آخرین بروزرسانی</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
         dataRows.forEach(row => {
             const displayPrice = row.price > 0 ? Math.round(row.price).toLocaleString() : '-';
             let bubbleHTML = '<span class="opacity-40">-</span>';
@@ -1134,18 +1151,36 @@
                 const bubblePct = (diff / intrinsicValue) * 100;
                 const bubbleClass = bubblePct > 0 ? 'text-emerald-400' : 'text-red-400';
                 bubbleHTML = `
-                    <div class="${bubbleClass} font-bold flex flex-col items-center leading-tight bubble-val">
-                        <span class="text-xs opacity-100">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
-                        <span class="text-xl num-sm">(${Math.round(diff).toLocaleString()})</span>
+                    <div class="${bubbleClass} font-bold flex flex-col items-center leading-tight">
+                        <span class="text-xs">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
+                        <span class="text-[10px] opacity-60">(${Math.round(diff).toLocaleString()})</span>
                     </div>`;
             }
 
+            const rangeHTML = row.high > 0 ? `
+                <div class="flex flex-col items-center gap-2">
+                    <div class="flex flex-col items-center leading-none">
+                        <span class="text-[10px] text-emerald-400 font-bold">Max +${Math.round(row.high).toLocaleString()}</span>
+                        <span class="text-[9px] text-slate-500 font-mono mt-0.5">${row.highTime}</span>
+                    </div>
+                    <div class="flex flex-col items-center leading-none">
+                        <span class="text-[10px] text-red-400 font-bold">Min -${Math.round(row.low).toLocaleString()}</span>
+                        <span class="text-[9px] text-slate-500 font-mono mt-0.5">${row.lowTime}</span>
+                    </div>
+                </div>` : '<span class="opacity-30">-</span>';
+
             html += `
                 <tr>
-                    <td class="text-xs opacity-90 live-price-text">${row.source}</td>
+                    <td class="text-right">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-100">${row.item}</span>
+                            <span class="text-[9px] opacity-50">${row.source}</span>
+                        </div>
+                    </td>
                     <td class="text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
-                    <td class="text-sm font-bold intrinsic-text">${row.item}</td>
+                    <td>${rangeHTML}</td>
                     <td>${bubbleHTML}</td>
+                    <td class="text-[10px] opacity-40 font-mono ltr">${row.time}</td>
                 </tr>`;
         });
         return html + `</tbody></table>`;
@@ -1176,7 +1211,8 @@
 
         try {
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes, bubbleFluctuationsRes] = await Promise.all([
+            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes, bubbleFluctuationsRes,
+                   tetherHistoryRes, sabzaHistoryRes, heratHistoryRes, dhsHistoryRes, currHistoryRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('price_logs').select('*').eq('info', 'هرات معامله فردایی ⏳').order('id', { ascending: false }).limit(1),
@@ -1188,17 +1224,21 @@
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
                 client.from('justOunce').select('price_blue').gte('created_at', startOfToday.toISOString()),
                 client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
-                client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString()) // Modified select
+                client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString()),
+                // Range Fetches with Timestamps
+                client.from('USDTTetherp').select('price_USDTTetherp, created_at_USDTTetherp').eq('type_USDTTetherp', 'فروش').gte('created_at_USDTTetherp', startOfToday.toISOString()),
+                client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').eq('type', 'معامله فردایی ✅').gte('created_at', startOfToday.toISOString()),
+                client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', startOfToday.toISOString()),
+                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startOfToday.toISOString()),
+                client.from('irancurrency_price').select('dollar, euro, dirham, pound, created_at').gte('created_at', startOfToday.toISOString())
             ]);
 
             const curr = currRes.data?.[0] || {};
-            const prices = pricesRes.data?.[0] || {};
             const sabza = sabzaRes.data?.[0] || {};
             const herat = heratRes.data?.[0] || {};
             const tether = tetherRes.data?.[0] || {};
             const dirhamRate = dirhamRateRes.data?.[0] || {};
 
-            // --- Updated: Using Dirham Rate source for inherent dollar calculation ---
             let dhsPrice = parsePrice(dirhamRate.rate_value_dirham_rate); 
             if (dhsPrice > 200000) dhsPrice /= 10;
             const dhsTime = dirhamRate.created_at_dirham_rate ? new Date(dirhamRate.created_at_dirham_rate).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
@@ -1208,60 +1248,34 @@
             const ouncePrice = parsePrice(ounceRes.data?.[0]?.price_blue);
             const inherentGold = (ouncePrice > 0 && sabzaDollar > 0) ? (ouncePrice / OUNCE_TO_GRAM) * PURITY_18K * sabzaDollar : 0;
 
-            // --- TRADE LOGIC UPDATE: Update live price for calculator ---
             let magholiGold = parsePrice(magholiRes.data?.[0]?.gram_sell_magholi);
             if (magholiGold > 100000000) magholiGold /= 10;
 
             let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
             if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
             
-            // Use Buy Price for Trade Assistant P/L as requested
             currentLiveGoldPrice = magholiGoldBuy; 
             updateTradeStats(); 
-            // ------------------------------------------------------------
             
-            // --- NEW BUBBLE LOGIC ---
-            // 1. Calculate Current Bubble (on Sell Price)
             const currentBubble = (magholiGold > 0 && inherentGold > 0) ? (magholiGold - inherentGold) : null;
-            
-            // 2. Insert into DB (fire and forget for performance)
             if (currentBubble !== null) {
                 client.from('bubble_fluctuations').insert([{ bubble_value: currentBubble }]).then(({error}) => {
                     if(error) console.error("Error logging bubble:", error);
                 });
             }
 
-            // 3. Determine Max/Min Bubble from fetched data + current
-            let bHigh = -Infinity;
-            let bLow = Infinity;
-            let bHighTime = null;
-            let bLowTime = null;
-
+            let bHigh = -Infinity, bLow = Infinity, bHighTime = null, bLowTime = null;
             if (bubbleFluctuationsRes.data && bubbleFluctuationsRes.data.length > 0) {
                 bubbleFluctuationsRes.data.forEach(b => {
-                    if (b.bubble_value > bHigh) {
-                        bHigh = b.bubble_value;
-                        bHighTime = b.created_at;
-                    }
-                    if (b.bubble_value < bLow) {
-                        bLow = b.bubble_value;
-                        bLowTime = b.created_at;
-                    }
+                    if (b.bubble_value > bHigh) { bHigh = b.bubble_value; bHighTime = b.created_at; }
+                    if (b.bubble_value < bLow) { bLow = b.bubble_value; bLowTime = b.created_at; }
                 });
             }
-            // Include current bubble in range if it's new extreme
             if (currentBubble !== null) {
                 const nowISO = new Date().toISOString();
-                if (currentBubble > bHigh) {
-                    bHigh = currentBubble;
-                    bHighTime = nowISO;
-                }
-                if (currentBubble < bLow) {
-                    bLow = currentBubble;
-                    bLowTime = nowISO;
-                }
+                if (currentBubble > bHigh) { bHigh = currentBubble; bHighTime = nowISO; }
+                if (currentBubble < bLow) { bLow = currentBubble; bLowTime = nowISO; }
             }
-            // ------------------------
 
             document.getElementById('inherent-gold-value').innerText = inherentGold > 0 ? Math.round(inherentGold).toLocaleString() : "---,---";
             document.getElementById('inherent-gold-info').innerHTML = `
@@ -1279,36 +1293,41 @@
                     </div>
                 </div>`;
 
-            let mHigh = 0, mLow = Infinity;
-            if (magRangeRes.data && magRangeRes.data.length > 0) {
-                magRangeRes.data.forEach(r => {
-                    let p = parsePrice(r.mesghal_sell_magholi);
-                    if (p > 200000000) p /= 10;
-                    if (p > 0) {
-                        const gram18 = p / 4.3318;
-                        if (gram18 > mHigh) mHigh = gram18;
-                        if (gram18 < mLow) mLow = gram18;
+            // Updated range calculation to include formatted timestamps
+            const calculateRangeWithTime = (arr, key, timeKey) => {
+                if(!arr || arr.length === 0) return { high: 0, low: 0, highTime: '-', lowTime: '-' };
+                let h = -Infinity, l = Infinity, hT = '-', lT = '-';
+                arr.forEach(x => {
+                    let val = parsePrice(x[key]);
+                    if (val > 1000000 && (key === 'price' || key === 'dollar' || key === 'tahran_sabza_price_dollar')) val /= 10;
+                    if (val > 0) {
+                        if (val > h) { h = val; hT = x[timeKey]; }
+                        if (val < l) { l = val; lT = x[timeKey]; }
                     }
                 });
-            }
-            if (mLow === Infinity) mLow = 0;
-            
-            let oHigh = 0, oLow = Infinity;
-            if (ounceRangeRes.data && ounceRangeRes.data.length > 0) {
-                ounceRangeRes.data.forEach(r => {
-                    let p = parsePrice(r.price_blue);
-                    if (p > 0) {
-                        if (p > oHigh) oHigh = p;
-                        if (p < oLow) oLow = p;
-                    }
-                });
-            }
-            if (oLow === Infinity) oLow = 0;
+                const fmt = (t) => t && t !== '-' ? new Date(t).toLocaleTimeString('en-GB', { hour12: false }) : '-';
+                return { high: h === -Infinity ? 0 : h, low: l === Infinity ? 0 : l, highTime: fmt(hT), lowTime: fmt(lT) };
+            };
+
+            const tRange = calculateRangeWithTime(tetherHistoryRes.data, 'price_USDTTetherp', 'created_at_USDTTetherp');
+            const sRange = calculateRangeWithTime(sabzaHistoryRes.data, 'tahran_sabza_price_dollar', 'created_at');
+            const hRange = calculateRangeWithTime(heratHistoryRes.data, 'price', 'created_at');
+            const dhsRange = calculateRangeWithTime(dhsHistoryRes.data, 'rate_value_dirham_rate', 'created_at_dirham_rate');
+            const currRanges = {
+                dollar: calculateRangeWithTime(currHistoryRes.data, 'dollar', 'created_at'),
+                euro: calculateRangeWithTime(currHistoryRes.data, 'euro', 'created_at'),
+                dirham: calculateRangeWithTime(currHistoryRes.data, 'dirham', 'created_at'),
+                pound: calculateRangeWithTime(currHistoryRes.data, 'pound', 'created_at')
+            };
+
+            const mHigh = magRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), 0) || 0;
+            const mLow = magRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), Infinity) || 0;
+            const oHigh = ounceRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.price_blue)), 0) || 0;
+            const oLow = ounceRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.price_blue)), Infinity) || 0;
 
             const goldSources = [
-                // Pass calculated bubble Max/Min to the table
-                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
-                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow }
+                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow === Infinity ? 0 : mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
+                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow }
             ];
 
             const goldAssets = [
@@ -1327,31 +1346,32 @@
             ];
             document.getElementById('goldTable').innerHTML = generateGoldTableHTML(goldSources, goldAssets);
 
-            let hPrice = parsePrice(herat.price); if (hPrice > 1000000) hPrice /= 10;
+            const formatTime = (iso) => iso ? new Date(iso).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-';
+            
+            const hPrice = parsePrice(herat.price) > 1000000 ? parsePrice(herat.price)/10 : parsePrice(herat.price);
+            const dPrice = parsePrice(curr.dollar) > 1000000 ? parsePrice(curr.dollar)/10 : parsePrice(curr.dollar);
+
             const currencyData = [
-                { source: 'تتر پایتخت', price: parsePrice(tether.price_USDTTetherp), item: 'تتر فروش', isDollar: true },
-                { source: 'iran currency', price: parsePrice(curr.dollar), item: 'دلار آزاد', isDollar: true },
-                { source: 'price_logs', price: hPrice, item: 'دلار هرات فردایی', isDollar: true },
-                { source: 'tehran_sabza', price: sabzaDollar, item: 'دلار سبزه‌میدان (فردایی)', isDollar: true },
-                { source: 'DHS driham', price: inherentDollar, item: 'ارزش ذاتی دلار (از درهم)', isDollar: false },
-                { source: 'iran currency', price: parsePrice(curr.euro), item: 'یورو', isDollar: false },
-                { source: 'Dirham Rate', price: parsePrice(dirhamRate.rate_value_dirham_rate), item: 'درهم', isDollar: false },
-                { source: 'DHS driham', price: dhsPrice, item: 'درهم', isDollar: false },
-                { source: 'iran currency', price: parsePrice(curr.dirham), item: 'درهم', isDollar: false },
-                { source: 'iran currency', price: parsePrice(curr.pound), item: 'پوند', isDollar: false }
+                { source: 'تتر پایتخت', item: 'تتر فروش', price: parsePrice(tether.price_USDTTetherp), isDollar: true, high: tRange.high, low: tRange.low, highTime: tRange.highTime, lowTime: tRange.lowTime, time: formatTime(tether.created_at_USDTTetherp) },
+                { source: 'ایران کارنسی', item: 'دلار آزاد', price: dPrice, isDollar: true, high: currRanges.dollar.high, low: currRanges.dollar.low, highTime: currRanges.dollar.highTime, lowTime: currRanges.dollar.lowTime, time: formatTime(curr.created_at) },
+                { source: 'رهدیس لاگ', item: 'دلار هرات فردایی', price: hPrice, isDollar: true, high: hRange.high, low: hRange.low, highTime: hRange.highTime, lowTime: hRange.lowTime, time: formatTime(herat.created_at) },
+                { source: 'سبزه میدان', item: 'دلار فردایی', price: sabzaDollar, isDollar: true, high: sRange.high, low: sRange.low, highTime: sRange.highTime, lowTime: sRange.lowTime, time: formatTime(sabza.created_at) },
+                { source: 'DHS درهم', item: 'ارزش ذاتی دلار', price: inherentDollar, isDollar: false, high: dhsRange.high * DIRHAM_TO_DOLLAR, low: dhsRange.low * DIRHAM_TO_DOLLAR, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
+                { source: 'ایران کارنسی', item: 'یورو', price: parsePrice(curr.euro), isDollar: false, high: currRanges.euro.high, low: currRanges.euro.low, highTime: currRanges.euro.highTime, lowTime: currRanges.euro.lowTime, time: formatTime(curr.created_at) },
+                { source: 'نوسان نرخ', item: 'درهم امارات', price: dhsPrice, isDollar: false, high: dhsRange.high, low: dhsRange.low, highTime: dhsRange.highTime, lowTime: dhsRange.lowTime, time: formatTime(dirhamRate.created_at_dirham_rate) },
+                { source: 'ایران کارنسی', item: 'پوند انگلیس', price: parsePrice(curr.pound), isDollar: false, high: currRanges.pound.high, low: currRanges.pound.low, highTime: currRanges.pound.highTime, lowTime: currRanges.pound.lowTime, time: formatTime(curr.created_at) }
             ];
+            
             document.getElementById('currencyTable').innerHTML = generateExcelCurrencyHTML(currencyData, inherentDollar);
             
             document.getElementById('connectionStatus').innerText = "آنلاین";
             document.getElementById('lastUpdateTime').innerText = new Date().toLocaleTimeString('fa-IR');
             
-            // Restart timer
             startTimer();
-            
             if (!maqholiChart) loadMaqholiChart('today');
         } catch (e) { 
             console.error(e);
-            startTimer(); // Ensure timer restarts even on error
+            startTimer();
         }
     }
 
@@ -1367,20 +1387,16 @@
             data.forEach(r => {
                 const date = new Date(r.created_at);
                 if (isNaN(date.getTime())) return;
-                
                 let key;
                 if (timeframe === 'today') {
-                    // Grouping by 15-minute intervals
                     const minutes = date.getMinutes();
                     const quarter = Math.floor(minutes / 15) * 15;
                     key = `${date.getHours().toString().padStart(2, '0')}:${quarter.toString().padStart(2, '0')}`;
                 } else {
                     key = r.date_magholi;
                 }
-                
                 let p = parsePrice(r.mesghal_sell_magholi); 
                 if (p > 200000000) p /= 10;
-                
                 if (p > 0) {
                     const gram18 = p / 4.3318;
                     if (!groups[key]) {
@@ -1849,7 +1865,6 @@
         const client = getSupabaseClient();
         if (!client) return;
 
-        // 1. Get Prices
         const { data: priceData } = await client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1);
         const p = priceData?.[0] || {};
         const prices = {
@@ -1862,7 +1877,6 @@
             'IRR': 1
         };
 
-        // 2. Get Assets & Transactions
         const { data: assets } = await client.from('custom_assets').select('*');
         const { data: txs } = await client.from('portfolio_transactions').select('*');
 
@@ -1871,19 +1885,14 @@
             return;
         }
 
-        // 3. Calc Balances
         const balances = {};
         txs.forEach(tx => {
             const qty = parseFloat(tx.quantity);
             if (!balances[tx.asset_type]) balances[tx.asset_type] = 0;
-            // Assuming quantity stored is already signed (positive for buy, negative for sell)
             balances[tx.asset_type] += qty;
         });
 
-        // 4. Calc Totals per Category
         let cats = { 'نقد (IRR)': 0, 'طلا و سکه': 0, 'ارزها': 0, 'کالا/سایر': 0 };
-        
-        // System Assets Mapping
         const sysCat = {
             'GOLD_18K': 'طلا و سکه', 'FULL_COIN': 'طلا و سکه', 'HALF_COIN': 'طلا و سکه', 'QUARTER_COIN': 'طلا و سکه',
             'IRR': 'نقد (IRR)', 'USD': 'ارزها', 'EUR': 'ارزها'
@@ -1891,26 +1900,19 @@
 
         Object.keys(balances).forEach(key => {
             const bal = balances[key];
-            if (bal <= 0.0001) return; // Ignore zero/dust
-
+            if (bal <= 0.0001) return;
             let val = 0;
             let cat = 'کالا/سایر';
-
             if (sysCat[key]) {
                 cat = sysCat[key];
                 val = bal * (prices[key] || 0);
             } else {
-                // Custom Asset
                 const custom = assets?.find(a => a.asset_key === key);
-                if (custom) {
-                    const price = parseFloat(custom.value) || 0; 
-                    val = bal * price;
-                }
+                if (custom) { val = bal * (parseFloat(custom.value) || 0); }
             }
             cats[cat] += val;
         });
 
-        // 5. Render
         const total = Object.values(cats).reduce((a,b)=>a+b, 0);
         const series = Object.values(cats);
         const labels = Object.keys(cats);
@@ -1952,7 +1954,6 @@
                 y: { formatter: (val) => parseInt(val).toLocaleString() + ' تومان' }
             }
         };
-
         new ApexCharts(document.querySelector("#portfolio-pie-chart"), options).render();
     }
 </script>
