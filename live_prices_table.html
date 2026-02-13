@@ -1137,7 +1137,6 @@
                         <th>قیمت فعلی</th>
                         <th>سقف / کف (امروز)</th>
                         <th>حباب (درهم)</th>
-                        <th>آخرین بروزرسانی</th>
                     </tr>
                 </thead>
                 <tbody>`;
@@ -1152,19 +1151,19 @@
                 const bubbleClass = bubblePct > 0 ? 'text-emerald-400' : 'text-red-400';
                 bubbleHTML = `
                     <div class="${bubbleClass} font-bold flex flex-col items-center leading-tight">
-                        <span class="text-xs">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
-                        <span class="text-[10px] opacity-60">(${Math.round(diff).toLocaleString()})</span>
+                        <span class="num-sm text-xs">${bubblePct > 0 ? '+' : ''}${bubblePct.toFixed(1)}%</span>
+                        <span class="num-sm text-[10px] opacity-60">(${Math.round(diff).toLocaleString()})</span>
                     </div>`;
             }
 
             const rangeHTML = row.high > 0 ? `
                 <div class="flex flex-col items-center gap-2">
                     <div class="flex flex-col items-center leading-none">
-                        <span class="text-[10px] text-emerald-400 font-bold">Max +${Math.round(row.high).toLocaleString()}</span>
+                        <span class="num-sm text-[10px] text-emerald-400 font-bold">Max +${Math.round(row.high).toLocaleString()}</span>
                         <span class="text-[9px] text-slate-500 font-mono mt-0.5">${row.highTime}</span>
                     </div>
                     <div class="flex flex-col items-center leading-none">
-                        <span class="text-[10px] text-red-400 font-bold">Min -${Math.round(row.low).toLocaleString()}</span>
+                        <span class="num-sm text-[10px] text-red-400 font-bold">Min -${Math.round(row.low).toLocaleString()}</span>
                         <span class="text-[9px] text-slate-500 font-mono mt-0.5">${row.lowTime}</span>
                     </div>
                 </div>` : '<span class="opacity-30">-</span>';
@@ -1180,7 +1179,6 @@
                     <td class="text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
                     <td>${rangeHTML}</td>
                     <td>${bubbleHTML}</td>
-                    <td class="text-[10px] opacity-40 font-mono ltr">${row.time}</td>
                 </tr>`;
         });
         return html + `</tbody></table>`;
