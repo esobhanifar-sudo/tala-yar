@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>تابلوی زنده نرخ‌ها و حباب | رهدیس</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -12,28 +12,18 @@
     <!-- CHARTS LIBRARY -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     
-    <!-- Optional: External Auth Script -->
-    <script src="auth.js" onerror="console.warn('auth.js failed to load. Running in standalone mode.')"></script>
-    
     <script>
+        // Standalone Auth Logic (Inline replacement for auth.js)
+        const checkAuthGuard = () => {
+            console.log("Running in standalone/demo mode.");
+            // In a real app, check localStorage or Supabase session here
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Safe check for auth guard if it exists in auth.js
-            if (typeof checkAuthGuard === 'function') {
-                checkAuthGuard();
-            } else {
-                console.log("Standalone mode: skipping auth check.");
-            }
-            
-            // Load Settings
+            checkAuthGuard();
             loadSettings();
-            
-            // Initialize Session Manager (Replaces direct fetchOrders)
             initSessionManager();
-
-            // Initial Fetch (Timer will start automatically after fetch)
             fetchLiveTicker();
-
-            // Fetch Portfolio Distribution for Widget
             fetchPortfolioStats();
         });
     </script>
@@ -43,7 +33,7 @@
         :root {
             --num-scale: 1;
             --bg-color: #0f172a;
-            --text-color: #f8fafc; /* Higher contrast white for dark mode */
+            --text-color: #f8fafc;
             --panel-bg: rgba(30, 41, 59, 0.8);
             --panel-border: rgba(255, 255, 255, 0.15);
             --item-hover: rgba(255,255,255,0.05);
@@ -73,7 +63,14 @@
             color: var(--text-color); 
             transition: background-color 0.3s, color 0.3s, filter 0.3s;
             overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
         .glass-panel { 
             background: var(--panel-bg); 
@@ -98,7 +95,7 @@
         }
 
         .widget-main-num {
-            font-size: calc(2.25rem * var(--num-scale));
+            font-size: calc(1.8rem * var(--num-scale)); /* Adjusted for mobile */
             line-height: 1;
             font-weight: 900;
             color: white;
@@ -108,6 +105,7 @@
         @media (min-width: 768px) {
             :root { --num-weight: 800; }
             .num-sm { text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+            .widget-main-num { font-size: calc(2.25rem * var(--num-scale)); }
             body:not(.light-mode) .latin-nums:not(.intrinsic-text) { color: #ffffff !important; }
             body.light-mode .latin-nums { color: #0f172a !important; }
         }
@@ -128,11 +126,11 @@
             text-align: center;
             background: rgba(51, 65, 85, 0.4);
             text-transform: lowercase;
-            opacity: 1; /* Maximum contrast for headers */
+            font-size: 0.75rem;
         }
         .excel-table td {
             border: 1px solid var(--border-color);
-            padding: 14px 10px;
+            padding: 10px 8px;
             text-align: center;
             vertical-align: middle;
         }
@@ -155,7 +153,7 @@
             background-color: rgba(245, 158, 11, 0.12);
         }
         .intrinsic-text {
-            color: #fbbf24 !important; /* Brighter amber for contrast */
+            color: #fbbf24 !important;
         }
         .live-price-text {
             color: #ffffff !important;
@@ -168,8 +166,8 @@
         #trade-panel {
             position: fixed;
             top: 0;
-            left: -400px; /* Hidden by default */
-            width: 100%;
+            left: -100%; /* Changed from -400px for mobile safety */
+            width: 85%; /* Responsive width for mobile */
             max-width: var(--trade-panel-width);
             height: 100vh;
             background: var(--bg-color);
@@ -183,6 +181,22 @@
         #trade-panel.open {
             left: 0;
         }
+        /* Overlay for mobile when sidebar is open */
+        #trade-panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
+            z-index: 40;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #trade-panel.open + #trade-panel-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .trade-input {
             background: rgba(255,255,255,0.05);
             border: 1px solid var(--border-color);
@@ -199,8 +213,8 @@
         }
         .unit-toggle {
             cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 10px; /* Larger touch target */
+            border-radius: 6px;
             font-size: 0.75rem;
             background: rgba(255,255,255,0.1);
             transition: all 0.2s;
@@ -213,7 +227,7 @@
         .input-label-sm {
             font-size: 0.65rem;
             opacity: 0.5;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             display: block;
         }
         select.trade-select {
@@ -221,8 +235,8 @@
             color: white;
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 0.75rem;
+            padding: 8px; /* Larger padding */
+            font-size: 0.8rem;
             outline: none;
             width: 100%;
         }
@@ -238,45 +252,58 @@
         .trend-up { color: #34d399; }
         .trend-down { color: #f87171; }
         .trend-neutral { color: #94a3b8; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 640px) {
+            .container { padding-left: 1rem; padding-right: 1rem; }
+            h1 { font-size: 1.5rem !important; }
+            .header-buttons {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .header-buttons button, .header-buttons a {
+                flex: 1 1 auto;
+                justify-content: center;
+                min-width: 120px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20">
 
     <!-- Header & Brand -->
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div class="text-center md:text-right">
-            <h1 class="text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
+        <div class="text-center md:text-right w-full md:w-auto">
+            <h1 class="text-2xl md:text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
                 <div class="p-2 bg-amber-500/10 rounded-2xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
                  رهدیس لایو
             </h1>
-            <p class="text-xs opacity-90 mt-1 mr-1 text-slate-200">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
+            <p class="text-xs opacity-90 mt-1 mr-1 text-slate-200 hidden md:block">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
-        <div class="flex items-center gap-3">
-            <button onclick="generateMorningReport()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 px-4 py-2.5 rounded-xl text-sm transition border border-indigo-500/20 flex items-center gap-2 font-bold shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                گزارش صبحگاهی
+        
+        <!-- Action Buttons (Responsive Wrapper) -->
+        <div class="header-buttons flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+            <button onclick="generateMorningReport()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm transition border border-indigo-500/20 flex items-center gap-2 font-bold shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                گزارش صبح
             </button>
-            <button onclick="toggleTradePanel()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-4 py-2.5 rounded-xl text-sm transition border border-emerald-500/20 flex items-center gap-2 font-bold shadow-lg shadow-emerald-900/20">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button onclick="toggleTradePanel()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm transition border border-emerald-500/20 flex items-center gap-2 font-bold shadow-lg shadow-emerald-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 دستیار ترید
             </button>
-            <button onclick="handleLogout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl text-sm transition border border-red-500/20 flex items-center gap-2">
+            <button onclick="handleLogout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm transition border border-red-500/20 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 خروج
             </button>
-            <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-100 px-5 py-2.5 rounded-xl text-sm transition border border-slate-600 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0 a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                بازگشت به خانه
-            </a>
-            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm transition font-bold shadow-lg flex items-center gap-2 group">
+            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-xl text-xs md:text-sm transition font-bold shadow-lg flex items-center gap-2 group w-full md:w-auto justify-center md:justify-start mt-2 md:mt-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 بروزرسانی
             </button>
@@ -291,8 +318,8 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                     ماشین‌حساب ترید
                 </h3>
-                <button onclick="toggleTradePanel()" class="p-1 rounded-lg hover:bg-white/10 text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                <button onclick="toggleTradePanel()" class="p-2 rounded-lg hover:bg-white/10 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             
@@ -301,24 +328,24 @@
                 <select id="session-select" onchange="switchSession(this.value)" class="trade-select flex-1">
                     <option value="">در حال بارگذاری...</option>
                 </select>
-                <button onclick="promptNewSession()" class="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 p-1.5 rounded-lg border border-emerald-500/20" title="نشست جدید">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <button onclick="promptNewSession()" class="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 p-2 rounded-lg border border-emerald-500/20" title="نشست جدید">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 </button>
                 <div class="relative group">
-                    <button class="bg-slate-700/50 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-white/10">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                    <button class="bg-slate-700/50 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-white/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
                     </button>
                     <!-- Session Menu -->
                     <div class="absolute left-0 mt-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-xl hidden group-hover:block z-50 overflow-hidden">
-                        <button onclick="toggleSessionStatus()" class="block w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5" id="btn-session-status">بستن نشست</button>
-                        <button onclick="renameSession()" class="block w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5">تغییر نام</button>
-                        <button onclick="deleteSession()" class="block w-full text-right px-3 py-2 text-xs text-red-400 hover:bg-red-900/20">حذف نشست</button>
+                        <button onclick="toggleSessionStatus()" class="block w-full text-right px-3 py-3 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5" id="btn-session-status">بستن نشست</button>
+                        <button onclick="renameSession()" class="block w-full text-right px-3 py-3 text-xs text-slate-300 hover:bg-slate-700 border-b border-white/5">تغییر نام</button>
+                        <button onclick="deleteSession()" class="block w-full text-right px-3 py-3 text-xs text-red-400 hover:bg-red-900/20">حذف نشست</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
             <!-- Asset Selector & Summary -->
             <div class="bg-white/5 rounded-xl p-3 border border-white/5">
                 <div class="flex justify-between text-xs mb-3 opacity-60">
@@ -329,15 +356,15 @@
                 <div class="grid grid-cols-2 gap-2 text-center mb-3">
                     <div class="bg-black/20 p-2 rounded-lg col-span-2">
                         <div class="text-[9px] opacity-50">موجودی (گرم)</div>
-                        <div id="trade-net-weight" class="text-sm font-bold latin-nums mt-1 text-white">0.00</div>
+                        <div id="trade-net-weight" class="text-base font-bold latin-nums mt-1 text-white">0.00</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
                         <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید</div>
-                        <div id="trade-avg-buy-display" class="text-sm font-bold latin-nums mt-1 text-white">0</div>
+                        <div id="trade-avg-buy-display" class="text-xs font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
                         <div class="text-[9px] opacity-50 text-red-400">میانگین فروش</div>
-                        <div id="trade-avg-sell-display" class="text-sm font-bold latin-nums mt-1 text-white">0</div>
+                        <div id="trade-avg-sell-display" class="text-xs font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                 </div>
 
@@ -360,14 +387,14 @@
             <!-- Input Form -->
             <div id="trade-input-form" class="space-y-3 transition-opacity">
                 <div class="flex bg-slate-800/50 p-1 rounded-lg">
-                    <button onclick="setTradeSide('buy')" id="btn-side-buy" class="flex-1 py-1.5 rounded-md text-xs font-bold bg-emerald-600 text-white transition-all">خرید</button>
-                    <button onclick="setTradeSide('sell')" id="btn-side-sell" class="flex-1 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:text-white transition-all">فروش</button>
+                    <button onclick="setTradeSide('buy')" id="btn-side-buy" class="flex-1 py-2 rounded-md text-sm font-bold bg-emerald-600 text-white transition-all">خرید</button>
+                    <button onclick="setTradeSide('sell')" id="btn-side-sell" class="flex-1 py-2 rounded-md text-sm font-bold text-slate-400 hover:text-white transition-all">فروش</button>
                 </div>
 
                 <div class="bg-slate-800/30 p-2 rounded-lg border border-white/5">
                     <span class="input-label-sm">مقدار وزن</span>
                     <div class="flex items-center gap-2">
-                        <input type="number" id="input-weight" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="وزن..." step="0.01">
+                        <input type="number" id="input-weight" class="bg-transparent text-white text-base w-full outline-none latin-nums p-1" placeholder="وزن..." step="0.01">
                         <div class="flex gap-1 bg-black/20 p-1 rounded">
                             <span onclick="setWeightUnit('gram')" id="weight-unit-gram" class="unit-toggle active">g</span>
                             <span onclick="setWeightUnit('mesghal')" id="weight-unit-mesghal" class="unit-toggle">مثقال</span>
@@ -378,10 +405,10 @@
                 <div class="bg-slate-800/30 p-2 rounded-lg border border-white/5">
                     <div class="flex justify-between items-center mb-1">
                         <span class="input-label-sm">قیمت واحد (فی)</span>
-                        <button onclick="fetchCurrentPrice()" class="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/30 transition">نرخ روز</button>
+                        <button onclick="fetchCurrentPrice()" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/30 transition">نرخ روز</button>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="input-price" class="bg-transparent text-white text-sm w-full outline-none latin-nums" placeholder="قیمت..." onkeyup="formatPriceInput(this)">
+                        <input type="text" id="input-price" class="bg-transparent text-white text-base w-full outline-none latin-nums p-1" placeholder="قیمت..." onkeyup="formatPriceInput(this)">
                         <div class="flex gap-1 bg-black/20 p-1 rounded">
                             <span onclick="setPriceUnit('gram')" id="price-unit-gram" class="unit-toggle active">/g</span>
                             <span onclick="setPriceUnit('mesghal')" id="price-unit-mesghal" class="unit-toggle">/مثقال</span>
@@ -390,11 +417,11 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button onclick="cancelEdit()" id="btn-cancel-edit" class="hidden px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <button onclick="cancelEdit()" id="btn-cancel-edit" class="hidden px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
-                    <button onclick="addOrder()" id="btn-submit-order" class="flex-1 w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    <button onclick="addOrder()" id="btn-submit-order" class="flex-1 w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-base font-bold transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                         ثبت معامله
                     </button>
                 </div>
@@ -418,6 +445,8 @@
             </div>
         </div>
     </div>
+    <!-- Overlay for closing trade panel on click outside -->
+    <div id="trade-panel-overlay" onclick="toggleTradePanel()"></div>
 
     <!-- Custom Confirmation Modal -->
     <div id="confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 hidden backdrop-blur-sm transition-opacity opacity-0" style="transition: opacity 0.2s ease-in-out;">
@@ -450,19 +479,20 @@
     <div id="briefing-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 hidden backdrop-blur-md transition-opacity opacity-0">
         <div class="bg-slate-900 border border-slate-600 rounded-3xl w-full max-w-4xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-slate-900 z-10">
-                <h3 class="text-xl font-bold text-white flex items-center gap-3">
+                <h3 class="text-lg md:text-xl font-bold text-white flex items-center gap-3">
                     <span class="p-2 bg-indigo-500/20 rounded-xl text-indigo-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                     </span>
-                    گزارش تحلیل صبحگاهی
-                    <span id="briefing-header-date" class="text-xs font-normal text-slate-400 mr-2"></span>
+                    <span class="hidden md:inline">گزارش تحلیل صبحگاهی</span>
+                    <span class="md:hidden">گزارش صبح</span>
+                    <span id="briefing-header-date" class="text-xs font-normal text-slate-400 mr-2 block md:inline"></span>
                 </h3>
                 <button onclick="closeBriefingModal()" class="p-2 hover:bg-white/10 rounded-xl text-slate-400 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             
-            <div id="briefing-content" class="p-6 space-y-6">
+            <div id="briefing-content" class="p-4 md:p-6 space-y-6">
                 <!-- Loading State -->
                 <div class="flex flex-col items-center justify-center py-20 opacity-50">
                     <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -478,13 +508,13 @@
             
             <!-- Header Widgets Area -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-8 flex flex-col justify-center shadow-xl">
+                <div id="inherent-gold-widget" class="bg-gradient-to-l from-amber-600/20 to-transparent border-r-4 border-amber-500 glass-panel rounded-3xl p-6 md:p-8 flex flex-col justify-center shadow-xl">
                     <div class="flex justify-between items-start mb-4">
                         <h2 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
                              ارزش ذاتی طلای ۱۸ عیار
                         </h2>
-                        <span class="text-[9px] opacity-80 font-bold text-amber-500">فرمول جهانی</span>
+                        <span class="text-[9px] opacity-80 font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">فرمول جهانی</span>
                     </div>
                     <div class="widget-main-num latin-nums tracking-tighter" id="inherent-gold-value-container">
                         <span id="inherent-gold-value" class="num-sm">---,---</span>
@@ -492,13 +522,13 @@
                     <div id="inherent-gold-info" class="mt-2 space-y-1"></div>
                 </div>
 
-                <div id="inherent-dollar-widget" class="bg-gradient-to-l from-blue-600/20 to-transparent border-r-4 border-blue-500 glass-panel rounded-3xl p-8 flex flex-col justify-center shadow-xl">
+                <div id="inherent-dollar-widget" class="bg-gradient-to-l from-blue-600/20 to-transparent border-r-4 border-blue-500 glass-panel rounded-3xl p-6 md:p-8 flex flex-col justify-center shadow-xl">
                     <div class="flex justify-between items-start mb-4">
                         <h2 class="text-sm font-extrabold text-blue-400 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                              ارزش ذاتی دلار (از درهم)
                         </h2>
-                        <span class="text-[9px] opacity-80 font-bold text-blue-400">فرمول درهم</span>
+                        <span class="text-[9px] opacity-80 font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">فرمول درهم</span>
                     </div>
                     <div class="widget-main-num latin-nums tracking-tighter" id="inherent-dollar-value-container">
                         <span id="inherent-dollar-value" class="num-sm">---,---</span>
@@ -510,15 +540,15 @@
             <!-- Main Display Container -->
             <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5 flex flex-col">
                 <div class="bg-slate-800/40 p-2 flex gap-2 border-b border-gray-500/10">
-                    <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn active-amber flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
-                        طلا و سکه (تومان)
+                    <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn active-amber flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2">
+                        طلا و سکه
                     </button>
-                    <button id="tab-btn-currency" onclick="switchTab('currency')" class="tab-btn text-slate-400 hover:text-white flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2">
-                        بازار ارز (تومان)
+                    <button id="tab-btn-currency" onclick="switchTab('currency')" class="tab-btn text-slate-400 hover:text-white flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2">
+                        بازار ارز
                     </button>
                 </div>
 
-                <div class="px-6 py-2 bg-slate-900/20 flex justify-between items-center border-b border-white/5">
+                <div class="px-4 py-3 md:px-6 md:py-2 bg-slate-900/20 flex flex-col md:flex-row justify-between items-center border-b border-white/5 gap-2">
                     <div class="flex items-center gap-2">
                         <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span id="connectionStatus" class="text-[10px] opacity-90">در حال دریافت...</span>
@@ -528,32 +558,32 @@
                 </div>
 
                 <!-- Gold Table Content -->
-                <div id="section-gold" class="p-2 md:p-4 text-xs overflow-x-auto">
+                <div id="section-gold" class="p-2 md:p-4 text-xs overflow-x-auto custom-scrollbar">
                     <div id="goldTable" class="min-h-[300px]"></div>
                 </div>
 
                 <!-- Currency Table Content -->
-                <div id="section-currency" class="hidden p-2 md:p-4 text-xs overflow-x-auto">
+                <div id="section-currency" class="hidden p-2 md:p-4 text-xs overflow-x-auto custom-scrollbar">
                     <div id="currencyTable" class="min-h-[300px]"></div>
                 </div>
 
                 <!-- Candlestick Chart -->
-                <div id="maqholi-chart-container" class="p-6 border-t border-white/5 relative overflow-hidden bg-slate-900/10">
+                <div id="maqholi-chart-container" class="p-4 md:p-6 border-t border-white/5 relative overflow-hidden bg-slate-900/10">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                        <div>
-                            <h3 class="text-md font-bold text-amber-500 flex items-center gap-2">
+                        <div class="text-center md:text-right">
+                            <h3 class="text-sm md:text-md font-bold text-amber-500 flex items-center justify-center md:justify-start gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
-                                تحلیل نوسانات طلای معقولی (۱۸ عیار)
+                                تحلیل نوسانات (۱۸ عیار)
                             </h3>
-                            <p class="text-[10px] opacity-80">پایش سقف و کف بر اساس بازه‌های ۱۵ دقیقه‌ای (Time_Maqholi)</p>
+                            <p class="text-[10px] opacity-80 mt-1">پایش سقف و کف بر اساس بازه‌های ۱۵ دقیقه‌ای</p>
                         </div>
                         <div class="flex bg-slate-800/50 p-1 rounded-xl border border-white/5">
                             <button onclick="loadMaqholiChart('today')" id="btn-chart-today" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-lg">امروز</button>
                             <button onclick="loadMaqholiChart('week')" id="btn-chart-week" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">هفته جاری</button>
                         </div>
                     </div>
-                    <div id="maqholi-candle-chart" class="min-h-[280px] w-full">
-                        <div class="flex items-center justify-center h-[280px] opacity-60 text-[10px]">در حال پردازش کندل‌ها...</div>
+                    <div id="maqholi-candle-chart" class="min-h-[250px] w-full">
+                        <div class="flex items-center justify-center h-[250px] opacity-60 text-[10px]">در حال پردازش کندل‌ها...</div>
                     </div>
                 </div>
             </div>
@@ -580,11 +610,11 @@
                 </h3>
                 
                 <div class="grid grid-cols-2 gap-3 mb-8">
-                    <button onclick="toggleTheme()" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-500/10 hover:bg-gray-500/20 transition border border-gray-500/20 group">
+                    <button onclick="toggleTheme()" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-500/10 hover:bg-gray-500/20 transition border border-gray-500/20 group touch-manipulation">
                         <span class="text-2xl mb-2">🌓</span>
                         <span class="text-[10px] font-bold">تغییر تم</span>
                     </button>
-                    <button onclick="toggleEyeCare()" id="eyeCareBtn" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-500/10 hover:bg-gray-500/20 transition border border-gray-500/20 group">
+                    <button onclick="toggleEyeCare()" id="eyeCareBtn" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-500/10 hover:bg-gray-500/20 transition border border-gray-500/20 group touch-manipulation">
                         <span class="text-2xl mb-2">👓</span>
                         <span class="text-[10px] font-bold">محافظ چشم</span>
                     </button>
@@ -596,7 +626,7 @@
                         <span id="scaleValueDisplay" class="text-amber-500 font-mono font-bold">1.0x</span>
                     </label>
                     <input type="range" id="fontScaleSlider" min="0.8" max="3.0" step="0.1" value="1" 
-                           oninput="updateNumberScale(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                           oninput="updateNumberScale(this.value)" class="w-full h-4 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                 </div>
 
                 <div class="mt-10 p-5 bg-amber-500/5 rounded-3xl border border-amber-500/10 text-[10px] leading-relaxed opacity-100 text-slate-300">
@@ -623,7 +653,7 @@
     let isLightMode = false;
     let activeTab = 'gold'; 
     let maqholiChart = null;
-    let timerInterval = null; // To hold the countdown interval ID
+    let timerInterval = null; 
     
     const OUNCE_TO_GRAM = 31.1035;
     const PURITY_18K = 0.75;
@@ -635,10 +665,10 @@
     let tradeSide = 'buy';
     let inputWeightUnit = 'gram';
     let inputPriceUnit = 'gram';
-    let editingOrderId = null; // Track if we are editing
-    let currentSession = { orders: [] }; // Legacy structure, will be replaced by activeSession
-    let activeSession = null; // New Session Object
-    let sessions = []; // List of sessions
+    let editingOrderId = null; 
+    let currentSession = { orders: [] }; 
+    let activeSession = null; 
+    let sessions = []; 
     let currentLiveGoldPrice = 0; 
     
     // --- Confirmation Modal Logic ---
@@ -719,7 +749,6 @@
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
         
-        // Display Exact Date
         const dateStr = yesterday.toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         document.getElementById('briefing-header-date').innerText = `(مربوط به ${dateStr})`;
 
@@ -738,29 +767,25 @@
                 client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true })
             ]);
 
-            // Helper to analyze data array
             const analyze = (data, priceKey) => {
                 if (!data || data.length === 0) return null;
                 let high = -Infinity, low = Infinity;
                 data.forEach(item => {
                     let p = parsePrice(item[priceKey]);
-                    if (p > 200000000) p /= 10; // Basic sanitization
+                    if (p > 200000000) p /= 10; 
                     if (p > high) high = p;
                     if (p < low) low = p;
                 });
                 const close = parsePrice(data[data.length - 1][priceKey]);
-                // Re-sanitize close if needed
                 const finalClose = close > 200000000 ? close/10 : close;
                 
                 return {
                     high, low, close: finalClose,
                     range: high - low,
-                    change: 0 // Ideally compare with day before yesterday, but skipping for simplicity
+                    change: 0 
                 };
             };
 
-            // --- Robust Fallback Mechanism ---
-            // If any endpoint returned empty for "yesterday" (e.g. holiday), fetch the latest available data
             let oData = ounceRes.data;
             if (!oData || oData.length === 0) {
                 const res = await client.from('justOunce').select('price_blue, created_at').order('id', { ascending: false }).limit(1);
@@ -775,7 +800,6 @@
 
             let dData = dirhamRes.data;
             if (!dData || dData.length === 0) {
-                // Dirham often updates less frequently. Fallback to latest.
                 const res = await client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').order('id_dirham_rate', { ascending: false }).limit(1);
                 dData = res.data || [];
             }
@@ -791,7 +815,6 @@
             const dirhamStats = analyze(dData, 'rate_value_dirham_rate');
             const heratStats = analyze(hData, 'price');
 
-            // Calculations
             let gpi = 0;
             if (ounceStats && ounceStats.range > 0) {
                 gpi = (ounceStats.close - ounceStats.low) / ounceStats.range;
@@ -799,34 +822,28 @@
 
             const impliedDollar = dirhamStats ? dirhamStats.close * DIRHAM_TO_DOLLAR : 0;
             
-            // Intrinsic Gold Calculation (Based on yesterday close)
             let intrinsicGold = 0;
             if (ounceStats && sabzaStats) {
                 intrinsicGold = (ounceStats.close / OUNCE_TO_GRAM) * PURITY_18K * sabzaStats.close;
             }
 
-            // Scoring
             let score = 0;
             if (gpi > 0.66) score += 1; else if (gpi < 0.33) score -= 1;
             
-            // FX Pressure
             let fxPressure = "خنثی";
             if (sabzaStats && heratStats) {
                 if (heratStats.close > sabzaStats.close) { score += 1; fxPressure = "فشار خرید (هرات بالاتر)"; }
                 else if (heratStats.close < sabzaStats.close) { score -= 1; fxPressure = "فشار فروش"; }
             }
             
-            if (sabzaStats && impliedDollar > sabzaStats.close + 200) score += 1; // Dirham pushing up
+            if (sabzaStats && impliedDollar > sabzaStats.close + 200) score += 1; 
 
-            // Intrinsic Gap (Hypothetical opening gap)
             let gapMsg = "محاسبه نشده";
             if (currentLiveGoldPrice > 0 && intrinsicGold > 0) {
-                const gap = intrinsicGold - currentLiveGoldPrice; // Comparing Morning Intrinsic vs Live (or Yesterday Close ideally)
-                // Since we want Pre-Market, let's compare Intrinsic vs Yesterday's close if available, else just show value
+                const gap = intrinsicGold - currentLiveGoldPrice; 
                 gapMsg = `${Math.round(intrinsicGold).toLocaleString()} تومان`;
             }
 
-            // Render
             let biasText = "خنثی / نوسانی";
             let biasColor = "text-slate-300";
             if (score >= 2) { biasText = "صعودی (Bullish)"; biasColor = "text-emerald-400"; }
@@ -972,8 +989,8 @@
                     timerEl.innerText = `(تا بروزرسانی: ${timeLeft})`;
                 } else {
                     timerEl.innerText = '(در حال دریافت...)';
-                    clearInterval(timerInterval); // Stop timer
-                    fetchLiveTicker(); // Trigger fetch
+                    clearInterval(timerInterval); 
+                    fetchLiveTicker(); 
                 }
             }
         }, 1000);
@@ -988,13 +1005,13 @@
         const chartCont = document.getElementById('maqholi-chart-container');
 
         if (tab === 'currency') {
-            curBtn.className = "tab-btn active-blue flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
-            goldBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
+            curBtn.className = "tab-btn active-blue flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2";
+            goldBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2";
             curSec.classList.remove('hidden'); goldSec.classList.add('hidden');
             chartCont.classList.add('hidden'); 
         } else {
-            goldBtn.className = "tab-btn active-amber flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
-            curBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-4 px-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2";
+            goldBtn.className = "tab-btn active-amber flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2";
+            curBtn.className = "tab-btn text-slate-400 hover:text-white flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2";
             goldSec.classList.remove('hidden'); curSec.classList.add('hidden');
             chartCont.classList.remove('hidden'); 
             if (maqholiChart) maqholiChart.render(); 
@@ -1007,16 +1024,10 @@
         return parseFloat(value.toString().replace(/,/g, '').replace(/[^\d.]/g, '')) || 0;
     }
 
-    function calculateBubble(price, weight, goldPrice) {
-        if (!price || !goldPrice) return 0;
-        const intrinsic = weight * (goldPrice * 1.2);
-        return ((price - intrinsic) / intrinsic) * 100;
-    }
-
     function generateGoldTableHTML(sources, assets) {
         let html = `<table class="w-full min-w-[500px] text-right comparison-table border-collapse">
-            <thead><tr class="text-[11px] text-slate-400"><th class="p-4 text-right">شاخص پایه</th>
-            ${sources.map(s => `<th class="p-4">${s.label}<br><span class="text-[9px] font-normal opacity-80 ltr latin-nums">${s.time}</span></th>`).join('')}
+            <thead><tr class="text-[11px] text-slate-400"><th class="p-3 md:p-4 text-right sticky left-0 bg-slate-900/90 backdrop-blur-sm z-10 border-l border-white/5">شاخص پایه</th>
+            ${sources.map(s => `<th class="p-3 md:p-4">${s.label}<br><span class="text-[9px] font-normal opacity-80 ltr latin-nums">${s.time}</span></th>`).join('')}
             </tr></thead><tbody>`;
 
         assets.forEach(asset => {
@@ -1024,7 +1035,7 @@
             const textColorClass = asset.isIntrinsic ? 'intrinsic-text' : 'font-bold opacity-100';
 
             html += `<tr class="${rowClass}">
-                <td class="text-xs ${textColorClass} p-4 border-l border-white/5">
+                <td class="text-xs ${textColorClass} p-3 md:p-4 border-l border-white/5 sticky left-0 bg-inherit backdrop-blur-sm z-10">
                     ${asset.label}
                     ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-80 font-normal intrinsic-text">محاسبات رهدیس</span>' : ''}
                 </td>`;
@@ -1043,7 +1054,7 @@
                     if (!value || value === 0) {
                         html += `<td class="text-xs opacity-50 p-3">-</td>`;
                     } else {
-                        html += `<td class="p-4">
+                        html += `<td class="p-3 md:p-4">
                             <div class="num-sm latin-nums font-bold intrinsic-text">${Math.round(value).toLocaleString()}</div>
                         </td>`;
                     }
@@ -1052,7 +1063,7 @@
 
                 if (asset.id === 'mesghal_range') {
                     if (s.label === 'طلای معقولی' && s.range_high > 0) {
-                        html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
+                        html += `<td class="p-3 md:p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
                                 <div class="num-sm text-[10px] text-emerald-400 font-bold ltr latin-nums">↑ <span class="font-mono">${Math.round(s.range_high).toLocaleString()}</span></div>
                                 <div class="num-sm text-[10px] text-red-400 font-bold ltr latin-nums">↓ <span class="font-mono">${Math.round(s.range_low).toLocaleString()}</span></div>
                             </div></td>`;
@@ -1062,7 +1073,7 @@
                 
                 if (asset.id === 'ounce_range') {
                     if (s.ounce_high > 0) {
-                        html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
+                        html += `<td class="p-3 md:p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
                                 <div class="num-sm text-[10px] text-emerald-400 font-bold ltr latin-nums">↑ <span class="font-mono">${Math.round(s.ounce_high).toLocaleString()}</span></div>
                                 <div class="num-sm text-[10px] text-red-400 font-bold ltr latin-nums">↓ <span class="font-mono">${Math.round(s.ounce_low).toLocaleString()}</span></div>
                             </div></td>`;
@@ -1081,7 +1092,7 @@
                         
                         const fmtTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour12: false }) : '-';
 
-                        html += `<td class="p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
+                        html += `<td class="p-3 md:p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
                                 <div class="num-sm text-[10px] ${highClass} font-bold ltr latin-nums">
                                     Max <span class="font-mono">${highSign}${Math.round(s.bubble_high).toLocaleString()}</span>
                                     <div class="text-[9px] text-slate-400 font-normal mt-0.5 opacity-80">${fmtTime(s.bubble_high_time)}</div>
@@ -1094,11 +1105,11 @@
                     } else { html += `<td class="text-xs opacity-40">-</td>`; }
                     return;
                 }
-
+                
                 if (!price || price === 0) { html += `<td class="text-xs opacity-50 p-3">-</td>`; } 
                 else {
                     let cellHTML = `<div class="flex flex-col items-center gap-0.5">`;
-                    cellHTML += `<div class="num-sm latin-nums font-bold text-lg live-price-text">${Math.round(price).toLocaleString()}</div>`;
+                    cellHTML += `<div class="num-sm latin-nums font-bold text-base md:text-lg live-price-text">${Math.round(price).toLocaleString()}</div>`;
                     
                     if (s.inherent_gold > 0 && asset.id !== 'gold_buy') {
                         let intrinsicValue = (asset.id === 'gold') ? s.inherent_gold : (asset.weight ? asset.weight * (s.inherent_gold * 1.2) : null);
@@ -1113,7 +1124,7 @@
                         }
                     }
                     cellHTML += `</div>`;
-                    html += `<td class="p-4 group-hover:bg-white/5">${cellHTML}</td>`;
+                    html += `<td class="p-3 md:p-4 group-hover:bg-white/5">${cellHTML}</td>`;
                 }
             });
             html += `</tr>`;
@@ -1130,10 +1141,10 @@
                 <span class="text-[10px] text-slate-400">📅 تاریخ پایش: ${jalaliDate}</span>
                 <span class="text-[10px] text-slate-400">قیمت‌ها بر مبنای تومان می‌باشد</span>
             </div>
-            <table class="excel-table latin-nums">
+            <table class="excel-table latin-nums min-w-[400px]">
                 <thead>
                     <tr>
-                        <th class="text-right">آیتم (منبع)</th>
+                        <th class="text-right sticky left-0 bg-slate-800/90 z-10">آیتم (منبع)</th>
                         <th>قیمت فعلی</th>
                         <th>سقف / کف (امروز)</th>
                         <th>حباب (درهم)</th>
@@ -1170,13 +1181,13 @@
 
             html += `
                 <tr>
-                    <td class="text-right">
+                    <td class="text-right sticky left-0 bg-inherit z-10 backdrop-blur-sm border-l border-white/5">
                         <div class="flex flex-col">
                             <span class="font-bold text-slate-100">${row.item}</span>
                             <span class="text-[9px] opacity-50">${row.source}</span>
                         </div>
                     </td>
-                    <td class="text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
+                    <td class="text-lg md:text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
                     <td>${rangeHTML}</td>
                     <td>${bubbleHTML}</td>
                 </tr>`;
@@ -1192,7 +1203,6 @@
                 window.location.href = 'index.html';
             } else {
                 console.error('Logout error:', error);
-                // alert('خطا در خروج از حساب'); // User requested no changes, but alert might not work in some environments
             }
         }
     }
@@ -1202,7 +1212,6 @@
         if (!client) return;
         document.getElementById('connectionStatus').innerText = "درحال دریافت...";
         
-        // Stop timer while fetching
         if (timerInterval) clearInterval(timerInterval);
         const timerEl = document.getElementById('refreshTimer');
         if(timerEl) timerEl.innerText = '';
@@ -1417,10 +1426,11 @@
                 }],
                 chart: { 
                     type: 'candlestick', 
-                    height: 280, 
+                    height: 250, 
                     toolbar: { show: false },
                     animations: { enabled: false },
-                    foreColor: '#94a3b8'
+                    foreColor: '#94a3b8',
+                    fontFamily: 'Vazirmatn'
                 },
                 plotOptions: { candlestick: { colors: { upward: '#10b981', downward: '#ef4444' } } },
                 xaxis: { 
@@ -1428,7 +1438,8 @@
                     labels: { 
                         datetimeUTC: false,
                         style: { colors: '#94a3b8' }
-                    }
+                    },
+                    tooltip: { enabled: false }
                 },
                 yaxis: { 
                     labels: { 
@@ -1761,7 +1772,7 @@
         document.getElementById('input-weight').value = '';
         document.getElementById('input-price').value = '';
         const btn = document.getElementById('btn-submit-order');
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg> ثبت معامله`;
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg> ثبت معامله`;
         btn.classList.replace('bg-amber-600', 'bg-slate-700');
         document.getElementById('btn-cancel-edit').classList.add('hidden');
     }
@@ -1789,7 +1800,7 @@
                         <div class="text-right">
                             <div class="latin-nums font-mono opacity-90">${Math.round(order.input_price).toLocaleString()} <span class="text-[9px] opacity-50">${displayPriceUnit}</span></div>
                         </div>
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onclick="editOrder(${order.id})" class="p-1.5 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/40">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                             </button>
