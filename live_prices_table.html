@@ -94,6 +94,22 @@
             transition: font-size 0.2s;
         }
 
+        /* NEW FONTS BASED ON SCREENSHOTS */
+        .item-font {
+            font-family: 'Vazirmatn', sans-serif !important;
+            font-weight: 800 !important; /* Extra Bold */
+            letter-spacing: -0.01em;
+        }
+
+        .currency-num-font {
+            font-family: 'Vazirmatn', sans-serif !important; /* Using Vazirmatn instead of Mono for that bold look */
+            font-weight: 800 !important;
+            letter-spacing: 0.5px;
+            direction: ltr;
+            unicode-bidi: embed;
+            font-variant-numeric: tabular-nums;
+        }
+
         .widget-main-num {
             font-size: calc(1.8rem * var(--num-scale)); /* Adjusted for mobile */
             line-height: 1;
@@ -1035,7 +1051,7 @@
             const textColorClass = asset.isIntrinsic ? 'intrinsic-text' : 'font-bold opacity-100';
 
             html += `<tr class="${rowClass}">
-                <td class="text-xs ${textColorClass} p-3 md:p-4 border-l border-white/5 sticky left-0 bg-inherit backdrop-blur-sm z-10">
+                <td class="text-xs ${textColorClass} item-font p-3 md:p-4 border-l border-white/5 sticky left-0 bg-inherit backdrop-blur-sm z-10">
                     ${asset.label}
                     ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-80 font-normal intrinsic-text">محاسبات رهدیس</span>' : ''}
                 </td>`;
@@ -1183,11 +1199,11 @@
                 <tr>
                     <td class="text-right sticky left-0 bg-inherit z-10 backdrop-blur-sm border-l border-white/5">
                         <div class="flex flex-col">
-                            <span class="font-bold text-slate-100">${row.item}</span>
+                            <span class="item-font text-slate-100 text-sm md:text-base">${row.item}</span>
                             <span class="text-[9px] opacity-50">${row.source}</span>
                         </div>
                     </td>
-                    <td class="text-lg md:text-xl font-bold live-price-text"><span class="num-sm font-mono">${displayPrice}</span></td>
+                    <td class="text-lg md:text-xl live-price-text"><span class="num-sm currency-num-font">${displayPrice}</span></td>
                     <td>${rangeHTML}</td>
                     <td>${bubbleHTML}</td>
                 </tr>`;
