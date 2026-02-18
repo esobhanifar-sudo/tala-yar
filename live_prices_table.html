@@ -571,7 +571,7 @@
                         </h3>
                         <div class="text-right">
                             <span class="text-[10px] text-slate-500 font-mono block">XAU/USD</span>
-                            <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5" title="بازه ۲۴ ساعته">مبنا: ۱۷:۳۰ GMT</span>
+                            <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5" title="بازه ۲۴ ساعته">مبنا: ۱۸:۰۰ GMT</span>
                         </div>
                     </div>
                     <div class="flex items-end gap-2 mb-2">
@@ -596,7 +596,6 @@
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             دلار سبزه‌میدان
                         </h3>
-                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full num-sm widget-num-font" id="w-dollar-diff">-% از کف</span>
                     </div>
                     <div class="flex items-end gap-2 mb-2">
                         <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-dollar-price">---</span>
@@ -1345,10 +1344,10 @@
         const currentMinutes = now.getUTCMinutes();
         
         let start = new Date(now);
-        start.setUTCHours(17, 30, 0, 0); // 17:30 GMT
+        start.setUTCHours(18, 0, 0, 0); // 18:00 GMT
         
-        // If current time is before 17:30 GMT, the session started yesterday
-        if (currentHours < 17 || (currentHours === 17 && currentMinutes < 30)) {
+        // If current time is before 18:00 GMT, the session started yesterday
+        if (currentHours < 18) {
             start.setUTCDate(start.getUTCDate() - 1);
         }
         
@@ -1373,20 +1372,24 @@
             // Calculate the 24-hour trading window for Ounce (17:30 GMT to 17:30 GMT)
             const ounceWindow = getOunceTradingWindow();
 
-            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes, bubbleFluctuationsRes,
-                   tetherHistoryRes, sabzaHistoryRes, heratHistoryRes, dhsHistoryRes, currHistoryRes] = await Promise.all([
+            const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, 
+                   ounceHighRes, // CHANGED: Replaced ounceRangeRes with ounceHighRes
+                   dirhamRateRes, bubbleFluctuationsRes,
+                   tetherHistoryRes, sabzaHistoryRes, heratHistoryRes, dhsHistoryRes, currHistoryRes,
+                   ounceLowRes // ADDED: New query for Low
+                  ] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
                 client.from('price_logs').select('*').eq('info', 'هرات معامله فردایی ⏳').order('id', { ascending: false }).limit(1),
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1),
                 client.from('tahran_sabza').select('*').eq('type', 'معامله فردایی ✅').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
-                client.from('justOunce').select('*').order('id', { ascending: false }).limit(1),
+                client.from('justOunce').select('*').gt('price_blue', 1000).order('id', { ascending: false }).limit(1),
                 client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString()),
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
                 
-                // UPDATED QUERY FOR OUNCE RANGE: Using calculated trading window
-                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start),
+                // UPDATED QUERY FOR OUNCE HIGH: Get absolute max in window with filter > 1000
+                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: false }).limit(1),
                 
                 client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
                 client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString()),
@@ -1395,7 +1398,10 @@
                 client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').eq('type', 'معامله فردایی ✅').gte('created_at', startOfToday.toISOString()),
                 client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', startOfToday.toISOString()),
                 client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startOfToday.toISOString()),
-                client.from('irancurrency_price').select('dollar, euro, dirham, pound, created_at').gte('created_at', startOfToday.toISOString())
+                client.from('irancurrency_price').select('dollar, euro, dirham, pound, created_at').gte('created_at', startOfToday.toISOString()),
+
+                // ADDED QUERY FOR OUNCE LOW: Get absolute min in window with filter > 1000
+                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1)
             ]);
 
             const curr = currRes.data?.[0] || {};
@@ -1472,13 +1478,15 @@
 
             const mHigh = magRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), 0) || 0;
             const mLow = magRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), Infinity) || 0;
-            let oHigh = ounceRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.price_blue)), 0) || 0;
-            let oLow = ounceRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.price_blue)), Infinity) || 0;
+            
+            // CORRECTED OUNCE HIGH/LOW LOGIC
+            let oHigh = parsePrice(ounceHighRes.data?.[0]?.price_blue);
+            let oLow = parsePrice(ounceLowRes.data?.[0]?.price_blue);
 
             // Logic correction: If current price breaks the high/low, update them
             if (ouncePrice > 0) {
                 if (ouncePrice > oHigh) oHigh = ouncePrice;
-                if (ouncePrice < oLow) oLow = ouncePrice;
+                if (oLow === 0 || ouncePrice < oLow) oLow = ouncePrice;
             }
 
             // --- WIDGET UPDATES ---
@@ -1492,18 +1500,26 @@
 
             // 2. Dollar Widget
             const dPos = (sRange.high - sRange.low) > 0 ? ((sabzaDollar - sRange.low) / (sRange.high - sRange.low)) * 100 : 50;
-            const dDiff = sRange.low > 0 ? ((sabzaDollar - sRange.low) / sRange.low) * 100 : 0;
             document.getElementById('w-dollar-price').innerText = sabzaDollar.toLocaleString();
             document.getElementById('w-dollar-min').innerText = `Min: ${Math.round(sRange.low).toLocaleString()}`;
             document.getElementById('w-dollar-max').innerText = `Max: ${Math.round(sRange.high).toLocaleString()}`;
-            document.getElementById('w-dollar-diff').innerText = `${dDiff > 0 ? '+' : ''}${dDiff.toFixed(1)}% از کف`;
             document.getElementById('w-dollar-marker').style.right = `${100 - dPos}%`; 
 
             // 3. Gold 18k Maqholi (Sell) Widget
             const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
             document.getElementById('w-gold-price').innerText = Math.round(magholiGold).toLocaleString();
-            document.getElementById('w-gold-dist-high').innerText = mHigh > 0 ? `${(magholiGold - mHigh).toLocaleString()} تومان` : '-';
-            document.getElementById('w-gold-dist-low').innerText = mLow > 0 ? `+${(magholiGold - mLow).toLocaleString()} تومان` : '-';
+            
+            // Calculate integer distances
+            const distHigh = Math.round(magholiGold - mHigh);
+            const distLow = Math.round(magholiGold - mLow);
+
+            document.getElementById('w-gold-dist-high').innerText = mHigh > 0 ? `${distHigh.toLocaleString()} تومان` : '-';
+            // Explicitly add + sign for positive low distance if needed, though usually logic ensures it's >= 0. 
+            // If magholiGold < mLow (new low breakout), it will be negative automatically. 
+            // Assuming normal range behavior:
+            const lowSign = distLow > 0 ? '+' : '';
+            document.getElementById('w-gold-dist-low').innerText = mLow > 0 ? `${lowSign}${distLow.toLocaleString()} تومان` : '-';
+            
             document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; 
 
             // 4. Bubbles Widget
