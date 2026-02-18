@@ -569,7 +569,10 @@
                             <span class="w-2 h-2 rounded-full bg-slate-400"></span>
                             انس جهانی
                         </h3>
-                        <span class="text-[10px] text-slate-500 font-mono">XAU/USD</span>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-500 font-mono block">XAU/USD</span>
+                            <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5" title="بازه ۲۴ ساعته">مبنا: ۱۷:۳۰ GMT</span>
+                        </div>
                     </div>
                     <div class="flex items-end gap-2 mb-2">
                         <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-ounce-price">---</span>
@@ -897,7 +900,7 @@
             const [ounceRes, sabzaRes, dirhamRes, heratRes] = await Promise.all([
                 client.from('justOunce').select('price_blue, created_at').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true }),
                 client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true }),
-                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startISO).lte('created_at', endISO).order('created_at_dirham_rate', { ascending: true }),
+                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startISO).lte('created_at_dirham_rate', endISO).order('created_at_dirham_rate', { ascending: true }),
                 client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', startISO).lte('created_at', endISO).order('created_at', { ascending: true })
             ]);
 
@@ -971,12 +974,6 @@
             }
             
             if (sabzaStats && impliedDollar > sabzaStats.close + 200) score += 1; 
-
-            let gapMsg = "محاسبه نشده";
-            if (currentLiveGoldPrice > 0 && intrinsicGold > 0) {
-                const gap = intrinsicGold - currentLiveGoldPrice; 
-                gapMsg = `${Math.round(intrinsicGold).toLocaleString()} تومان`;
-            }
 
             let biasText = "خنثی / نوسانی";
             let biasColor = "text-slate-300";
@@ -1341,6 +1338,26 @@
         }
     }
 
+    // --- NEW HELPER FUNCTION FOR OUNCE TRADING WINDOW ---
+    function getOunceTradingWindow() {
+        const now = new Date();
+        const currentHours = now.getUTCHours();
+        const currentMinutes = now.getUTCMinutes();
+        
+        let start = new Date(now);
+        start.setUTCHours(17, 30, 0, 0); // 17:30 GMT
+        
+        // If current time is before 17:30 GMT, the session started yesterday
+        if (currentHours < 17 || (currentHours === 17 && currentMinutes < 30)) {
+            start.setUTCDate(start.getUTCDate() - 1);
+        }
+        
+        const end = new Date(start);
+        end.setUTCDate(end.getUTCDate() + 1);
+        
+        return { start: start.toISOString(), end: end.toISOString() };
+    }
+
     async function fetchLiveTicker() {
         const client = getSupabaseClient();
         if (!client) return;
@@ -1352,6 +1369,10 @@
 
         try {
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+            
+            // Calculate the 24-hour trading window for Ounce (17:30 GMT to 17:30 GMT)
+            const ounceWindow = getOunceTradingWindow();
+
             const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, ounceRangeRes, dirhamRateRes, bubbleFluctuationsRes,
                    tetherHistoryRes, sabzaHistoryRes, heratHistoryRes, dhsHistoryRes, currHistoryRes] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
@@ -1363,7 +1384,10 @@
                 client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString()),
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
-                client.from('justOunce').select('price_blue').gte('created_at', startOfToday.toISOString()),
+                
+                // UPDATED QUERY FOR OUNCE RANGE: Using calculated trading window
+                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start),
+                
                 client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
                 client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString()),
                 // Range Fetches with Timestamps
@@ -1448,17 +1472,23 @@
 
             const mHigh = magRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), 0) || 0;
             const mLow = magRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), Infinity) || 0;
-            const oHigh = ounceRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.price_blue)), 0) || 0;
-            const oLow = ounceRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.price_blue)), Infinity) || 0;
+            let oHigh = ounceRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.price_blue)), 0) || 0;
+            let oLow = ounceRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.price_blue)), Infinity) || 0;
 
-            // --- WIDGET UPDATES (NEW SECTION) ---
+            // Logic correction: If current price breaks the high/low, update them
+            if (ouncePrice > 0) {
+                if (ouncePrice > oHigh) oHigh = ouncePrice;
+                if (ouncePrice < oLow) oLow = ouncePrice;
+            }
+
+            // --- WIDGET UPDATES ---
             
             // 1. Ounce Widget
             const oPos = (oHigh - oLow) > 0 ? ((ouncePrice - oLow) / (oHigh - oLow)) * 100 : 50;
             document.getElementById('w-ounce-price').innerText = ouncePrice.toLocaleString();
             document.getElementById('w-ounce-min').innerText = `Min: ${Math.round(oLow).toLocaleString()}`;
             document.getElementById('w-ounce-max').innerText = `Max: ${Math.round(oHigh).toLocaleString()}`;
-            document.getElementById('w-ounce-marker').style.right = `${100 - oPos}%`; // RTL adjustment
+            document.getElementById('w-ounce-marker').style.right = `${100 - oPos}%`; 
 
             // 2. Dollar Widget
             const dPos = (sRange.high - sRange.low) > 0 ? ((sabzaDollar - sRange.low) / (sRange.high - sRange.low)) * 100 : 50;
@@ -1467,14 +1497,14 @@
             document.getElementById('w-dollar-min').innerText = `Min: ${Math.round(sRange.low).toLocaleString()}`;
             document.getElementById('w-dollar-max').innerText = `Max: ${Math.round(sRange.high).toLocaleString()}`;
             document.getElementById('w-dollar-diff').innerText = `${dDiff > 0 ? '+' : ''}${dDiff.toFixed(1)}% از کف`;
-            document.getElementById('w-dollar-marker').style.right = `${100 - dPos}%`; // RTL
+            document.getElementById('w-dollar-marker').style.right = `${100 - dPos}%`; 
 
             // 3. Gold 18k Maqholi (Sell) Widget
             const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
             document.getElementById('w-gold-price').innerText = Math.round(magholiGold).toLocaleString();
             document.getElementById('w-gold-dist-high').innerText = mHigh > 0 ? `${(magholiGold - mHigh).toLocaleString()} تومان` : '-';
             document.getElementById('w-gold-dist-low').innerText = mLow > 0 ? `+${(magholiGold - mLow).toLocaleString()} تومان` : '-';
-            document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; // RTL
+            document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; 
 
             // 4. Bubbles Widget
             const bubbleGold = inherentGold > 0 ? ((magholiGold - inherentGold) / inherentGold) * 100 : 0;
@@ -1486,9 +1516,8 @@
             document.getElementById('w-bubble-gold-val').innerHTML = `${bubbleGold.toFixed(1)}% <span class="text-[9px] opacity-60 font-normal mx-1 num-sm">(${Math.round(diffGold).toLocaleString()})</span>`;
             document.getElementById('w-bubble-usd-val').innerHTML = `${bubbleUSD.toFixed(1)}% <span class="text-[9px] opacity-60 font-normal mx-1 num-sm">(${Math.round(diffUSD).toLocaleString()})</span>`;
             
-            // Bubble Bars: Center is 0%. Max range +/- 5% for visual scaling
             const scaleBubble = (b) => {
-                let w = Math.min(Math.abs(b) * 10, 50); // Scale factor
+                let w = Math.min(Math.abs(b) * 10, 50); 
                 return { width: w + '%', right: b > 0 ? '50%' : (50 - w) + '%', color: b > 0 ? '#ef4444' : '#10b981' };
             };
             
@@ -1510,8 +1539,6 @@
             else if (bubbleGold < -1 || bubbleUSD < -1) { bStatus = "منفی (فرصت خرید)"; bStatusClass = "text-emerald-400"; }
             
             document.getElementById('w-bubble-status').innerHTML = `وضعیت کلی: <span class="${bStatusClass}">${bStatus}</span>`;
-
-            // --- END NEW WIDGET UPDATES ---
 
             const goldSources = [
                 { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow === Infinity ? 0 : mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
@@ -1682,7 +1709,6 @@
             selector.appendChild(option);
         });
 
-        // Set active session
         if (!activeSession && sessions.length > 0) {
             const firstOpen = sessions.find(s => s.status === 'open');
             activeSession = firstOpen || sessions[0];
@@ -1749,7 +1775,6 @@
 
         if (error) {
             console.error('Error creating session:', error);
-            // alert('خطا در ایجاد نشست');
             return;
         }
 
@@ -1887,10 +1912,7 @@
         const client = getSupabaseClient();
         if (!client) return;
         
-        if (!activeSession) {
-            // alert('لطفا ابتدا یک نشست ایجاد یا انتخاب کنید.');
-            return;
-        }
+        if (!activeSession) return;
 
         const weightInput = parseFloat(document.getElementById('input-weight').value);
         const priceInputRaw = parsePrice(document.getElementById('input-price').value);
