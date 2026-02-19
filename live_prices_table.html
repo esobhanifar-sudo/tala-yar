@@ -323,13 +323,15 @@
     <!-- Header & Brand -->
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div class="text-center md:text-right w-full md:w-auto">
-            <h1 class="text-2xl md:text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
-                <div class="p-2 bg-amber-500/10 rounded-2xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                </div>
-                 رهدیس لایو
-            </h1>
-            <p class="text-xs opacity-90 mt-1 mr-1 text-slate-200 hidden md:block">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
+            <div class="flex flex-col md:flex-row items-center gap-3 md:gap-6 justify-center md:justify-start">
+                <h1 class="text-2xl md:text-3xl font-bold text-amber-400 flex items-center justify-center md:justify-start gap-3">
+                    <div class="p-2 bg-amber-500/10 rounded-2xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    </div>
+                     رهدیس لایو
+                </h1>
+            </div>
+            <p class="text-xs opacity-90 mt-2 mr-1 text-slate-200 hidden md:block">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
         </div>
         
         <!-- Action Buttons (Responsive Wrapper) -->
@@ -356,9 +358,18 @@
                 </svg>
                 خروج
             </button>
-            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-xl text-xs md:text-sm transition font-bold shadow-lg flex items-center gap-2 group w-full md:w-auto justify-center md:justify-start mt-2 md:mt-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                بروزرسانی
+            
+            <!-- MERGED UPDATE BUTTON & TIMER -->
+            <button onclick="fetchLiveTicker()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm transition font-bold shadow-lg flex items-center gap-3 group w-full md:w-auto justify-center md:justify-start mt-2 md:mt-0 min-w-[150px]">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    <span>بروزرسانی</span>
+                </div>
+                <div class="w-px h-4 bg-white/20"></div>
+                <div class="flex items-center gap-1">
+                    <span id="headerTimer" class="font-mono text-base text-blue-100 latin-nums font-extrabold">30</span>
+                    <span class="text-[9px] opacity-70">ثانیه</span>
+                </div>
             </button>
         </div>
     </div>
@@ -624,18 +635,18 @@
                         <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-gold-price">---</span>
                         <span class="text-[10px] text-slate-400 mb-1">تومان</span>
                     </div>
-                    <div class="flex flex-col gap-1 mt-1 text-[10px] text-slate-400 widget-num-font">
-                        <div class="flex justify-between"><span>فاصله از سقف:</span> <span class="text-red-400 num-sm" id="w-gold-dist-high">-</span></div>
-                        <div class="flex justify-between"><span>فاصله از کف:</span> <span class="text-emerald-400 num-sm" id="w-gold-dist-low">-</span></div>
-                    </div>
-                    <div class="mt-auto pt-2">
+                    <div class="mt-auto">
+                        <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                            <span id="w-gold-min" class="num-sm">Min: -</span>
+                            <span id="w-gold-max" class="num-sm">Max: -</span>
+                        </div>
                         <div class="range-track">
                             <div id="w-gold-marker" class="range-marker left-0" style="left: 50%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Widget 4: Bubbles -->
+                <!-- Widget 4: Bubbles (REVERTED TO PREVIOUS VERSION) -->
                 <div id="widget-bubble" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-center h-48 border-r-4 border-indigo-500 bg-gradient-to-br from-indigo-900/20 to-transparent">
                     <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
@@ -688,7 +699,7 @@
                     <div class="flex items-center gap-2">
                         <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span id="connectionStatus" class="text-[10px] opacity-90">در حال دریافت...</span>
-                        <span id="refreshTimer" class="text-[10px] opacity-80 font-mono mx-2 text-amber-500"></span>
+                        <!-- Old refreshTimer removed from here -->
                     </div>
                     <span id="lastUpdateTime" class="text-[10px] opacity-70 font-mono">--:--:--</span>
                 </div>
@@ -1105,20 +1116,23 @@
 
     // --- Timer Logic ---
     function startTimer() {
-        let timeLeft = 60;
-        const timerEl = document.getElementById('refreshTimer');
+        let timeLeft = 30; // Changed to 30 seconds
+        const timerEl = document.getElementById('headerTimer');
         
         if (timerInterval) clearInterval(timerInterval);
         
-        if (timerEl) timerEl.innerText = `(تا بروزرسانی: ${timeLeft})`;
+        if (timerEl) timerEl.innerText = timeLeft;
 
         timerInterval = setInterval(() => {
             timeLeft--;
             if (timerEl) {
                 if (timeLeft > 0) {
-                    timerEl.innerText = `(تا بروزرسانی: ${timeLeft})`;
+                    timerEl.innerText = timeLeft;
+                    // Visual cue: change color when time is running out
+                    if(timeLeft <= 5) timerEl.className = "font-mono text-base text-red-200 latin-nums font-extrabold animate-pulse";
+                    else timerEl.className = "font-mono text-base text-blue-100 latin-nums font-extrabold";
                 } else {
-                    timerEl.innerText = '(در حال دریافت...)';
+                    timerEl.innerHTML = '<span class="text-[9px]">...</span>';
                     clearInterval(timerInterval); 
                     fetchLiveTicker(); 
                 }
@@ -1363,8 +1377,10 @@
         document.getElementById('connectionStatus').innerText = "درحال دریافت...";
         
         if (timerInterval) clearInterval(timerInterval);
-        const timerEl = document.getElementById('refreshTimer');
-        if(timerEl) timerEl.innerText = '';
+        
+        // Reset timer text
+        const timerEl = document.getElementById('headerTimer');
+        if(timerEl) timerEl.innerHTML = '<span class="text-[9px]">...</span>';
 
         try {
             const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
@@ -1509,20 +1525,12 @@
             const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
             document.getElementById('w-gold-price').innerText = Math.round(magholiGold).toLocaleString();
             
-            // Calculate integer distances
-            const distHigh = Math.round(magholiGold - mHigh);
-            const distLow = Math.round(magholiGold - mLow);
-
-            document.getElementById('w-gold-dist-high').innerText = mHigh > 0 ? `${distHigh.toLocaleString()} تومان` : '-';
-            // Explicitly add + sign for positive low distance if needed, though usually logic ensures it's >= 0. 
-            // If magholiGold < mLow (new low breakout), it will be negative automatically. 
-            // Assuming normal range behavior:
-            const lowSign = distLow > 0 ? '+' : '';
-            document.getElementById('w-gold-dist-low').innerText = mLow > 0 ? `${lowSign}${distLow.toLocaleString()} تومان` : '-';
+            document.getElementById('w-gold-min').innerText = `Min: ${Math.round(mLow).toLocaleString()}`;
+            document.getElementById('w-gold-max').innerText = `Max: ${Math.round(mHigh).toLocaleString()}`;
             
             document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; 
 
-            // 4. Bubbles Widget
+            // 4. Bubbles Widget (REVERTED LOGIC)
             const bubbleGold = inherentGold > 0 ? ((magholiGold - inherentGold) / inherentGold) * 100 : 0;
             const bubbleUSD = inherentDollar > 0 ? ((sabzaDollar - inherentDollar) / inherentDollar) * 100 : 0;
             
