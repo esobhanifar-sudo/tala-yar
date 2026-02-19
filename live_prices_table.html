@@ -328,7 +328,7 @@
                     <div class="p-2 bg-amber-500/10 rounded-2xl">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                     </div>
-                     رهدیس لایو
+                      رهدیس لایو
                 </h1>
             </div>
             <p class="text-xs opacity-90 mt-2 mr-1 text-slate-200 hidden md:block">پایش هوشمند نرخ‌های بازار بر اساس انس، درهم و دلار سبزه‌میدان</p>
@@ -1181,7 +1181,7 @@
             html += `<tr class="${rowClass}">
                 <td class="text-xs ${textColorClass} item-font p-3 md:p-4 border-l border-white/5 sticky left-0 bg-inherit backdrop-blur-sm z-10">
                     ${asset.label}
-                    ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-80 font-normal intrinsic-text">محاسبات رهدیس</span>' : ''}
+                    ${asset.isIntrinsic ? '<br><span class="text-[8px] opacity-80 font-normal intrinsic-text">دلار سبزه</span>' : ''}
                 </td>`;
             
             sources.forEach(s => {
@@ -1206,7 +1206,7 @@
                 }
 
                 if (asset.id === 'mesghal_range') {
-                    if (s.label === 'طلای معقولی' && s.range_high > 0) {
+                    if (s.range_high > 0) {
                         html += `<td class="p-3 md:p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
                                 <div class="num-sm text-[10px] text-emerald-400 font-bold ltr latin-nums">↑ <span class="font-mono">${Math.round(s.range_high).toLocaleString()}</span></div>
                                 <div class="num-sm text-[10px] text-red-400 font-bold ltr latin-nums">↓ <span class="font-mono">${Math.round(s.range_low).toLocaleString()}</span></div>
@@ -1226,7 +1226,7 @@
                 }
 
                 if (asset.id === 'bubble_range_18k') {
-                    if (s.label === 'طلای معقولی' && s.bubble_high !== undefined && s.bubble_low !== undefined && s.bubble_high !== -Infinity && s.bubble_low !== Infinity) {
+                    if (s.bubble_high !== undefined && s.bubble_low !== undefined && s.bubble_high !== -Infinity && s.bubble_low !== Infinity) {
                         
                         const highClass = s.bubble_high >= 0 ? 'text-emerald-400' : 'text-red-400';
                         const lowClass = s.bubble_low >= 0 ? 'text-emerald-400' : 'text-red-400';
@@ -1392,7 +1392,8 @@
                    ounceHighRes, // CHANGED: Replaced ounceRangeRes with ounceHighRes
                    dirhamRateRes, bubbleFluctuationsRes,
                    tetherHistoryRes, sabzaHistoryRes, heratHistoryRes, dhsHistoryRes, currHistoryRes,
-                   ounceLowRes // ADDED: New query for Low
+                   ounceLowRes, // ADDED: New query for Low
+                   hajiRes, hajiRangeRes
                   ] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
                 client.from('irancurrency_price').select('*').order('id', { ascending: false }).limit(1),
@@ -1417,7 +1418,11 @@
                 client.from('irancurrency_price').select('dollar, euro, dirham, pound, created_at').gte('created_at', startOfToday.toISOString()),
 
                 // ADDED QUERY FOR OUNCE LOW: Get absolute min in window with filter > 1000
-                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1)
+                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1),
+                
+                // NEW: Haji Abdollahi
+                client.from('tala_hajiabdollahi').select('*').order('id', { ascending: false }).limit(1),
+                client.from('tala_hajiabdollahi').select('abshode_sell_hajiabdollahi').gte('created_at', startOfToday.toISOString())
             ]);
 
             const curr = currRes.data?.[0] || {};
@@ -1425,6 +1430,7 @@
             const herat = heratRes.data?.[0] || {};
             const tether = tetherRes.data?.[0] || {};
             const dirhamRate = dirhamRateRes.data?.[0] || {};
+            const haji = hajiRes.data?.[0] || {};
 
             let dhsPrice = parsePrice(dirhamRate.rate_value_dirham_rate); 
             if (dhsPrice > 200000) dhsPrice /= 10;
@@ -1441,6 +1447,29 @@
             let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
             if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
             
+            // Haji Abdollahi Parsing
+            // Updated thresholds to 500,000,000 to accommodate coin prices > 100m Tomans
+            const hajiGold = parsePrice(haji.gold_18_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.gold_18_sell_hajiabdollahi)/10 : parsePrice(haji.gold_18_sell_hajiabdollahi);
+            const hajiGoldBuy = parsePrice(haji.gold_18_buy_hajiabdollahi) > 500000000 ? parsePrice(haji.gold_18_buy_hajiabdollahi)/10 : parsePrice(haji.gold_18_buy_hajiabdollahi);
+            const hajiFull = parsePrice(haji.coin_full_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.coin_full_sell_hajiabdollahi)/10 : parsePrice(haji.coin_full_sell_hajiabdollahi);
+            const hajiHalf = parsePrice(haji.coin_half_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.coin_half_sell_hajiabdollahi)/10 : parsePrice(haji.coin_half_sell_hajiabdollahi);
+            const hajiQuarter = parsePrice(haji.coin_quarter_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.coin_quarter_sell_hajiabdollahi)/10 : parsePrice(haji.coin_quarter_sell_hajiabdollahi);
+            
+            // Haji Range (Based on Abshode -> 18k Gram)
+            const hHigh = hajiRangeRes.data?.reduce((max, r) => {
+                 const p = parsePrice(r.abshode_sell_hajiabdollahi);
+                 const normalized = p > 200000000 ? p/10 : p;
+                 const g18 = normalized / 4.3318;
+                 return Math.max(max, g18);
+            }, 0) || 0;
+
+            const hLow = hajiRangeRes.data?.reduce((min, r) => {
+                 const p = parsePrice(r.abshode_sell_hajiabdollahi);
+                 const normalized = p > 200000000 ? p/10 : p;
+                 const g18 = normalized / 4.3318;
+                 return Math.min(min, g18);
+            }, Infinity) || 0;
+
             currentLiveGoldPrice = magholiGoldBuy; 
             updateTradeStats(); 
             
@@ -1566,7 +1595,18 @@
 
             const goldSources = [
                 { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow === Infinity ? 0 : mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
-                { label: 'ایران کارنسی', time: curr.created_at ? new Date(curr.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-', gold: (parsePrice(curr.gold_18k) || 0) * 1000, full: (parsePrice(curr.emami_coin) || 0) * 1000, half: (parsePrice(curr.half_coin) || 0) * 1000, quarter: (parsePrice(curr.quarter_coin) || 0) * 1000, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow }
+                { 
+                    label: 'حاجی‌عبداللهی', 
+                    time: haji.time_hajiabdollahi || '-', 
+                    gold: hajiGold, 
+                    gold_buy: hajiGoldBuy, 
+                    full: hajiFull, 
+                    half: hajiHalf, 
+                    quarter: hajiQuarter, 
+                    inherent_gold: inherentGold,
+                    range_high: hHigh,
+                    range_low: hLow === Infinity ? 0 : hLow
+                }
             ];
 
             const goldAssets = [
@@ -1575,11 +1615,11 @@
                 { id: 'gold_intrinsic', label: 'ارزش ذاتی ۱۸ عیار', isIntrinsic: true },
                 { id: 'gold_buy', label: 'طلای ۱۸ عیار (خرید)' }, 
                 { id: 'mesghal_range', label: 'نوسان ۱۸ عیار (سقف/کف)' }, 
-                { id: 'full', label: 'تمام سکه امامی', weight: COIN_SPECS.full.weight },
+                { id: 'full', label: 'تمام سکه امامی (فروش)', weight: COIN_SPECS.full.weight },
                 { id: 'full_intrinsic', label: 'ارزش ذاتی تمام سکه', isIntrinsic: true, weight: COIN_SPECS.full.weight },
-                { id: 'half', label: 'نیم سکه بهار', weight: COIN_SPECS.half.weight }, 
+                { id: 'half', label: 'نیم سکه بهار (فروش)', weight: COIN_SPECS.half.weight }, 
                 { id: 'half_intrinsic', label: 'ارزش ذاتی نیم سکه', isIntrinsic: true, weight: COIN_SPECS.half.weight },
-                { id: 'quarter', label: 'ربع سکه بهار', weight: COIN_SPECS.quarter.weight },
+                { id: 'quarter', label: 'ربع سکه بهار (فروش)', weight: COIN_SPECS.quarter.weight },
                 { id: 'quarter_intrinsic', label: 'ارزش ذاتی ربع سکه', isIntrinsic: true, weight: COIN_SPECS.quarter.weight }
             ];
             document.getElementById('goldTable').innerHTML = generateGoldTableHTML(goldSources, goldAssets);
