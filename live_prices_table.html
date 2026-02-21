@@ -623,29 +623,6 @@
                     </div>
                 </div>
 
-                <!-- Widget 3: Gold 18k Maqholi (Sell) -->
-                <div id="widget-gold18" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-between h-48 border-r-4 border-amber-500">
-                    <div class="flex justify-between items-start">
-                        <h3 class="text-xs font-bold text-amber-300 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                            طلای ۱۸ معقولی (فروش)
-                        </h3>
-                    </div>
-                    <div class="flex items-end gap-2 mb-2">
-                        <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-gold-price">---</span>
-                        <span class="text-[10px] text-slate-400 mb-1">تومان</span>
-                    </div>
-                    <div class="mt-auto">
-                        <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
-                            <span id="w-gold-min" class="num-sm">Min: -</span>
-                            <span id="w-gold-max" class="num-sm">Max: -</span>
-                        </div>
-                        <div class="range-track">
-                            <div id="w-gold-marker" class="range-marker left-0" style="left: 50%;"></div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- NEW WIDGET: Intrinsic Gold 18k -->
                 <div id="widget-intrinsic" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-between h-48 border-r-4 border-fuchsia-500">
                     <div class="flex justify-between items-start">
@@ -668,6 +645,29 @@
                         </div>
                         <div class="range-track">
                             <div id="w-intrinsic-marker" class="range-marker left-0" style="left: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget 3: Gold 18k Maqholi (Sell) -->
+                <div id="widget-gold18" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-between h-48 border-r-4 border-amber-500">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-xs font-bold text-amber-300 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            طلای ۱۸ معقولی (فروش)
+                        </h3>
+                    </div>
+                    <div class="flex items-end gap-2 mb-2">
+                        <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-gold-price">---</span>
+                        <span class="text-[10px] text-slate-400 mb-1">تومان</span>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                            <span id="w-gold-min" class="num-sm">Min: -</span>
+                            <span id="w-gold-max" class="num-sm">Max: -</span>
+                        </div>
+                        <div class="range-track">
+                            <div id="w-gold-marker" class="range-marker left-0" style="left: 50%;"></div>
                         </div>
                     </div>
                 </div>
@@ -1468,7 +1468,7 @@
                 client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: false }).limit(1),
                 
                 client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
-                client.from('bubble_fluctuations').select('bubble_value, created_at').gte('created_at', startOfToday.toISOString()),
+                client.from('bubble_fluctuations').select('bubble_value, haji_bubble_value, created_at').gte('created_at', startOfToday.toISOString()),
                 // Range Fetches with Timestamps
                 client.from('USDTTetherp').select('price_USDTTetherp, created_at_USDTTetherp').eq('type_USDTTetherp', 'فروش').gte('created_at_USDTTetherp', startOfToday.toISOString()),
                 client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').eq('type', 'معامله فردایی ✅').gte('created_at', startOfToday.toISOString()),
@@ -1534,23 +1534,42 @@
             
             // --- BUBBLE CALCULATIONS ---
             const currentBubble = (magholiGold > 0 && inherentGold > 0) ? (magholiGold - inherentGold) : null;
-            if (currentBubble !== null) {
-                client.from('bubble_fluctuations').insert([{ bubble_value: currentBubble }]).then(({error}) => {
+            const currentHajiBubble = (hajiGold > 0 && inherentGold > 0) ? (hajiGold - inherentGold) : null;
+            
+            if (currentBubble !== null || currentHajiBubble !== null) {
+                const insertData = {};
+                if (currentBubble !== null) insertData.bubble_value = currentBubble;
+                if (currentHajiBubble !== null) insertData.haji_bubble_value = currentHajiBubble;
+                
+                client.from('bubble_fluctuations').insert([insertData]).then(({error}) => {
                     if(error) console.error("Error logging bubble:", error);
                 });
             }
 
             let bHigh = -Infinity, bLow = Infinity, bHighTime = null, bLowTime = null;
+            let hBHigh = -Infinity, hBLow = Infinity, hBHighTime = null, hBLowTime = null;
+            
             if (bubbleFluctuationsRes.data && bubbleFluctuationsRes.data.length > 0) {
                 bubbleFluctuationsRes.data.forEach(b => {
-                    if (b.bubble_value > bHigh) { bHigh = b.bubble_value; bHighTime = b.created_at; }
-                    if (b.bubble_value < bLow) { bLow = b.bubble_value; bLowTime = b.created_at; }
+                    if (b.bubble_value !== null && b.bubble_value !== undefined) {
+                        if (b.bubble_value > bHigh) { bHigh = b.bubble_value; bHighTime = b.created_at; }
+                        if (b.bubble_value < bLow) { bLow = b.bubble_value; bLowTime = b.created_at; }
+                    }
+                    if (b.haji_bubble_value !== null && b.haji_bubble_value !== undefined) {
+                        if (b.haji_bubble_value > hBHigh) { hBHigh = b.haji_bubble_value; hBHighTime = b.created_at; }
+                        if (b.haji_bubble_value < hBLow) { hBLow = b.haji_bubble_value; hBLowTime = b.created_at; }
+                    }
                 });
             }
+            
+            const nowISO = new Date().toISOString();
             if (currentBubble !== null) {
-                const nowISO = new Date().toISOString();
                 if (currentBubble > bHigh) { bHigh = currentBubble; bHighTime = nowISO; }
                 if (currentBubble < bLow) { bLow = currentBubble; bLowTime = nowISO; }
+            }
+            if (currentHajiBubble !== null) {
+                if (currentHajiBubble > hBHigh) { hBHigh = currentHajiBubble; hBHighTime = nowISO; }
+                if (currentHajiBubble < hBLow) { hBLow = currentHajiBubble; hBLowTime = nowISO; }
             }
 
             // --- RANGE HELPERS ---
@@ -1693,7 +1712,11 @@
                     quarter: hajiQuarter, 
                     inherent_gold: inherentGold,
                     range_high: hHigh,
-                    range_low: hLow === Infinity ? 0 : hLow
+                    range_low: hLow === Infinity ? 0 : hLow,
+                    bubble_high: hBHigh,
+                    bubble_low: hBLow,
+                    bubble_high_time: hBHighTime,
+                    bubble_low_time: hBLowTime
                 }
             ];
 
