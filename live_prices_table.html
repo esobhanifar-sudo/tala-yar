@@ -623,6 +623,32 @@
                     </div>
                 </div>
 
+                <!-- NEW WIDGET: Intrinsic Gold 18k -->
+                <div id="widget-intrinsic" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-between h-48 border-r-4 border-fuchsia-500">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-xs font-bold text-fuchsia-300 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span>
+                            ارزش ذاتی ۱۸ عیار
+                        </h3>
+                        <div class="text-right">
+                            <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5" title="بر اساس سبزه میدان">مبنا: دلار سبزه</span>
+                        </div>
+                    </div>
+                    <div class="flex items-end gap-2 mb-2">
+                        <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-intrinsic-price">---</span>
+                        <span class="text-[10px] text-slate-400 mb-1">تومان</span>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                            <span id="w-intrinsic-min" class="num-sm">Min: -</span>
+                            <span id="w-intrinsic-max" class="num-sm">Max: -</span>
+                        </div>
+                        <div class="range-track">
+                            <div id="w-intrinsic-marker" class="range-marker left-0" style="left: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Widget 3: Gold 18k Maqholi (Sell) -->
                 <div id="widget-gold18" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-between h-48 border-r-4 border-amber-500">
                     <div class="flex justify-between items-start">
@@ -647,7 +673,7 @@
                 </div>
 
                 <!-- Widget 4: Bubbles (REVERTED TO PREVIOUS VERSION) -->
-                <div id="widget-bubble" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-center h-48 border-r-4 border-indigo-500 bg-gradient-to-br from-indigo-900/20 to-transparent">
+                <div id="widget-bubble" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-center h-48 border-r-4 border-indigo-500 bg-gradient-to-br from-indigo-900/20 to-transparent md:col-span-2">
                     <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                         حباب سنج بازار
@@ -1549,6 +1575,16 @@
             document.getElementById('w-dollar-min').innerText = `Min: ${Math.round(sRange.low).toLocaleString()}`;
             document.getElementById('w-dollar-max').innerText = `Max: ${Math.round(sRange.high).toLocaleString()}`;
             document.getElementById('w-dollar-marker').style.right = `${100 - dPos}%`; 
+
+            // NEW: Intrinsic Gold 18k Widget
+            const iHigh = (oHigh > 0 && sRange.high > 0) ? (oHigh / OUNCE_TO_GRAM) * PURITY_18K * sRange.high : inherentGold;
+            const iLow = (oLow > 0 && sRange.low > 0) ? (oLow / OUNCE_TO_GRAM) * PURITY_18K * sRange.low : inherentGold;
+            const iPos = (iHigh - iLow) > 0 ? ((inherentGold - iLow) / (iHigh - iLow)) * 100 : 50;
+            
+            document.getElementById('w-intrinsic-price').innerText = Math.round(inherentGold).toLocaleString();
+            document.getElementById('w-intrinsic-min').innerText = `Min: ${Math.round(iLow).toLocaleString()}`;
+            document.getElementById('w-intrinsic-max').innerText = `Max: ${Math.round(iHigh).toLocaleString()}`;
+            document.getElementById('w-intrinsic-marker').style.right = `${100 - iPos}%`; 
 
             // 3. Gold 18k Maqholi (Sell) Widget
             const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
