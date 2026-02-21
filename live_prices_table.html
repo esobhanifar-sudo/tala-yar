@@ -673,13 +673,13 @@
                 </div>
 
                 <!-- Widget 4: Bubbles (REVERTED TO PREVIOUS VERSION) -->
-                <div id="widget-bubble" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-center h-48 border-r-4 border-indigo-500 bg-gradient-to-br from-indigo-900/20 to-transparent md:col-span-2">
+                <div id="widget-bubble" class="glass-panel rounded-3xl p-5 shadow-xl flex flex-col justify-center h-full min-h-[12rem] border-r-4 border-indigo-500 bg-gradient-to-br from-indigo-900/20 to-transparent md:col-span-2">
                     <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                         حباب سنج بازار
                     </h3>
                     
-                    <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <div class="flex justify-between text-xs mb-1">
                                 <span class="text-slate-400">حباب طلای ۱۸</span>
@@ -693,6 +693,17 @@
 
                         <div>
                             <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">حباب تمام سکه</span>
+                                <span class="font-bold widget-num-font num-sm" id="w-bubble-full-val">-%</span>
+                            </div>
+                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative">
+                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
+                                <div id="w-bubble-full-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
                                 <span class="text-slate-400">حباب دلار</span>
                                 <span class="font-bold widget-num-font num-sm" id="w-bubble-usd-val">-%</span>
                             </div>
@@ -701,9 +712,31 @@
                                 <div id="w-bubble-usd-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
                             </div>
                         </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">حباب نیم سکه</span>
+                                <span class="font-bold widget-num-font num-sm" id="w-bubble-half-val">-%</span>
+                            </div>
+                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative">
+                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
+                                <div id="w-bubble-half-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">حباب ربع سکه</span>
+                                <span class="font-bold widget-num-font num-sm" id="w-bubble-quarter-val">-%</span>
+                            </div>
+                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative">
+                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
+                                <div id="w-bubble-quarter-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="mt-3 text-center text-[10px] font-bold" id="w-bubble-status">
+                    <div class="mt-4 text-center text-[10px] font-bold" id="w-bubble-status">
                         وضعیت: <span class="text-slate-500">نامشخص</span>
                     </div>
                 </div>
@@ -1596,36 +1629,55 @@
             document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; 
 
             // 4. Bubbles Widget (REVERTED LOGIC)
+            const inherentFull = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.full.weight : 0;
+            const inherentHalf = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.half.weight : 0;
+            const inherentQuarter = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.quarter.weight : 0;
+
             const bubbleGold = inherentGold > 0 ? ((magholiGold - inherentGold) / inherentGold) * 100 : 0;
             const bubbleUSD = inherentDollar > 0 ? ((sabzaDollar - inherentDollar) / inherentDollar) * 100 : 0;
+            const bubbleFull = inherentFull > 0 ? ((hajiFull - inherentFull) / inherentFull) * 100 : 0;
+            const bubbleHalf = inherentHalf > 0 ? ((hajiHalf - inherentHalf) / inherentHalf) * 100 : 0;
+            const bubbleQuarter = inherentQuarter > 0 ? ((hajiQuarter - inherentQuarter) / inherentQuarter) * 100 : 0;
             
             const diffGold = magholiGold - inherentGold;
             const diffUSD = sabzaDollar - inherentDollar;
+            const diffFull = hajiFull - inherentFull;
+            const diffHalf = hajiHalf - inherentHalf;
+            const diffQuarter = hajiQuarter - inherentQuarter;
 
-            document.getElementById('w-bubble-gold-val').innerHTML = `${bubbleGold.toFixed(1)}% <span class="text-[9px] opacity-60 font-normal mx-1 num-sm">(${Math.round(diffGold).toLocaleString()})</span>`;
-            document.getElementById('w-bubble-usd-val').innerHTML = `${bubbleUSD.toFixed(1)}% <span class="text-[9px] opacity-60 font-normal mx-1 num-sm">(${Math.round(diffUSD).toLocaleString()})</span>`;
-            
             const scaleBubble = (b) => {
-                let w = Math.min(Math.abs(b) * 10, 50); 
+                // ضریب ۲ برای نمایش بهتر حباب‌های بزرگ (مثل سکه‌ها که تا ۲۵٪ می‌رسد)
+                let w = Math.min(Math.abs(b) * 2, 50); 
                 return { width: w + '%', right: b > 0 ? '50%' : (50 - w) + '%', color: b > 0 ? '#ef4444' : '#10b981' };
             };
-            
-            const bGoldStyle = scaleBubble(bubbleGold);
-            const bGoldBar = document.getElementById('w-bubble-gold-bar');
-            bGoldBar.style.width = bGoldStyle.width;
-            bGoldBar.style.marginRight = bGoldStyle.right;
-            bGoldBar.style.backgroundColor = bGoldStyle.color;
 
-            const bUSDStyle = scaleBubble(bubbleUSD);
-            const bUSDBar = document.getElementById('w-bubble-usd-bar');
-            bUSDBar.style.width = bUSDStyle.width;
-            bUSDBar.style.marginRight = bUSDStyle.right;
-            bUSDBar.style.backgroundColor = bUSDStyle.color;
+            const updateBubbleDom = (idPrefix, bubblePct, diffAbs) => {
+                const valEl = document.getElementById(`w-bubble-${idPrefix}-val`);
+                if(valEl) valEl.innerHTML = `${bubblePct.toFixed(1)}% <span class="text-[9px] opacity-60 font-normal mx-1 num-sm">(${Math.round(diffAbs).toLocaleString()})</span>`;
+                
+                const barEl = document.getElementById(`w-bubble-${idPrefix}-bar`);
+                if(barEl) {
+                    const style = scaleBubble(bubblePct);
+                    barEl.style.width = style.width;
+                    barEl.style.marginRight = style.right;
+                    barEl.style.backgroundColor = style.color;
+                }
+            };
+
+            updateBubbleDom('gold', bubbleGold, diffGold);
+            updateBubbleDom('usd', bubbleUSD, diffUSD);
+            updateBubbleDom('full', bubbleFull, diffFull);
+            updateBubbleDom('half', bubbleHalf, diffHalf);
+            updateBubbleDom('quarter', bubbleQuarter, diffQuarter);
 
             let bStatus = "متعادل";
             let bStatusClass = "text-slate-500";
-            if (bubbleGold > 2 || bubbleUSD > 2) { bStatus = "مثبت (ریسک اصلاح)"; bStatusClass = "text-red-400"; }
-            else if (bubbleGold < -1 || bubbleUSD < -1) { bStatus = "منفی (فرصت خرید)"; bStatusClass = "text-emerald-400"; }
+            const maxBubble = Math.max(bubbleGold, bubbleUSD, bubbleFull, bubbleHalf, bubbleQuarter);
+            const minBubble = Math.min(bubbleGold, bubbleUSD, bubbleFull, bubbleHalf, bubbleQuarter);
+
+            if (maxBubble > 15) { bStatus = "مثبت شدید (ریسک بالای اصلاح)"; bStatusClass = "text-red-500"; }
+            else if (maxBubble > 5) { bStatus = "مثبت (ریسک اصلاح)"; bStatusClass = "text-red-400"; }
+            else if (minBubble < -1) { bStatus = "منفی (فرصت خرید)"; bStatusClass = "text-emerald-400"; }
             
             document.getElementById('w-bubble-status').innerHTML = `وضعیت کلی: <span class="${bStatusClass}">${bStatus}</span>`;
 
