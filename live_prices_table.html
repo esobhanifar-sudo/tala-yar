@@ -1244,7 +1244,19 @@
                 </td>`;
             
             sources.forEach(s => {
-                const price = s[asset.id];
+                let rawPrice = s[asset.id];
+                let val = 0;
+                let isStale = false;
+                let staleTime = null;
+
+                // Handle both raw numbers and `{value, isStale, time}` objects
+                if (typeof rawPrice === 'object' && rawPrice !== null && 'value' in rawPrice) {
+                    val = rawPrice.value;
+                    isStale = rawPrice.isStale;
+                    staleTime = rawPrice.time;
+                } else {
+                    val = rawPrice;
+                }
                 
                 if (asset.isIntrinsic) {
                     let value = 0;
@@ -1309,19 +1321,28 @@
                     return;
                 }
                 
-                if (!price || price === 0) { html += `<td class="text-xs opacity-50 p-3">-</td>`; } 
+                if (!val || val === 0) { html += `<td class="text-xs opacity-50 p-3">-</td>`; } 
                 else {
-                    let cellHTML = `<div class="flex flex-col items-center gap-0.5">`;
-                    cellHTML += `<div class="num-sm latin-nums font-bold text-base md:text-lg live-price-text">${Math.round(price).toLocaleString()}</div>`;
+                    let cellHTML = `<div class="flex flex-col items-center gap-0.5 relative">`;
+                    let textClass = isStale ? 'text-slate-400 opacity-80 scale-95' : 'live-price-text';
                     
+                    cellHTML += `<div class="num-sm latin-nums font-bold text-base md:text-lg ${textClass} transition-all duration-300">${Math.round(val).toLocaleString()}</div>`;
+                    
+                    // Badge for stale data
+                    if (isStale && staleTime) {
+                        cellHTML += `<div class="text-[9px] text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded-md mt-0.5 mb-0.5 shadow-sm border border-amber-500/20 whitespace-nowrap" title="این قیمت در آخرین پیام بروزرسانی نشده است">آخرین: ${staleTime}</div>`;
+                    }
+
                     if (s.inherent_gold > 0 && asset.id !== 'gold_buy') {
                         let intrinsicValue = (asset.id === 'gold') ? s.inherent_gold : (asset.weight ? asset.weight * (s.inherent_gold * 1.2) : null);
                         if (intrinsicValue !== null) {
-                            let diff = price - intrinsicValue;
+                            let diff = val - intrinsicValue;
                             let bubblePct = (diff / intrinsicValue) * 100;
                             let bClass = bubblePct > 0 ? 'text-emerald-500' : 'text-red-500';
+                            let staleOpacity = isStale ? 'opacity-70' : '';
+                            
                             cellHTML += `
-                                <div class="${bClass} text-[10px] font-bold ltr latin-nums num-sm bubble-val">
+                                <div class="${bClass} text-[10px] font-bold ltr latin-nums num-sm bubble-val ${staleOpacity}">
                                     ${bubblePct.toFixed(1)}% حباب (${Math.round(diff).toLocaleString()})
                                 </div>`;
                         }
@@ -1479,8 +1500,8 @@
                 // ADDED QUERY FOR OUNCE LOW: Get absolute min in window with filter > 1000
                 client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1),
                 
-                // NEW: Haji Abdollahi
-                client.from('tala_hajiabdollahi').select('*').order('id', { ascending: false }).limit(1),
+                // NEW: Haji Abdollahi - Fetch 20 to support fallback mechanism
+                client.from('tala_hajiabdollahi').select('*').order('id', { ascending: false }).limit(20),
                 client.from('tala_hajiabdollahi').select('abshode_sell_hajiabdollahi').gte('created_at', startOfToday.toISOString())
             ]);
 
@@ -1489,7 +1510,6 @@
             const herat = heratRes.data?.[0] || {};
             const tether = tetherRes.data?.[0] || {};
             const dirhamRate = dirhamRateRes.data?.[0] || {};
-            const haji = hajiRes.data?.[0] || {};
 
             let dhsPrice = parsePrice(dirhamRate.rate_value_dirham_rate); 
             if (dhsPrice > 200000) dhsPrice /= 10;
@@ -1506,17 +1526,44 @@
             let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
             if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
             
-            // Haji Abdollahi Parsing
-            // Updated thresholds to 500,000,000 to accommodate coin prices > 100m Tomans
-            const hajiGold = parsePrice(haji.gold_18_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.gold_18_sell_hajiabdollahi)/10 : parsePrice(haji.gold_18_sell_hajiabdollahi);
-            const hajiGoldBuy = parsePrice(haji.gold_18_buy_hajiabdollahi) > 500000000 ? parsePrice(haji.gold_18_buy_hajiabdollahi)/10 : parsePrice(haji.gold_18_buy_hajiabdollahi);
-            const hajiFull = parsePrice(haji.coin_full_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.coin_full_sell_hajiabdollahi)/10 : parsePrice(haji.coin_full_sell_hajiabdollahi);
-            const hajiHalf = parsePrice(haji.coin_half_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.coin_half_sell_hajiabdollahi)/10 : parsePrice(haji.coin_half_sell_hajiabdollahi);
-            const hajiQuarter = parsePrice(haji.coin_quarter_sell_hajiabdollahi) > 500000000 ? parsePrice(haji.coin_quarter_sell_hajiabdollahi)/10 : parsePrice(haji.coin_quarter_sell_hajiabdollahi);
+            // Haji Abdollahi Parsing (With Fallback for Null/Empty Prices)
+            const hajiRows = hajiRes.data || [];
+            const hajiLatest = hajiRows[0] || {};
+            
+            // Helper function to scan backwards for the first valid price
+            const getValidHajiPrice = (key) => {
+                for (let i = 0; i < hajiRows.length; i++) {
+                    const row = hajiRows[i];
+                    let p = parsePrice(row[key]);
+                    if (p > 0) {
+                        if (p > 500000000) p /= 10; // Threshold logic for big prices
+                        return { 
+                            value: p, 
+                            isStale: i > 0, // It's considered stale if it's not in the absolute latest row
+                            time: row.time_hajiabdollahi || (row.created_at ? new Date(row.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-')
+                        };
+                    }
+                }
+                return { value: 0, isStale: false, time: null };
+            };
+
+            const hajiGoldData = getValidHajiPrice('gold_18_sell_hajiabdollahi');
+            const hajiGoldBuyData = getValidHajiPrice('gold_18_buy_hajiabdollahi');
+            const hajiFullData = getValidHajiPrice('coin_full_sell_hajiabdollahi');
+            const hajiHalfData = getValidHajiPrice('coin_half_sell_hajiabdollahi');
+            const hajiQuarterData = getValidHajiPrice('coin_quarter_sell_hajiabdollahi');
+
+            // Extraction for Bubbles & math
+            const hajiGold = hajiGoldData.value;
+            const hajiGoldBuy = hajiGoldBuyData.value;
+            const hajiFull = hajiFullData.value;
+            const hajiHalf = hajiHalfData.value;
+            const hajiQuarter = hajiQuarterData.value;
             
             // Haji Range (Based on Abshode -> 18k Gram)
             const hHigh = hajiRangeRes.data?.reduce((max, r) => {
                  const p = parsePrice(r.abshode_sell_hajiabdollahi);
+                 if (!p || p <= 0) return max;
                  const normalized = p > 200000000 ? p/10 : p;
                  const g18 = normalized / 4.3318;
                  return Math.max(max, g18);
@@ -1524,6 +1571,7 @@
 
             const hLow = hajiRangeRes.data?.reduce((min, r) => {
                  const p = parsePrice(r.abshode_sell_hajiabdollahi);
+                 if (!p || p <= 0) return min;
                  const normalized = p > 200000000 ? p/10 : p;
                  const g18 = normalized / 4.3318;
                  return Math.min(min, g18);
@@ -1704,12 +1752,12 @@
                 { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow === Infinity ? 0 : mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
                 { 
                     label: 'حاجی‌عبداللهی', 
-                    time: haji.time_hajiabdollahi || '-', 
-                    gold: hajiGold, 
-                    gold_buy: hajiGoldBuy, 
-                    full: hajiFull, 
-                    half: hajiHalf, 
-                    quarter: hajiQuarter, 
+                    time: hajiLatest.time_hajiabdollahi || '-', 
+                    gold: hajiGoldData, // Pass the parsed objects with 'isStale' flags
+                    gold_buy: hajiGoldBuyData, 
+                    full: hajiFullData, 
+                    half: hajiHalfData, 
+                    quarter: hajiQuarterData, 
                     inherent_gold: inherentGold,
                     range_high: hHigh,
                     range_low: hLow === Infinity ? 0 : hLow,
