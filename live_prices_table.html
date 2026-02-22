@@ -1500,8 +1500,8 @@
                 // ADDED QUERY FOR OUNCE LOW: Get absolute min in window with filter > 1000
                 client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1),
                 
-                // NEW: Haji Abdollahi - Fetch 20 to support fallback mechanism
-                client.from('tala_hajiabdollahi').select('*').order('id', { ascending: false }).limit(20),
+                // NEW: Haji Abdollahi - Fetch 200 to support fallback mechanism across many empty rows
+                client.from('tala_hajiabdollahi').select('*').order('id', { ascending: false }).limit(200),
                 client.from('tala_hajiabdollahi').select('abshode_sell_hajiabdollahi').gte('created_at', startOfToday.toISOString())
             ]);
 
