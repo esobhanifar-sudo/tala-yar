@@ -98,7 +98,6 @@
 
         .num-sm { 
             font-size: calc(100% * var(--num-scale)) !important; 
-            /* font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; REMOVED to inherit properly or use utility class */
             font-weight: var(--num-weight);
             display: inline-block;
             transition: font-size 0.2s;
@@ -112,7 +111,7 @@
         }
 
         .currency-num-font {
-            font-family: 'Vazirmatn', sans-serif !important; /* Using Vazirmatn instead of Mono for that bold look */
+            font-family: 'Vazirmatn', sans-serif !important;
             font-weight: 800 !important;
             letter-spacing: 0.5px;
             direction: ltr;
@@ -121,11 +120,10 @@
         }
 
         .widget-main-num {
-            font-size: calc(1.8rem * var(--num-scale)); /* Adjusted for mobile */
+            font-size: calc(1.8rem * var(--num-scale));
             line-height: 1;
             font-weight: 900;
             color: white;
-            /* margin-bottom: 0.5rem; removed for better alignment in new widgets */
         }
 
         @media (min-width: 768px) {
@@ -192,8 +190,8 @@
         #trade-panel {
             position: fixed;
             top: 0;
-            left: -100%; /* Changed from -400px for mobile safety */
-            width: 85%; /* Responsive width for mobile */
+            left: -100%;
+            width: 85%;
             max-width: var(--trade-panel-width);
             height: 100vh;
             background: var(--bg-color);
@@ -207,7 +205,6 @@
         #trade-panel.open {
             left: 0;
         }
-        /* Overlay for mobile when sidebar is open */
         #trade-panel-overlay {
             position: fixed;
             inset: 0;
@@ -239,7 +236,7 @@
         }
         .unit-toggle {
             cursor: pointer;
-            padding: 6px 10px; /* Larger touch target */
+            padding: 6px 10px;
             border-radius: 6px;
             font-size: 0.75rem;
             background: rgba(255,255,255,0.1);
@@ -261,7 +258,7 @@
             color: white;
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
-            padding: 8px; /* Larger padding */
+            padding: 8px;
             font-size: 0.8rem;
             outline: none;
             width: 100%;
@@ -291,14 +288,14 @@
         .range-marker {
             position: absolute;
             top: 50%;
-            transform: translate(50%, -50%); /* Corrected for RTL, usually -50%, -50% in LTR */
+            transform: translate(50%, -50%);
             width: 12px;
             height: 12px;
             background-color: white;
             border-radius: 50%;
             border: 2px solid var(--bg-color);
             box-shadow: 0 0 10px rgba(255,255,255,0.5);
-            transition: right 0.5s ease-out; /* Using 'right' for RTL */
+            transition: right 0.5s ease-out;
         }
         /* Mobile Adjustments */
         @media (max-width: 640px) {
@@ -1546,6 +1543,10 @@
             let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
             if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
             
+            // Define hPrice and dPrice HERE so they are available for ranges
+            const hPrice = parsePrice(herat.price) > 1000000 ? parsePrice(herat.price)/10 : parsePrice(herat.price);
+            const dPrice = parsePrice(curr.dollar) > 1000000 ? parsePrice(curr.dollar)/10 : parsePrice(curr.dollar);
+
             // Haji Abdollahi Parsing (With Fallback for Null/Empty Prices)
             const hajiRows = hajiRes.data || [];
             const hajiLatest = hajiRows[0] || {};
@@ -1656,19 +1657,42 @@
                 return { high: h === -Infinity ? 0 : h, low: l === Infinity ? 0 : l, highTime: fmt(hT), lowTime: fmt(lT) };
             };
 
-            const tRange = calculateRangeWithTime(tetherHistoryRes.data, 'price_USDTTetherp', 'created_at_USDTTetherp');
-            const sRange = calculateRangeWithTime(sabzaHistoryRes.data, 'tahran_sabza_price_dollar', 'created_at');
-            const hRange = calculateRangeWithTime(heratHistoryRes.data, 'price', 'created_at');
-            const dhsRange = calculateRangeWithTime(dhsHistoryRes.data, 'rate_value_dirham_rate', 'created_at_dirham_rate');
-            const currRanges = {
-                dollar: calculateRangeWithTime(currHistoryRes.data, 'dollar', 'created_at'),
-                euro: calculateRangeWithTime(currHistoryRes.data, 'euro', 'created_at'),
-                dirham: calculateRangeWithTime(currHistoryRes.data, 'dirham', 'created_at'),
-                pound: calculateRangeWithTime(currHistoryRes.data, 'pound', 'created_at')
+            const includeCurrentInRange = (range, current) => {
+                if (current > 0) {
+                    if (range.high === 0 || current > range.high) range.high = current;
+                    if (range.low === 0 || current < range.low) range.low = current;
+                }
+                return range;
             };
 
-            const mHigh = magRangeRes.data?.reduce((max, r) => Math.max(max, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), 0) || 0;
-            const mLow = magRangeRes.data?.reduce((min, r) => Math.min(min, parsePrice(r.mesghal_sell_magholi) > 200000000 ? parsePrice(r.mesghal_sell_magholi)/43.318 : parsePrice(r.mesghal_sell_magholi)/4.3318), Infinity) || 0;
+            const tRange = includeCurrentInRange(calculateRangeWithTime(tetherHistoryRes.data, 'price_USDTTetherp', 'created_at_USDTTetherp'), parsePrice(tether.price_USDTTetherp));
+            const sRange = includeCurrentInRange(calculateRangeWithTime(sabzaHistoryRes.data, 'tahran_sabza_price_dollar', 'created_at'), sabzaDollar);
+            const hRange = includeCurrentInRange(calculateRangeWithTime(heratHistoryRes.data, 'price', 'created_at'), hPrice);
+            const dhsRange = includeCurrentInRange(calculateRangeWithTime(dhsHistoryRes.data, 'rate_value_dirham_rate', 'created_at_dirham_rate'), dhsPrice);
+            const currRanges = {
+                dollar: includeCurrentInRange(calculateRangeWithTime(currHistoryRes.data, 'dollar', 'created_at'), dPrice),
+                euro: includeCurrentInRange(calculateRangeWithTime(currHistoryRes.data, 'euro', 'created_at'), parsePrice(curr.euro)),
+                dirham: includeCurrentInRange(calculateRangeWithTime(currHistoryRes.data, 'dirham', 'created_at'), parsePrice(curr.dirham)),
+                pound: includeCurrentInRange(calculateRangeWithTime(currHistoryRes.data, 'pound', 'created_at'), parsePrice(curr.pound))
+            };
+
+            let mHigh = 0;
+            let mLow = Infinity;
+            if (magRangeRes.data && magRangeRes.data.length > 0) {
+                magRangeRes.data.forEach(r => {
+                    let p = parsePrice(r.mesghal_sell_magholi);
+                    if (p > 0) {
+                        let g18 = p > 200000000 ? p / 43.318 : p / 4.3318;
+                        if (g18 > mHigh) mHigh = g18;
+                        if (g18 < mLow) mLow = g18;
+                    }
+                });
+            }
+            if (mLow === Infinity) mLow = 0;
+            if (magholiGold > 0) {
+                if (mHigh === 0 || magholiGold > mHigh) mHigh = magholiGold;
+                if (mLow === 0 || magholiGold < mLow) mLow = magholiGold;
+            }
             
             // CORRECTED OUNCE HIGH/LOW LOGIC
             let oHigh = parsePrice(ounceHighRes.data?.[0]?.price_blue);
@@ -1676,7 +1700,7 @@
 
             // Logic correction: If current price breaks the high/low, update them
             if (ouncePrice > 0) {
-                if (ouncePrice > oHigh) oHigh = ouncePrice;
+                if (oHigh === 0 || ouncePrice > oHigh) oHigh = ouncePrice;
                 if (oLow === 0 || ouncePrice < oLow) oLow = ouncePrice;
             }
 
@@ -1812,9 +1836,6 @@
             document.getElementById('goldTable').innerHTML = generateGoldTableHTML(goldSources, goldAssets);
 
             const formatTime = (iso) => iso ? new Date(iso).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-';
-            
-            const hPrice = parsePrice(herat.price) > 1000000 ? parsePrice(herat.price)/10 : parsePrice(herat.price);
-            const dPrice = parsePrice(curr.dollar) > 1000000 ? parsePrice(curr.dollar)/10 : parsePrice(curr.dollar);
 
             const currencyData = [
                 { source: 'تتر پایتخت', item: 'تتر فروش', price: parsePrice(tether.price_USDTTetherp), isDollar: true, high: tRange.high, low: tRange.low, highTime: tRange.highTime, lowTime: tRange.lowTime, time: formatTime(tether.created_at_USDTTetherp) },
@@ -1838,6 +1859,12 @@
             if (!maqholiChart) loadMaqholiChart('today');
         } catch (e) { 
             console.error(e);
+            const errEl = document.getElementById('errorLog');
+            if (errEl) {
+                errEl.classList.remove('hidden');
+                errEl.innerText = `خطا در دریافت اطلاعات: ${e.message}`;
+                setTimeout(() => errEl.classList.add('hidden'), 5000);
+            }
             startTimer();
         }
     }
