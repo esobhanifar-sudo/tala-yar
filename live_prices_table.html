@@ -677,7 +677,7 @@
                     </h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- USD Bubble (Moved to Top Right) -->
+                        <!-- USD Bubble -->
                         <div>
                             <div class="flex justify-between items-start mb-1">
                                 <div class="flex flex-col">
@@ -692,22 +692,7 @@
                             </div>
                         </div>
 
-                        <!-- Full Coin Bubble (Top Left) -->
-                        <div>
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-400 text-xs">حباب تمام سکه</span>
-                                    <span id="w-bubble-full-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
-                                </div>
-                                <span class="font-bold widget-num-font num-sm" id="w-bubble-full-val">-%</span>
-                            </div>
-                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
-                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
-                                <div id="w-bubble-full-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Gold 18k Bubble (Moved Down) -->
+                        <!-- Gold 18k Bubble -->
                         <div>
                             <div class="flex justify-between items-start mb-1">
                                 <div class="flex flex-col">
@@ -719,6 +704,21 @@
                             <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
                                 <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
                                 <div id="w-bubble-gold-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Full Coin Bubble -->
+                        <div>
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="flex flex-col">
+                                    <span class="text-slate-400 text-xs">حباب تمام سکه</span>
+                                    <span id="w-bubble-full-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
+                                </div>
+                                <span class="font-bold widget-num-font num-sm" id="w-bubble-full-val">-%</span>
+                            </div>
+                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
+                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
+                                <div id="w-bubble-full-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
                             </div>
                         </div>
 
@@ -1729,6 +1729,18 @@
             document.getElementById('w-intrinsic-min').innerText = `Min: ${Math.round(iLow).toLocaleString()}`;
             document.getElementById('w-intrinsic-max').innerText = `Max: ${Math.round(iHigh).toLocaleString()}`;
             document.getElementById('w-intrinsic-marker').style.right = `${100 - iPos}%`; 
+
+            // --- STORE INTRINSIC VALUE ---
+            if (inherentGold > 0) {
+                client.from('intrinsic_value_logs').insert([{
+                    live_value: inherentGold,
+                    min_value: iLow,
+                    max_value: iHigh,
+                    asset: 'gold_18k'
+                }]).then(({error}) => {
+                    if(error) console.error("Error logging intrinsic value:", error);
+                });
+            }
 
             // 3. Gold 18k Maqholi (Sell) Widget
             const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
