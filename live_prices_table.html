@@ -19,9 +19,10 @@
             // In a real app, check localStorage or Supabase session here
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             checkAuthGuard();
             loadSettings();
+            await fetchAccounts(); // دریافت اکانت‌ها پیش از لود سایر بخش‌ها
             initSessionManager();
             fetchLiveTicker();
             fetchPortfolioStats();
@@ -409,6 +410,15 @@
 
         <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
             
+            <!-- Account Manager UI (Hidden if only 1 account) -->
+            <div id="account-select-container" class="hidden bg-slate-800/40 p-2 rounded-xl border border-white/5 mb-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-slate-400">حساب کاربری فعال:</span>
+                    <select id="account-select" onchange="switchAccount(this.value)" class="bg-transparent text-amber-400 text-xs font-bold outline-none cursor-pointer text-left dir-ltr">
+                    </select>
+                </div>
+            </div>
+
             <!-- Global Stats in Trade Panel -->
             <div class="bg-indigo-900/20 p-3 rounded-xl border border-indigo-500/20 mb-3">
                 <div class="text-[11px] text-indigo-300 mb-2 font-bold border-b border-indigo-500/20 pb-1">آمار کل رهدیس (تمام نشست‌ها)</div>
@@ -939,6 +949,93 @@
     let sessions = []; 
     let currentLiveGoldPrice = 0; 
     
+    // --- Multi-Account Variables ---
+    let accounts = [];
+    let activeAccountId = null;
+    let currentUser = null; // برای نگهداری اطلاعات کاربر لاگین شده
+
+    async function fetchAccounts() {
+        const client = getSupabaseClient();
+        if (!client) {
+            setFallbackAccount();
+            return;
+        }
+        try {
+            // ۱. ابتدا باید ID کاربر لاگین شده را بگیریم
+            const { data: { session } } = await client.auth.getSession();
+            if (!session || !session.user) {
+                 console.log("No active user session found.");
+                 setFallbackAccount();
+                 return;
+            }
+            currentUser = session.user;
+
+            // ۲. جستجو در جدول واسط (account_members) برای پیدا کردن تمام اکانت‌های در دسترس کاربر
+            // استفاده از Join برای گرفتن نام اکانت از جدول user_accounts
+            const { data, error } = await client
+                .from('account_members')
+                .select(`
+                    role,
+                    user_accounts (
+                        id,
+                        name
+                    )
+                `)
+                .eq('user_id', currentUser.id);
+
+            if (error || !data || data.length === 0) {
+                console.warn("No accounts found or error:", error);
+                setFallbackAccount();
+            } else {
+                // ۳. فرمت کردن داده‌ها برای استفاده در دراپ‌داون
+                accounts = data.map(item => ({
+                    id: item.user_accounts.id,
+                    name: item.user_accounts.name,
+                    role: item.role
+                }));
+                
+                // انتخاب اولین اکانت به عنوان پیش‌فرض (ترجیحاً اکانتی که خودش مالک آن است)
+                const ownerAccount = accounts.find(a => a.role === 'owner');
+                activeAccountId = ownerAccount ? ownerAccount.id : accounts[0].id;
+                
+                renderAccountSelect();
+            }
+        } catch (e) {
+            console.error("Account fetch error:", e);
+            setFallbackAccount();
+        }
+    }
+
+    function setFallbackAccount() {
+        accounts = [{ id: 'default', name: 'حساب شخصی من', role: 'owner' }];
+        activeAccountId = 'default';
+        renderAccountSelect();
+    }
+
+    function renderAccountSelect() {
+        const container = document.getElementById('account-select-container');
+        const select = document.getElementById('account-select');
+        if (!container || !select) return;
+        
+        if (accounts.length <= 1) {
+            container.classList.add('hidden'); // پنهان کردن در صورت تک اکانتی بودن
+        } else {
+            container.classList.remove('hidden');
+            // نمایش نقش (Role) در کنار نام اکانت برای تشخیص بهتر
+            select.innerHTML = accounts.map(a => {
+                const roleLabel = a.role === 'owner' ? '(حساب من)' : '(حساب اشتراکی)';
+                return `<option value="${a.id}">${a.name} ${roleLabel}</option>`;
+            }).join('');
+            select.value = activeAccountId;
+        }
+    }
+
+    async function switchAccount(id) {
+        activeAccountId = id;
+        renderSessionUI(); // آپدیت لیست لوکال بر اساس اکانت
+        await fetchGlobalTradeStats(); // آپدیت آمار گلوبال بر اساس اکانت
+    }
+
     // --- Confirmation Modal Logic ---
     let confirmCallback = null;
 
@@ -2195,9 +2292,14 @@
         const client = getSupabaseClient();
         if (!client) return;
 
-        const { data, error } = await client
-            .from('trade_orders')
-            .select('side, weight_gram, price_per_gram');
+        let query = client.from('trade_orders').select('side, weight_gram, price_per_gram');
+        
+        // فیلتر کردن آمار کل بر اساس اکانت انتخاب شده
+        if (activeAccountId && activeAccountId !== 'default') {
+            query = query.eq('account_id', activeAccountId);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching global trades:', error);
@@ -2318,7 +2420,8 @@
             input_price: priceInputRaw,
             input_price_unit: inputPriceUnit,
             asset_type: 'gold_18k',
-            session_ref: activeSession.id
+            session_ref: activeSession.id,
+            account_id: activeAccountId === 'default' ? null : activeAccountId // اتصال به اکانت
         };
 
         if (editingOrderId) {
@@ -2372,10 +2475,14 @@
     function renderSessionUI() {
         const listEl = document.getElementById('orders-list');
         listEl.innerHTML = '';
-        if(currentSession.orders.length === 0) {
+        
+        // فیلتر کردن سفارشات نشست فعلی بر اساس اکانت فعال
+        const filteredOrders = currentSession.orders.filter(o => !o.account_id || o.account_id === activeAccountId || activeAccountId === 'default');
+
+        if(filteredOrders.length === 0) {
             listEl.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
         } else {
-            currentSession.orders.forEach(order => {
+            filteredOrders.forEach(order => {
                 const sideColor = order.side === 'buy' ? 'text-emerald-400' : 'text-red-400';
                 const sideText = order.side === 'buy' ? 'خرید' : 'فروش';
                 const displayWeightUnit = order.input_weight_unit === 'gram' ? 'g' : 'مثقال';
@@ -2409,7 +2516,9 @@
     }
 
     function updateTradeStats() {
-        const sortedOrders = [...currentSession.orders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        // محاسبه میانگین‌ها فقط روی سفارشات اکانت انتخابی
+        const filteredOrders = currentSession.orders.filter(o => !o.account_id || o.account_id === activeAccountId || activeAccountId === 'default');
+        const sortedOrders = [...filteredOrders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         let inventoryGram = 0;
         let weightedAvgBuyPrice = 0; 
         let realizedPL = 0;
