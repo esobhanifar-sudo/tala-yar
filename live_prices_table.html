@@ -1054,8 +1054,8 @@
 
     async function switchAccount(id) {
         activeAccountId = id;
-        renderSessionUI(); 
-        await fetchOrders(); // با تغییر اکانت لیست سفارشات را مجدد می‌خوانیم
+        activeSession = null; // با تغییر اکانت، نشست قبلی باید ریست شود
+        await fetchSessions(); // این تابع حالا خودش لیست سفارشات را هم لود می‌کند
         await fetchGlobalTradeStats(); 
     }
 
@@ -2221,17 +2221,64 @@
         const client = getSupabaseClient();
         if (!client) return;
 
-        const { data, error } = await client
-            .from('trade_sessions')
-            .select('*')
-            .order('created_at', { ascending: false });
+        let query = client.from('trade_sessions').select('*').order('created_at', { ascending: false });
+
+        // واکشی نشست‌ها بر اساس اکانت فعال (یا نشست‌های قدیمی خود کاربر)
+        if (activeAccountId && activeAccountId !== 'default') {
+             query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser?.id})`);
+        } else if (currentUser) {
+             query = query.eq('user_id', currentUser.id);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching sessions:', error);
             return;
         }
 
-        sessions = data;
+        sessions = data || [];
+
+        // منطق هوشمند برای تریدر: ساخت خودکار نشست برای حساب اشتراکی
+        const currentAcc = accounts.find(a => a.id === activeAccountId);
+        const isTrader = currentAcc && currentAcc.role !== 'owner' && activeAccountId !== 'default';
+
+        if (isTrader) {
+            const todayStr = new Date().toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' });
+            const myEmailPrefix = currentUser.email ? currentUser.email.split('@')[0] : 'Trader';
+            const expectedSessionName = `${myEmailPrefix} - ${todayStr}`;
+
+            let traderSession = sessions.find(s => s.name === expectedSessionName && s.status === 'open');
+            
+            if (!traderSession) {
+                // ساخت نشست جدید برای این تریدر در این روز
+                const { data: newSess, error: createErr } = await client
+                    .from('trade_sessions')
+                    .insert([{ 
+                        name: expectedSessionName, 
+                        status: 'open',
+                        account_id: activeAccountId
+                    }])
+                    .select()
+                    .single();
+
+                if (!createErr && newSess) {
+                    sessions.unshift(newSess);
+                    traderSession = newSess;
+                }
+            }
+            activeSession = traderSession || sessions.find(s => s.status === 'open') || sessions[0];
+        } else {
+            // رفتار عادی برای صاحب حساب
+            if (!activeSession && sessions.length > 0) {
+                activeSession = sessions.find(s => s.status === 'open') || sessions[0];
+            } else if (activeSession) {
+                if (!sessions.find(s => s.id === activeSession.id)) {
+                    activeSession = sessions.find(s => s.status === 'open') || sessions[0];
+                }
+            }
+        }
+
         const selector = document.getElementById('session-select');
         selector.innerHTML = '';
         
@@ -2242,25 +2289,22 @@
             selector.appendChild(option);
         });
 
-        if (!activeSession && sessions.length > 0) {
-            const firstOpen = sessions.find(s => s.status === 'open');
-            activeSession = firstOpen || sessions[0];
-            selector.value = activeSession.id;
-        } else if (activeSession) {
-            if (sessions.find(s => s.id === activeSession.id)) {
-                selector.value = activeSession.id;
-            } else if (sessions.length > 0) {
-                activeSession = sessions[0];
-                selector.value = activeSession.id;
-            } else {
-                activeSession = null;
-            }
-        }
-
-        updateSessionUIState();
         if (activeSession) {
+            selector.value = activeSession.id;
+            updateSessionUIState();
             await fetchOrders();
+        } else {
+            selector.value = "";
+            currentSession.orders = [];
+            renderSessionUI();
         }
+    }
+
+    async function switchAccount(id) {
+        activeAccountId = id;
+        activeSession = null; // با تغییر اکانت، نشست قبلی باید پاک شود تا نشست مربوط به اکانت جدید لود شود
+        await fetchSessions(); // این تابع حالا خودش لیست سفارشات را هم لود می‌کند
+        await fetchGlobalTradeStats(); 
     }
 
     async function switchSession(id) {
@@ -2302,7 +2346,11 @@
 
         const { data, error } = await client
             .from('trade_sessions')
-            .insert([{ name: name, status: 'open' }])
+            .insert([{ 
+                name: name, 
+                status: 'open',
+                account_id: activeAccountId === 'default' ? null : activeAccountId
+            }])
             .select()
             .single();
 
@@ -2311,11 +2359,8 @@
             return;
         }
 
+        activeSession = data; // نشست جدید بلافاصله فعال می‌شود
         await fetchSessions();
-        activeSession = sessions.find(s => s.id === data.id);
-        document.getElementById('session-select').value = activeSession.id;
-        updateSessionUIState();
-        await fetchOrders();
     }
 
     function renameSession() {
@@ -2353,8 +2398,8 @@
             await client.from('trade_orders').delete().eq('session_ref', activeSession.id);
             await client.from('trade_sessions').delete().eq('id', activeSession.id);
             activeSession = null;
-            await initSessionManager(); 
-            await fetchGlobalTradeStats(); // آپدیت آمار کل بعد از حذف
+            await fetchSessions(); // بازخوانی مجدد نشست‌ها
+            await fetchGlobalTradeStats(); 
         });
     }
 
@@ -2481,6 +2526,11 @@
         const pGSellEl = document.getElementById('panel-global-avg-sell');
         if (pGBuyEl) pGBuyEl.innerText = format(avgBuy);
         if (pGSellEl) pGSellEl.innerText = format(avgSell);
+    }
+
+    // --- Helper for backwards compatibility in local session viewing ---
+    function getFilteredSessionOrders() {
+        return currentSession.orders; // چون کوئری دیتابیس رو درست کردیم، نیازی به فیلتر دستی نیست
     }
 
     function setTradeSide(side) {
