@@ -968,7 +968,8 @@
             }
             currentUser = session.user;
 
-            const { data, error } = await client
+            // تلاش اول: سعی می‌کنیم اکانت‌ها را به همراه ایمیل صاحب حساب بگیریم
+            let { data, error } = await client
                 .from('account_members')
                 .select(`
                     role,
@@ -982,14 +983,32 @@
                 `)
                 .eq('user_id', currentUser.id);
 
+            // اگر به خاطر محدودیت‌های RLS یا کش دیتابیس خطا داد، کوئری ساده (بدون ایمیل) را اجرا می‌کنیم
+            if (error) {
+                console.warn("تلاش برای دریافت ایمیل با خطا مواجه شد، دریافت نسخه ساده اکانت‌ها...", error);
+                const fallbackRes = await client
+                    .from('account_members')
+                    .select(`
+                        role,
+                        user_accounts (
+                            id,
+                            name
+                        )
+                    `)
+                    .eq('user_id', currentUser.id);
+                
+                data = fallbackRes.data;
+                error = fallbackRes.error;
+            }
+
             if (error || !data || data.length === 0) {
-                console.warn("No accounts found or error:", error);
+                console.warn("هیچ اکانتی یافت نشد یا خطای دیتابیس:", error);
                 setFallbackAccount();
             } else {
                 accounts = data.map(item => ({
                     id: item.user_accounts.id,
                     name: item.user_accounts.name,
-                    ownerEmail: item.user_accounts.users ? item.user_accounts.users.email : '',
+                    ownerEmail: (item.user_accounts.users && item.user_accounts.users.email) ? item.user_accounts.users.email : '',
                     role: item.role
                 }));
                 
