@@ -800,7 +800,6 @@
                     <div class="flex items-center gap-2">
                         <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span id="connectionStatus" class="text-[10px] opacity-90">در حال دریافت...</span>
-                        <!-- Old refreshTimer removed from here -->
                     </div>
                     <span id="lastUpdateTime" class="text-[10px] opacity-70 font-mono">--:--:--</span>
                 </div>
@@ -952,7 +951,7 @@
     // --- Multi-Account Variables ---
     let accounts = [];
     let activeAccountId = null;
-    let currentUser = null; // برای نگهداری اطلاعات کاربر لاگین شده
+    let currentUser = null; 
 
     async function fetchAccounts() {
         const client = getSupabaseClient();
@@ -961,7 +960,6 @@
             return;
         }
         try {
-            // ۱. ابتدا باید ID کاربر لاگین شده را بگیریم
             const { data: { session } } = await client.auth.getSession();
             if (!session || !session.user) {
                  console.log("No active user session found.");
@@ -970,15 +968,16 @@
             }
             currentUser = session.user;
 
-            // ۲. جستجو در جدول واسط (account_members) برای پیدا کردن تمام اکانت‌های در دسترس کاربر
-            // استفاده از Join برای گرفتن نام اکانت از جدول user_accounts
             const { data, error } = await client
                 .from('account_members')
                 .select(`
                     role,
                     user_accounts (
                         id,
-                        name
+                        name,
+                        users (
+                            email
+                        )
                     )
                 `)
                 .eq('user_id', currentUser.id);
@@ -987,14 +986,13 @@
                 console.warn("No accounts found or error:", error);
                 setFallbackAccount();
             } else {
-                // ۳. فرمت کردن داده‌ها برای استفاده در دراپ‌داون
                 accounts = data.map(item => ({
                     id: item.user_accounts.id,
                     name: item.user_accounts.name,
+                    ownerEmail: item.user_accounts.users ? item.user_accounts.users.email : '',
                     role: item.role
                 }));
                 
-                // انتخاب اولین اکانت به عنوان پیش‌فرض (ترجیحاً اکانتی که خودش مالک آن است)
                 const ownerAccount = accounts.find(a => a.role === 'owner');
                 activeAccountId = ownerAccount ? ownerAccount.id : accounts[0].id;
                 
@@ -1007,7 +1005,7 @@
     }
 
     function setFallbackAccount() {
-        accounts = [{ id: 'default', name: 'حساب شخصی من', role: 'owner' }];
+        accounts = [{ id: 'default', name: 'حساب شخصی من', role: 'owner', ownerEmail: '' }];
         activeAccountId = 'default';
         renderAccountSelect();
     }
@@ -1018,13 +1016,18 @@
         if (!container || !select) return;
         
         if (accounts.length <= 1) {
-            container.classList.add('hidden'); // پنهان کردن در صورت تک اکانتی بودن
+            container.classList.add('hidden'); 
         } else {
             container.classList.remove('hidden');
-            // نمایش نقش (Role) در کنار نام اکانت برای تشخیص بهتر
             select.innerHTML = accounts.map(a => {
-                const roleLabel = a.role === 'owner' ? '(حساب من)' : '(حساب اشتراکی)';
-                return `<option value="${a.id}">${a.name} ${roleLabel}</option>`;
+                let label = a.name;
+                if (a.role === 'owner') {
+                    label += ' (حساب من)';
+                } else {
+                    const emailPrefix = a.ownerEmail ? ` - ${a.ownerEmail.split('@')[0]}` : '';
+                    label += ` (اشتراکی${emailPrefix})`;
+                }
+                return `<option value="${a.id}">${label}</option>`;
             }).join('');
             select.value = activeAccountId;
         }
@@ -1032,8 +1035,83 @@
 
     async function switchAccount(id) {
         activeAccountId = id;
-        renderSessionUI(); // آپدیت لیست لوکال بر اساس اکانت
-        await fetchGlobalTradeStats(); // آپدیت آمار گلوبال بر اساس اکانت
+        renderSessionUI(); 
+        await fetchGlobalTradeStats(); 
+    }
+
+    // --- GLOBAL TRADE STATS (All Sessions) ---
+    async function fetchGlobalTradeStats() {
+        const client = getSupabaseClient();
+        if (!client || !currentUser) return;
+
+        let query = client.from('trade_orders').select('side, weight_gram, price_per_gram, account_id, user_id');
+        
+        if (activeAccountId && activeAccountId !== 'default') {
+            const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
+            if (isOwner) {
+                // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
+                query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
+            } else {
+                // اگر حساب همکار است، فقط معاملات مختص همان اکانت
+                query = query.eq('account_id', activeAccountId);
+            }
+        } else {
+             // حالت فال‌بک تک اکانتی
+             query = query.eq('user_id', currentUser.id);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Error fetching global trades:', error);
+            return;
+        }
+
+        let totalBuyWeight = 0, totalBuyValue = 0;
+        let totalSellWeight = 0, totalSellValue = 0;
+
+        data.forEach(o => {
+            const w = parseFloat(o.weight_gram) || 0;
+            const p = parseFloat(o.price_per_gram) || 0;
+            if (o.side === 'buy') {
+                totalBuyWeight += w;
+                totalBuyValue += (w * p);
+            } else if (o.side === 'sell') {
+                totalSellWeight += w;
+                totalSellValue += (w * p);
+            }
+        });
+
+        const avgBuy = totalBuyWeight > 0 ? totalBuyValue / totalBuyWeight : 0;
+        const avgSell = totalSellWeight > 0 ? totalSellValue / totalSellWeight : 0;
+
+        const format = (n) => Math.round(n).toLocaleString();
+        
+        const gBuyEl = document.getElementById('global-avg-buy');
+        const gSellEl = document.getElementById('global-avg-sell');
+        const gBuyWEl = document.getElementById('global-buy-weight');
+        const gSellWEl = document.getElementById('global-sell-weight');
+        
+        if (gBuyEl) gBuyEl.innerText = format(avgBuy);
+        if (gSellEl) gSellEl.innerText = format(avgSell);
+        if (gBuyWEl) gBuyWEl.innerText = totalBuyWeight.toFixed(2) + ' g';
+        if (gSellWEl) gSellWEl.innerText = totalSellWeight.toFixed(2) + ' g';
+
+        const pGBuyEl = document.getElementById('panel-global-avg-buy');
+        const pGSellEl = document.getElementById('panel-global-avg-sell');
+        if (pGBuyEl) pGBuyEl.innerText = format(avgBuy);
+        if (pGSellEl) pGSellEl.innerText = format(avgSell);
+    }
+
+    // --- Helper for backwards compatibility in local session viewing ---
+    function getFilteredSessionOrders() {
+        const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
+        return currentSession.orders.filter(o => {
+            if (activeAccountId === 'default') return true;
+            if (o.account_id === activeAccountId) return true;
+            if (!o.account_id && isOwner) return true; // معاملات قدیمی که فیلد اکانت ندارند
+            return false;
+        });
     }
 
     // --- Confirmation Modal Logic ---
@@ -2290,13 +2368,22 @@
     // --- GLOBAL TRADE STATS (All Sessions) ---
     async function fetchGlobalTradeStats() {
         const client = getSupabaseClient();
-        if (!client) return;
+        if (!client || !currentUser) return;
 
-        let query = client.from('trade_orders').select('side, weight_gram, price_per_gram');
+        let query = client.from('trade_orders').select('side, weight_gram, price_per_gram, account_id, user_id');
         
-        // فیلتر کردن آمار کل بر اساس اکانت انتخاب شده
         if (activeAccountId && activeAccountId !== 'default') {
-            query = query.eq('account_id', activeAccountId);
+            const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
+            if (isOwner) {
+                // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
+                query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
+            } else {
+                // اگر حساب همکار است، فقط معاملات مختص همان اکانت
+                query = query.eq('account_id', activeAccountId);
+            }
+        } else {
+             // حالت فال‌بک تک اکانتی
+             query = query.eq('user_id', currentUser.id);
         }
 
         const { data, error } = await query;
@@ -2310,8 +2397,8 @@
         let totalSellWeight = 0, totalSellValue = 0;
 
         data.forEach(o => {
-            const w = o.weight_gram || 0;
-            const p = o.price_per_gram || 0;
+            const w = parseFloat(o.weight_gram) || 0;
+            const p = parseFloat(o.price_per_gram) || 0;
             if (o.side === 'buy') {
                 totalBuyWeight += w;
                 totalBuyValue += (w * p);
@@ -2326,7 +2413,6 @@
 
         const format = (n) => Math.round(n).toLocaleString();
         
-        // Update Main App Widget
         const gBuyEl = document.getElementById('global-avg-buy');
         const gSellEl = document.getElementById('global-avg-sell');
         const gBuyWEl = document.getElementById('global-buy-weight');
@@ -2337,11 +2423,21 @@
         if (gBuyWEl) gBuyWEl.innerText = totalBuyWeight.toFixed(2) + ' g';
         if (gSellWEl) gSellWEl.innerText = totalSellWeight.toFixed(2) + ' g';
 
-        // Update Trade Panel Box
         const pGBuyEl = document.getElementById('panel-global-avg-buy');
         const pGSellEl = document.getElementById('panel-global-avg-sell');
         if (pGBuyEl) pGBuyEl.innerText = format(avgBuy);
         if (pGSellEl) pGSellEl.innerText = format(avgSell);
+    }
+
+    // --- Helper for backwards compatibility in local session viewing ---
+    function getFilteredSessionOrders() {
+        const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
+        return currentSession.orders.filter(o => {
+            if (activeAccountId === 'default') return true;
+            if (o.account_id === activeAccountId) return true;
+            if (!o.account_id && isOwner) return true; // معاملات قدیمی که فیلد اکانت ندارند
+            return false;
+        });
     }
 
     function setTradeSide(side) {
@@ -2421,7 +2517,7 @@
             input_price_unit: inputPriceUnit,
             asset_type: 'gold_18k',
             session_ref: activeSession.id,
-            account_id: activeAccountId === 'default' ? null : activeAccountId // اتصال به اکانت
+            account_id: activeAccountId === 'default' ? null : activeAccountId 
         };
 
         if (editingOrderId) {
@@ -2433,7 +2529,7 @@
         }
 
         await fetchOrders(); 
-        await fetchGlobalTradeStats(); // آپدیت آمار کل بعد از ثبت معامله
+        await fetchGlobalTradeStats(); 
     }
 
     function editOrder(id) {
@@ -2458,7 +2554,7 @@
             await client.from('trade_orders').delete().eq('id', id);
             if (editingOrderId === id) cancelEdit();
             await fetchOrders();
-            await fetchGlobalTradeStats(); // آپدیت آمار کل بعد از حذف
+            await fetchGlobalTradeStats(); 
         });
     }
 
@@ -2476,8 +2572,7 @@
         const listEl = document.getElementById('orders-list');
         listEl.innerHTML = '';
         
-        // فیلتر کردن سفارشات نشست فعلی بر اساس اکانت فعال
-        const filteredOrders = currentSession.orders.filter(o => !o.account_id || o.account_id === activeAccountId || activeAccountId === 'default');
+        const filteredOrders = getFilteredSessionOrders();
 
         if(filteredOrders.length === 0) {
             listEl.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
@@ -2516,8 +2611,7 @@
     }
 
     function updateTradeStats() {
-        // محاسبه میانگین‌ها فقط روی سفارشات اکانت انتخابی
-        const filteredOrders = currentSession.orders.filter(o => !o.account_id || o.account_id === activeAccountId || activeAccountId === 'default');
+        const filteredOrders = getFilteredSessionOrders();
         const sortedOrders = [...filteredOrders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         let inventoryGram = 0;
         let weightedAvgBuyPrice = 0; 
