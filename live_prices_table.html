@@ -445,11 +445,11 @@
                         <div id="trade-net-weight" class="text-base font-bold latin-nums mt-1 text-white">0.00</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
-                        <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید (نمایش)</div>
+                        <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید (این نشست)</div>
                         <div id="trade-avg-buy-display" class="text-xs font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
-                        <div class="text-[9px] opacity-50 text-red-400">میانگین فروش (نمایش)</div>
+                        <div class="text-[9px] opacity-50 text-red-400">میانگین فروش (این نشست)</div>
                         <div id="trade-avg-sell-display" class="text-xs font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                 </div>
@@ -522,7 +522,7 @@
             <!-- Recent Orders -->
             <div class="mt-4">
                 <div class="text-[10px] font-bold opacity-50 mb-2 border-b border-white/5 pb-1 flex justify-between">
-                    <span>لیست معاملات اکانت</span>
+                    <span>لیست معاملات نشست</span>
                 </div>
                 <div id="orders-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                     <!-- Orders will appear here -->
@@ -1079,8 +1079,8 @@
                 } else {
                     const emailPrefix = acc.ownerEmail ? ` - ${acc.ownerEmail.split('@')[0]}` : '';
                     accDisplayName = `${acc.name}${emailPrefix}`;
-                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت
-                    query = query.eq('account_id', activeAccountId);
+                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت که "خودش" ثبت کرده
+                    query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
                 }
             }
         } else {
@@ -2364,26 +2364,27 @@
         const client = getSupabaseClient();
         if (!client) return;
         
-        let query = client.from('trade_orders').select('*');
+        if (!activeSession) {
+            currentSession.orders = [];
+            renderSessionUI();
+            return;
+        }
+
+        // بیس کوئری: همیشه فقط معاملات نشست انتخاب شده را بیاور
+        let query = client.from('trade_orders').select('*').eq('session_ref', activeSession.id);
 
         if (activeAccountId && activeAccountId !== 'default') {
             const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
             if (isOwner) {
-                // مال خودش: هم معاملاتی که مستقیما به اکانتش وصل شده رو بیار، هم معاملات قدیمی که توی نشست فعلی هستن (بدون اکانت)
-                query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,session_ref.eq.${activeSession?.id})`);
+                // مال خودش: معاملاتی که به این اکانت متصلند یا معاملاتی که اکانت ندارند (قدیمی‌ها)
+                query = query.or(`account_id.eq.${activeAccountId},account_id.is.null`);
             } else {
-                // اکانت اشتراکی: تمام معاملات اون اکانت رو بیار
-                query = query.eq('account_id', activeAccountId);
+                // اکانت اشتراکی: فقط معاملاتی که "خودش" برای این اکانت در این نشست ثبت کرده
+                query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
             }
         } else {
-            // حالت قدیمی یا بدون اکانت
-            if (activeSession) {
-                query = query.eq('session_ref', activeSession.id);
-            } else {
-                currentSession.orders = [];
-                renderSessionUI();
-                return;
-            }
+            // حالت قدیمی تک اکانتی
+            query = query.eq('user_id', currentUser.id);
         }
 
         const { data, error } = await query
@@ -2423,8 +2424,8 @@
                 } else {
                     const emailPrefix = acc.ownerEmail ? ` - ${acc.ownerEmail.split('@')[0]}` : '';
                     accDisplayName = `${acc.name}${emailPrefix}`;
-                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت
-                    query = query.eq('account_id', activeAccountId);
+                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت که "خودش" ثبت کرده
+                    query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
                 }
             }
         } else {
@@ -2480,11 +2481,6 @@
         const pGSellEl = document.getElementById('panel-global-avg-sell');
         if (pGBuyEl) pGBuyEl.innerText = format(avgBuy);
         if (pGSellEl) pGSellEl.innerText = format(avgSell);
-    }
-
-    // --- Helper for backwards compatibility in local session viewing ---
-    function getFilteredSessionOrders() {
-        return currentSession.orders; // چون کوئری دیتابیس رو درست کردیم، نیازی به فیلتر دستی نیست
     }
 
     function setTradeSide(side) {
@@ -2619,7 +2615,8 @@
         const listEl = document.getElementById('orders-list');
         listEl.innerHTML = '';
         
-        const filteredOrders = getFilteredSessionOrders();
+        // چون فیلترینگ را در دیتابیس (fetchOrders) تصحیح کردیم، همه سفارش‌های لود شده مال همین نشست هستند
+        const filteredOrders = currentSession.orders;
 
         if(filteredOrders.length === 0) {
             listEl.innerHTML = '<div class="text-center text-[10px] opacity-20 py-4">بدون معامله</div>';
@@ -2658,8 +2655,7 @@
     }
 
     function updateTradeStats() {
-        const filteredOrders = getFilteredSessionOrders();
-        const sortedOrders = [...filteredOrders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const sortedOrders = [...currentSession.orders].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         let inventoryGram = 0;
         let weightedAvgBuyPrice = 0; 
         let realizedPL = 0;
