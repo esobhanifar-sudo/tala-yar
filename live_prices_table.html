@@ -968,38 +968,17 @@
             }
             currentUser = session.user;
 
-            // تلاش اول: سعی می‌کنیم اکانت‌ها را به همراه ایمیل صاحب حساب بگیریم
-            let { data, error } = await client
+            // دریافت اکانت‌ها بدون نیاز به جدول users برای جلوگیری از خطای RLS و افزایش حریم خصوصی
+            const { data, error } = await client
                 .from('account_members')
                 .select(`
                     role,
                     user_accounts (
                         id,
-                        name,
-                        users (
-                            email
-                        )
+                        name
                     )
                 `)
                 .eq('user_id', currentUser.id);
-
-            // اگر به خاطر محدودیت‌های RLS یا کش دیتابیس خطا داد، کوئری ساده (بدون ایمیل) را اجرا می‌کنیم
-            if (error) {
-                console.warn("تلاش برای دریافت ایمیل با خطا مواجه شد، دریافت نسخه ساده اکانت‌ها...", error);
-                const fallbackRes = await client
-                    .from('account_members')
-                    .select(`
-                        role,
-                        user_accounts (
-                            id,
-                            name
-                        )
-                    `)
-                    .eq('user_id', currentUser.id);
-                
-                data = fallbackRes.data;
-                error = fallbackRes.error;
-            }
 
             if (error || !data || data.length === 0) {
                 console.warn("هیچ اکانتی یافت نشد یا خطای دیتابیس:", error);
@@ -1008,7 +987,6 @@
                 accounts = data.map(item => ({
                     id: item.user_accounts.id,
                     name: item.user_accounts.name,
-                    ownerEmail: (item.user_accounts.users && item.user_accounts.users.email) ? item.user_accounts.users.email : '',
                     role: item.role
                 }));
                 
@@ -1024,7 +1002,7 @@
     }
 
     function setFallbackAccount() {
-        accounts = [{ id: 'default', name: 'حساب شخصی من', role: 'owner', ownerEmail: '' }];
+        accounts = [{ id: 'default', name: 'حساب شخصی من', role: 'owner' }];
         activeAccountId = 'default';
         renderAccountSelect();
     }
@@ -1043,8 +1021,7 @@
                 if (a.role === 'owner') {
                     label += ' (حساب من)';
                 } else {
-                    const emailPrefix = a.ownerEmail ? ` - ${a.ownerEmail.split('@')[0]}` : '';
-                    label += ` (اشتراکی${emailPrefix})`;
+                    label += ` (اشتراکی)`;
                 }
                 return `<option value="${a.id}">${label}</option>`;
             }).join('');
@@ -1054,8 +1031,8 @@
 
     async function switchAccount(id) {
         activeAccountId = id;
-        activeSession = null; // با تغییر اکانت، نشست قبلی باید ریست شود
-        await fetchSessions(); // این تابع حالا خودش لیست سفارشات را هم لود می‌کند
+        activeSession = null; 
+        await fetchSessions(); 
         await fetchGlobalTradeStats(); 
     }
 
@@ -1077,8 +1054,7 @@
                     // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
                     query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
                 } else {
-                    const emailPrefix = acc.ownerEmail ? ` - ${acc.ownerEmail.split('@')[0]}` : '';
-                    accDisplayName = `${acc.name}${emailPrefix}`;
+                    accDisplayName = `${acc.name} (اشتراکی)`;
                     // اگر حساب همکار است، فقط معاملات مختص همان اکانت که "خودش" ثبت کرده
                     query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
                 }
@@ -2239,14 +2215,21 @@
 
         sessions = data || [];
 
-        // منطق هوشمند برای تریدر: ساخت خودکار نشست برای حساب اشتراکی
+        // منطق هوشمند برای تریدر: ساخت خودکار نشست برای حساب اشتراکی با استفاده از نام اکانت خودش
         const currentAcc = accounts.find(a => a.id === activeAccountId);
         const isTrader = currentAcc && currentAcc.role !== 'owner' && activeAccountId !== 'default';
 
         if (isTrader) {
             const todayStr = new Date().toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' });
-            const myEmailPrefix = currentUser.email ? currentUser.email.split('@')[0] : 'Trader';
-            const expectedSessionName = `${myEmailPrefix} - ${todayStr}`;
+            
+            // گرفتن نام شخصی تریدر به جای استفاده از ایمیل
+            const myOwnerAcc = accounts.find(a => a.role === 'owner');
+            let traderName = 'همکار';
+            if (myOwnerAcc && myOwnerAcc.name && myOwnerAcc.name !== 'حساب شخصی من') {
+                traderName = myOwnerAcc.name; // از نام انتخابی کاربر استفاده میکند
+            }
+
+            const expectedSessionName = `${traderName} - ${todayStr}`;
 
             let traderSession = sessions.find(s => s.name === expectedSessionName && s.status === 'open');
             
@@ -2467,8 +2450,7 @@
                     // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
                     query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
                 } else {
-                    const emailPrefix = acc.ownerEmail ? ` - ${acc.ownerEmail.split('@')[0]}` : '';
-                    accDisplayName = `${acc.name}${emailPrefix}`;
+                    accDisplayName = `${acc.name} (اشتراکی)`;
                     // اگر حساب همکار است، فقط معاملات مختص همان اکانت که "خودش" ثبت کرده
                     query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
                 }
