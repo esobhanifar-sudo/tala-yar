@@ -421,7 +421,7 @@
 
             <!-- Global Stats in Trade Panel -->
             <div class="bg-indigo-900/20 p-3 rounded-xl border border-indigo-500/20 mb-3">
-                <div class="text-[11px] text-indigo-300 mb-2 font-bold border-b border-indigo-500/20 pb-1">آمار کل رهدیس (تمام نشست‌ها)</div>
+                <div id="panel-global-stats-title" class="text-[11px] text-indigo-300 mb-2 font-bold border-b border-indigo-500/20 pb-1">آمار کل رهدیس</div>
                 <div class="flex justify-between items-center mb-1.5">
                     <span class="text-[10px] text-slate-400">میانگین وزنی خرید:</span>
                     <span id="panel-global-avg-buy" class="text-xs font-bold text-emerald-400 latin-nums">...</span>
@@ -445,11 +445,11 @@
                         <div id="trade-net-weight" class="text-base font-bold latin-nums mt-1 text-white">0.00</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
-                        <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید (این نشست)</div>
+                        <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید (نمایش)</div>
                         <div id="trade-avg-buy-display" class="text-xs font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
-                        <div class="text-[9px] opacity-50 text-red-400">میانگین فروش (این نشست)</div>
+                        <div class="text-[9px] opacity-50 text-red-400">میانگین فروش (نمایش)</div>
                         <div id="trade-avg-sell-display" class="text-xs font-bold latin-nums mt-1 text-white">0</div>
                     </div>
                 </div>
@@ -522,7 +522,7 @@
             <!-- Recent Orders -->
             <div class="mt-4">
                 <div class="text-[10px] font-bold opacity-50 mb-2 border-b border-white/5 pb-1 flex justify-between">
-                    <span>لیست معاملات (Session)</span>
+                    <span>لیست معاملات اکانت</span>
                 </div>
                 <div id="orders-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                     <!-- Orders will appear here -->
@@ -844,7 +844,7 @@
             <div class="glass-panel rounded-3xl p-6 shadow-xl border border-white/5 relative overflow-hidden">
                 <h3 class="text-sm font-bold text-indigo-300 mb-4 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    آمار کل معاملات رهدیس
+                    <span id="global-stats-title">آمار کل معاملات رهدیس</span>
                 </h3>
                 <div class="space-y-3">
                     <div class="bg-black/20 p-3 rounded-xl border border-white/5">
@@ -1055,6 +1055,7 @@
     async function switchAccount(id) {
         activeAccountId = id;
         renderSessionUI(); 
+        await fetchOrders(); // با تغییر اکانت لیست سفارشات را مجدد می‌خوانیم
         await fetchGlobalTradeStats(); 
     }
 
@@ -1065,19 +1066,34 @@
 
         let query = client.from('trade_orders').select('side, weight_gram, price_per_gram, account_id, user_id');
         
+        let accDisplayName = "حساب شخصی من";
+        
         if (activeAccountId && activeAccountId !== 'default') {
-            const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
-            if (isOwner) {
-                // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
-                query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
-            } else {
-                // اگر حساب همکار است، فقط معاملات مختص همان اکانت
-                query = query.eq('account_id', activeAccountId);
+            const acc = accounts.find(a => a.id === activeAccountId);
+            if (acc) {
+                const isOwner = acc.role === 'owner';
+                if (isOwner) {
+                    accDisplayName = acc.name + ' (من)';
+                    // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
+                    query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
+                } else {
+                    const emailPrefix = acc.ownerEmail ? ` - ${acc.ownerEmail.split('@')[0]}` : '';
+                    accDisplayName = `${acc.name}${emailPrefix}`;
+                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت
+                    query = query.eq('account_id', activeAccountId);
+                }
             }
         } else {
              // حالت فال‌بک تک اکانتی
              query = query.eq('user_id', currentUser.id);
         }
+
+        // بروزرسانی عناوین با نام اکانت
+        const mainTitleEl = document.getElementById('global-stats-title');
+        if (mainTitleEl) mainTitleEl.innerText = `آمار کل معاملات: ${accDisplayName}`;
+
+        const panelTitleEl = document.getElementById('panel-global-stats-title');
+        if (panelTitleEl) panelTitleEl.innerText = `آمار کل: ${accDisplayName}`;
 
         const { data, error } = await query;
 
@@ -1120,17 +1136,6 @@
         const pGSellEl = document.getElementById('panel-global-avg-sell');
         if (pGBuyEl) pGBuyEl.innerText = format(avgBuy);
         if (pGSellEl) pGSellEl.innerText = format(avgSell);
-    }
-
-    // --- Helper for backwards compatibility in local session viewing ---
-    function getFilteredSessionOrders() {
-        const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
-        return currentSession.orders.filter(o => {
-            if (activeAccountId === 'default') return true;
-            if (o.account_id === activeAccountId) return true;
-            if (!o.account_id && isOwner) return true; // معاملات قدیمی که فیلد اکانت ندارند
-            return false;
-        });
     }
 
     // --- Confirmation Modal Logic ---
@@ -2359,17 +2364,31 @@
         const client = getSupabaseClient();
         if (!client) return;
         
-        if (!activeSession) {
-            currentSession.orders = [];
-            renderSessionUI();
-            return;
+        let query = client.from('trade_orders').select('*');
+
+        if (activeAccountId && activeAccountId !== 'default') {
+            const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
+            if (isOwner) {
+                // مال خودش: هم معاملاتی که مستقیما به اکانتش وصل شده رو بیار، هم معاملات قدیمی که توی نشست فعلی هستن (بدون اکانت)
+                query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,session_ref.eq.${activeSession?.id})`);
+            } else {
+                // اکانت اشتراکی: تمام معاملات اون اکانت رو بیار
+                query = query.eq('account_id', activeAccountId);
+            }
+        } else {
+            // حالت قدیمی یا بدون اکانت
+            if (activeSession) {
+                query = query.eq('session_ref', activeSession.id);
+            } else {
+                currentSession.orders = [];
+                renderSessionUI();
+                return;
+            }
         }
 
-        const { data, error } = await client
-            .from('trade_orders')
-            .select('*')
-            .eq('session_ref', activeSession.id)
-            .order('created_at', { ascending: false });
+        const { data, error } = await query
+            .order('created_at', { ascending: false })
+            .limit(100); 
 
         if (error) {
             console.error('Error fetching trades:', error);
@@ -2391,19 +2410,34 @@
 
         let query = client.from('trade_orders').select('side, weight_gram, price_per_gram, account_id, user_id');
         
+        let accDisplayName = "حساب شخصی من";
+        
         if (activeAccountId && activeAccountId !== 'default') {
-            const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
-            if (isOwner) {
-                // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
-                query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
-            } else {
-                // اگر حساب همکار است، فقط معاملات مختص همان اکانت
-                query = query.eq('account_id', activeAccountId);
+            const acc = accounts.find(a => a.id === activeAccountId);
+            if (acc) {
+                const isOwner = acc.role === 'owner';
+                if (isOwner) {
+                    accDisplayName = acc.name + ' (من)';
+                    // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
+                    query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
+                } else {
+                    const emailPrefix = acc.ownerEmail ? ` - ${acc.ownerEmail.split('@')[0]}` : '';
+                    accDisplayName = `${acc.name}${emailPrefix}`;
+                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت
+                    query = query.eq('account_id', activeAccountId);
+                }
             }
         } else {
              // حالت فال‌بک تک اکانتی
              query = query.eq('user_id', currentUser.id);
         }
+
+        // بروزرسانی عناوین با نام اکانت
+        const mainTitleEl = document.getElementById('global-stats-title');
+        if (mainTitleEl) mainTitleEl.innerText = `آمار کل معاملات: ${accDisplayName}`;
+
+        const panelTitleEl = document.getElementById('panel-global-stats-title');
+        if (panelTitleEl) panelTitleEl.innerText = `آمار کل: ${accDisplayName}`;
 
         const { data, error } = await query;
 
@@ -2450,13 +2484,7 @@
 
     // --- Helper for backwards compatibility in local session viewing ---
     function getFilteredSessionOrders() {
-        const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
-        return currentSession.orders.filter(o => {
-            if (activeAccountId === 'default') return true;
-            if (o.account_id === activeAccountId) return true;
-            if (!o.account_id && isOwner) return true; // معاملات قدیمی که فیلد اکانت ندارند
-            return false;
-        });
+        return currentSession.orders; // چون کوئری دیتابیس رو درست کردیم، نیازی به فیلتر دستی نیست
     }
 
     function setTradeSide(side) {
