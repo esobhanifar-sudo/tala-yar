@@ -592,7 +592,7 @@
         
         <div class="lg:col-span-3 space-y-6">
             
-            <!-- Header Widgets Area (New Grid) -->
+            <!-- Market Prices Section (Top 4 Widgets) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 <!-- Widget 1: Ounce Range -->
@@ -604,7 +604,7 @@
                         </h3>
                         <div class="text-right">
                             <span class="text-[10px] text-slate-500 font-mono block">XAU/USD</span>
-                            <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5" title="بازه ۲۴ ساعته">مبنا: ۱۸:۰۰ GMT</span>
+                            <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5" title="شروع بازه: ۲۱:۳۰ تهران">مبنا: ۱۸:۰۰ GMT</span>
                         </div>
                     </div>
                     <div class="flex items-end gap-2 mb-1">
@@ -668,7 +668,7 @@
                     </div>
                 </div>
 
-                <!-- NEW WIDGET: Intrinsic Gold 18k -->
+                <!-- Widget 4: Intrinsic Gold 18k -->
                 <div id="widget-intrinsic" class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-between h-32 border-r-4 border-fuchsia-500">
                     <div class="flex justify-between items-start">
                         <h3 class="text-xs font-bold text-fuchsia-300 flex items-center gap-2">
@@ -693,100 +693,156 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Widget 4: Bubbles -->
-                <div id="widget-bubble" class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-center h-full min-h-[8rem] border-r-4 border-indigo-500 bg-gradient-to-br from-indigo-900/20 to-transparent md:col-span-2">
-                    <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
-                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        حباب سنج بازار
-                    </h3>
+            <!-- Market Bubbles Section -->
+            <div class="mt-6">
+                <h3 class="text-sm md:text-base font-bold text-indigo-300 mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    حباب‌سنج بازار (نوسانات روزانه)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- USD Bubble -->
-                        <div>
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-400 text-xs">حباب دلار</span>
-                                    <span id="w-bubble-usd-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
-                                </div>
-                                <span class="font-bold widget-num-font num-sm" id="w-bubble-usd-val">-%</span>
+                    <!-- Bubble Widget: USD -->
+                    <div class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-between h-32 border-r-4 border-cyan-500 bg-cyan-900/10">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xs font-bold text-cyan-300 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+                                    حباب دلار سبزه
+                                </h3>
+                                <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5 pr-4">منبع: سبزه‌میدان</span>
                             </div>
-                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
-                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
-                                <div id="w-bubble-usd-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
-                            </div>
+                            <span class="text-[10px] font-bold" id="w-b-usd-pct">-%</span>
                         </div>
-
-                        <!-- Gold 18k Bubble -->
-                        <div>
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-400 text-xs">حباب طلای ۱۸</span>
-                                    <span id="w-bubble-gold-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
-                                </div>
-                                <span class="font-bold widget-num-font num-sm" id="w-bubble-gold-val">-%</span>
-                            </div>
-                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
-                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
-                                <div id="w-bubble-gold-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
-                            </div>
+                        <div class="flex items-end gap-2 mb-1">
+                            <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-b-usd-val">---</span>
+                            <span class="text-[10px] text-slate-400 mb-1">تومان</span>
                         </div>
-
-                        <!-- Full Coin Bubble -->
-                        <div>
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-400 text-xs">حباب تمام سکه</span>
-                                    <span id="w-bubble-full-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
-                                </div>
-                                <span class="font-bold widget-num-font num-sm" id="w-bubble-full-val">-%</span>
+                        <div class="mt-auto">
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                                <span id="w-b-usd-min" class="num-sm">Min: -</span>
+                                <span id="w-b-usd-max" class="num-sm">Max: -</span>
                             </div>
-                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
-                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
-                                <div id="w-bubble-full-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Half Coin Bubble -->
-                        <div>
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-400 text-xs">حباب نیم سکه</span>
-                                    <span id="w-bubble-half-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
-                                </div>
-                                <span class="font-bold widget-num-font num-sm" id="w-bubble-half-val">-%</span>
-                            </div>
-                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
-                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
-                                <div id="w-bubble-half-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Quarter Coin Bubble -->
-                        <div class="md:col-span-2">
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex flex-col">
-                                    <span class="text-slate-400 text-xs">حباب ربع سکه</span>
-                                    <span id="w-bubble-quarter-info" class="text-[8px] text-slate-500 mt-0.5 font-normal">در حال دریافت...</span>
-                                </div>
-                                <span class="font-bold widget-num-font num-sm" id="w-bubble-quarter-val">-%</span>
-                            </div>
-                            <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden flex items-center relative mt-1">
-                                <div class="absolute w-0.5 h-3 bg-white left-1/2 top-1/2 -translate-y-1/2 z-10"></div>
-                                <div id="w-bubble-quarter-bar" class="h-full bg-slate-500 transition-all duration-500" style="width: 0%; margin-right: 50%;"></div>
+                            <div class="range-track">
+                                <div id="w-b-usd-marker" class="range-marker left-0" style="left: 50%;"></div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-4 text-center text-[10px] font-bold" id="w-bubble-status">
-                        وضعیت: <span class="text-slate-500">نامشخص</span>
+
+                    <!-- Bubble Widget: Gold 18k -->
+                    <div class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-between h-32 border-r-4 border-amber-500 bg-amber-900/10">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xs font-bold text-amber-300 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    حباب طلای ۱۸
+                                </h3>
+                                <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5 pr-4">منبع: معقولی</span>
+                            </div>
+                            <span class="text-[10px] font-bold" id="w-b-gold-pct">-%</span>
+                        </div>
+                        <div class="flex items-end gap-2 mb-1">
+                            <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-b-gold-val">---</span>
+                            <span class="text-[10px] text-slate-400 mb-1">تومان</span>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                                <span id="w-b-gold-min" class="num-sm">Min: -</span>
+                                <span id="w-b-gold-max" class="num-sm">Max: -</span>
+                            </div>
+                            <div class="range-track">
+                                <div id="w-b-gold-marker" class="range-marker left-0" style="left: 50%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bubble Widget: Full Coin -->
+                    <div class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-between h-32 border-r-4 border-indigo-500 bg-indigo-900/10">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    حباب تمام سکه
+                                </h3>
+                                <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5 pr-4">منبع: حاجی‌عبداللهی</span>
+                            </div>
+                            <span class="text-[10px] font-bold" id="w-b-full-pct">-%</span>
+                        </div>
+                        <div class="flex items-end gap-2 mb-1">
+                            <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-b-full-val">---</span>
+                            <span class="text-[10px] text-slate-400 mb-1">تومان</span>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                                <span id="w-b-full-min" class="num-sm">Min: -</span>
+                                <span id="w-b-full-max" class="num-sm">Max: -</span>
+                            </div>
+                            <div class="range-track">
+                                <div id="w-b-full-marker" class="range-marker left-0" style="left: 50%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bubble Widget: Half Coin -->
+                    <div class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-between h-32 border-r-4 border-purple-500 bg-purple-900/10">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xs font-bold text-purple-300 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                    حباب نیم سکه
+                                </h3>
+                                <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5 pr-4">منبع: حاجی‌عبداللهی</span>
+                            </div>
+                            <span class="text-[10px] font-bold" id="w-b-half-pct">-%</span>
+                        </div>
+                        <div class="flex items-end gap-2 mb-1">
+                            <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-b-half-val">---</span>
+                            <span class="text-[10px] text-slate-400 mb-1">تومان</span>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                                <span id="w-b-half-min" class="num-sm">Min: -</span>
+                                <span id="w-b-half-max" class="num-sm">Max: -</span>
+                            </div>
+                            <div class="range-track">
+                                <div id="w-b-half-marker" class="range-marker left-0" style="left: 50%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bubble Widget: Quarter Coin -->
+                    <div class="glass-panel rounded-3xl p-4 shadow-xl flex flex-col justify-between h-32 border-r-4 border-pink-500 bg-pink-900/10 md:col-span-2 lg:col-span-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xs font-bold text-pink-300 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                                    حباب ربع سکه
+                                </h3>
+                                <span class="text-[8px] text-slate-400 opacity-70 block mt-0.5 pr-4">منبع: حاجی‌عبداللهی</span>
+                            </div>
+                            <span class="text-[10px] font-bold" id="w-b-quarter-pct">-%</span>
+                        </div>
+                        <div class="flex items-end gap-2 mb-1">
+                            <span class="widget-main-num font-extrabold text-white widget-num-font tracking-tighter" id="w-b-quarter-val">---</span>
+                            <span class="text-[10px] text-slate-400 mb-1">تومان</span>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1 widget-num-font opacity-80">
+                                <span id="w-b-quarter-min" class="num-sm">Min: -</span>
+                                <span id="w-b-quarter-max" class="num-sm">Max: -</span>
+                            </div>
+                            <div class="range-track">
+                                <div id="w-b-quarter-marker" class="range-marker left-0" style="left: 50%;"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
             </div>
 
             <!-- Main Display Container -->
-            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5 flex flex-col">
+            <div class="glass-panel rounded-3xl overflow-hidden shadow-2xl border border-white/5 flex flex-col mt-6">
                 <div class="bg-slate-800/40 p-2 flex gap-2 border-b border-gray-500/10">
                     <button id="tab-btn-gold" onclick="switchTab('gold')" class="tab-btn active-amber flex-1 py-3 md:py-4 px-2 md:px-4 rounded-2xl text-xs md:text-sm font-bold flex items-center justify-center gap-2">
                         طلا و سکه
@@ -914,8 +970,7 @@
                     <ul class="space-y-2">
                         <li><b>ارزش ذاتی ۱۸:</b> (انس / ۳۱.۱۰۳۵) × ۰.۷۵ × دلار معامله شده فردایی سبزه میدان</li>
                         <li><b>ارزش ذاتی دلار:</b> نرخ درهم × ۳.۶۷۲۵</li>
-                        <li><b>نوسان روزانه:</b> سقف و کف قیمت ۱۸ عیار منطبق با دیتابیس معقولی.</li>
-                        <li><b>نوسان حباب:</b> ثبت لحظه‌ای اختلاف قیمت با ارزش ذاتی در دیتابیس و نمایش Max/Min.</li>
+                        <li><b>نوسان روزانه:</b> سقف و کف قیمت از ساعت ۲۱:۳۰ شب تهران</li>
                     </ul>
                 </div>
             </div>
@@ -953,6 +1008,19 @@
     let activeAccountId = null;
     let currentUser = null; 
 
+    // --- Unified Trading Day Start Helper ---
+    function getTehranMarketStart() {
+        const now = new Date();
+        let startUTC = new Date(now);
+        // 21:30 Tehran is exactly 18:00 UTC
+        startUTC.setUTCHours(18, 0, 0, 0);
+        
+        if (now.getTime() < startUTC.getTime()) {
+            startUTC.setUTCDate(startUTC.getUTCDate() - 1);
+        }
+        return startUTC.toISOString();
+    }
+
     async function fetchAccounts() {
         const client = getSupabaseClient();
         if (!client) {
@@ -968,7 +1036,6 @@
             }
             currentUser = session.user;
 
-            // دریافت اکانت‌ها بدون نیاز به جدول users برای جلوگیری از خطای RLS و افزایش حریم خصوصی
             const { data, error } = await client
                 .from('account_members')
                 .select(`
@@ -1051,20 +1118,16 @@
                 const isOwner = acc.role === 'owner';
                 if (isOwner) {
                     accDisplayName = acc.name + ' (من)';
-                    // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
                     query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
                 } else {
                     accDisplayName = `${acc.name} (اشتراکی)`;
-                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت که "خودش" ثبت کرده
                     query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
                 }
             }
         } else {
-             // حالت فال‌بک تک اکانتی
              query = query.eq('user_id', currentUser.id);
         }
 
-        // بروزرسانی عناوین با نام اکانت
         const mainTitleEl = document.getElementById('global-stats-title');
         if (mainTitleEl) mainTitleEl.innerText = `آمار کل معاملات: ${accDisplayName}`;
 
@@ -1464,6 +1527,32 @@
         return parseFloat(value.toString().replace(/,/g, '').replace(/[^\d.]/g, '')) || 0;
     }
 
+    function updateBubbleWidgetUI(id, currentAbs, currentPct, min, max) {
+        const valEl = document.getElementById(`w-b-${id}-val`);
+        if (valEl) valEl.innerText = currentAbs !== null ? Math.round(currentAbs).toLocaleString() : '---';
+        
+        const pctEl = document.getElementById(`w-b-${id}-pct`);
+        if (pctEl) {
+            pctEl.innerText = currentPct !== null ? `${currentPct > 0 ? '+' : ''}${currentPct.toFixed(1)}%` : '-%';
+            pctEl.className = currentPct > 0 ? 'text-[10px] font-bold text-red-400' : 'text-[10px] font-bold text-emerald-400';
+        }
+        
+        const minEl = document.getElementById(`w-b-${id}-min`);
+        if (minEl) minEl.innerText = min !== Infinity ? `Min: ${Math.round(min).toLocaleString()}` : 'Min: -';
+        
+        const maxEl = document.getElementById(`w-b-${id}-max`);
+        if (maxEl) maxEl.innerText = max !== -Infinity ? `Max: ${Math.round(max).toLocaleString()}` : 'Max: -';
+        
+        const marker = document.getElementById(`w-b-${id}-marker`);
+        if (marker && max !== -Infinity && min !== Infinity && (max - min) > 0 && currentAbs !== null) {
+            let pos = ((currentAbs - min) / (max - min)) * 100;
+            pos = Math.max(0, Math.min(100, pos)); // جلوگیری از خروج نشانگر
+            marker.style.right = `${100 - pos}%`;
+        } else if (marker) {
+            marker.style.right = '50%';
+        }
+    }
+
     function generateGoldTableHTML(sources, assets) {
         let html = `<table class="w-full min-w-[500px] text-right comparison-table border-collapse">
             <thead><tr class="text-[11px] text-slate-400"><th class="p-3 md:p-4 text-right sticky left-0 bg-slate-900/90 backdrop-blur-sm z-10 border-l border-white/5">شاخص پایه</th>
@@ -1486,7 +1575,6 @@
                 let isStale = false;
                 let staleTime = null;
 
-                // Handle both raw numbers and `{value, isStale, time}` objects
                 if (typeof rawPrice === 'object' && rawPrice !== null && 'value' in rawPrice) {
                     val = rawPrice.value;
                     isStale = rawPrice.isStale;
@@ -1534,27 +1622,8 @@
                 }
 
                 if (asset.id === 'bubble_range_18k') {
-                    if (s.bubble_high !== undefined && s.bubble_low !== undefined && s.bubble_high !== -Infinity && s.bubble_low !== Infinity) {
-                        
-                        const highClass = s.bubble_high >= 0 ? 'text-emerald-400' : 'text-red-400';
-                        const lowClass = s.bubble_low >= 0 ? 'text-emerald-400' : 'text-red-400';
-                        
-                        const highSign = s.bubble_high > 0 ? '+' : '';
-                        const lowSign = s.bubble_low > 0 ? '+' : '';
-                        
-                        const fmtTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour12: false }) : '-';
-
-                        html += `<td class="p-3 md:p-4 group-hover:bg-white/5"><div class="flex flex-col items-center gap-1">
-                                <div class="num-sm text-[10px] ${highClass} font-bold ltr latin-nums">
-                                    Max <span class="font-mono">${highSign}${Math.round(s.bubble_high).toLocaleString()}</span>
-                                    <div class="text-[9px] text-slate-400 font-normal mt-0.5 opacity-80">${fmtTime(s.bubble_high_time)}</div>
-                                </div>
-                                <div class="num-sm text-[10px] ${lowClass} font-bold ltr latin-nums">
-                                    Min <span class="font-mono">${lowSign}${Math.round(s.bubble_low).toLocaleString()}</span>
-                                    <div class="text-[9px] text-slate-400 font-normal mt-0.5 opacity-80">${fmtTime(s.bubble_low_time)}</div>
-                                </div>
-                            </div></td>`;
-                    } else { html += `<td class="text-xs opacity-40">-</td>`; }
+                    // پنهان کردن ردیف قدیمی حباب در جدول
+                    html += `<td class="text-xs opacity-40">-</td>`;
                     return;
                 }
                 
@@ -1565,7 +1634,6 @@
                     
                     cellHTML += `<div class="num-sm latin-nums font-bold text-base md:text-lg ${textClass} transition-all duration-300">${Math.round(val).toLocaleString()}</div>`;
                     
-                    // Badge for stale data
                     if (isStale && staleTime) {
                         cellHTML += `<div class="text-[9px] text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded-md mt-0.5 mb-0.5 shadow-sm border border-amber-500/20 whitespace-nowrap" title="این قیمت در آخرین پیام بروزرسانی نشده است">آخرین: ${staleTime}</div>`;
                     }
@@ -1668,48 +1736,24 @@
         }
     }
 
-    // --- NEW HELPER FUNCTION FOR OUNCE TRADING WINDOW ---
-    function getOunceTradingWindow() {
-        const now = new Date();
-        const currentHours = now.getUTCHours();
-        const currentMinutes = now.getUTCMinutes();
-        
-        let start = new Date(now);
-        start.setUTCHours(18, 0, 0, 0); // 18:00 GMT
-        
-        // If current time is before 18:00 GMT, the session started yesterday
-        if (currentHours < 18) {
-            start.setUTCDate(start.getUTCDate() - 1);
-        }
-        
-        const end = new Date(start);
-        end.setUTCDate(end.getUTCDate() + 1);
-        
-        return { start: start.toISOString(), end: end.toISOString() };
-    }
-
     async function fetchLiveTicker() {
         const client = getSupabaseClient();
         if (!client) return;
         document.getElementById('connectionStatus').innerText = "درحال دریافت...";
         
         if (timerInterval) clearInterval(timerInterval);
-        
-        // Reset timer text
         const timerEl = document.getElementById('headerTimer');
         if(timerEl) timerEl.innerHTML = '<span class="text-[9px]">...</span>';
 
         try {
-            const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-            
-            // Calculate the 24-hour trading window for Ounce (17:30 GMT to 17:30 GMT)
-            const ounceWindow = getOunceTradingWindow();
+            // یکپارچه‌سازی زمان مبدأ تمام ویجت‌ها به 9:30 صبح تهران (06:00 UTC)
+            const unifiedStartISO = getTehranMarketStart();
 
             const [iranRes, currRes, heratRes, pricesRes, sabzaRes, ounceRes, magholiRes, magRangeRes, tetherRes, 
-                   ounceHighRes, // CHANGED: Replaced ounceRangeRes with ounceHighRes
+                   ounceHighRes,
                    dirhamRateRes, bubbleFluctuationsRes,
                    tetherHistoryRes, sabzaHistoryRes, heratHistoryRes, dhsHistoryRes, currHistoryRes,
-                   ounceLowRes, // ADDED: New query for Low
+                   ounceLowRes,
                    hajiRes, hajiRangeRes
                   ] = await Promise.all([
                 client.from('Iran_Data').select('*').order('id', { ascending: false }).limit(1),
@@ -1719,27 +1763,25 @@
                 client.from('tahran_sabza').select('*').eq('type', 'معامله فردایی ✅').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
                 client.from('justOunce').select('*').gt('price_blue', 1000).order('id', { ascending: false }).limit(1),
                 client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
-                client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', startOfToday.toISOString()),
+                client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', unifiedStartISO),
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
                 
-                // UPDATED QUERY FOR OUNCE HIGH: Get absolute max in window with filter > 1000
-                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: false }).limit(1),
+                client.from('justOunce').select('price_blue').gte('created_at', unifiedStartISO).gt('price_blue', 1000).order('price_blue', { ascending: false }).limit(1),
                 
                 client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
-                client.from('bubble_fluctuations').select('bubble_value, haji_bubble_value, created_at').gte('created_at', startOfToday.toISOString()),
-                // Range Fetches with Timestamps
-                client.from('USDTTetherp').select('price_USDTTetherp, created_at_USDTTetherp').eq('type_USDTTetherp', 'فروش').gte('created_at_USDTTetherp', startOfToday.toISOString()),
-                client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').eq('type', 'معامله فردایی ✅').gte('created_at', startOfToday.toISOString()),
-                client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', startOfToday.toISOString()),
-                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', startOfToday.toISOString()),
-                client.from('irancurrency_price').select('dollar, euro, dirham, pound, created_at').gte('created_at', startOfToday.toISOString()),
-
-                // ADDED QUERY FOR OUNCE LOW: Get absolute min in window with filter > 1000
-                client.from('justOunce').select('price_blue').gte('created_at', ounceWindow.start).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1),
+                // کوئری گرفتن حباب‌ها از مبدا 9:30 صبح
+                client.from('bubble_fluctuations').select('bubble_usd, bubble_gold_magholi, bubble_coin_full, bubble_coin_half, bubble_coin_quarter, created_at').gte('created_at', unifiedStartISO),
                 
-                // NEW: Haji Abdollahi - Fetch 200 to support fallback mechanism across many empty rows
+                client.from('USDTTetherp').select('price_USDTTetherp, created_at_USDTTetherp').eq('type_USDTTetherp', 'فروش').gte('created_at_USDTTetherp', unifiedStartISO),
+                client.from('tahran_sabza').select('tahran_sabza_price_dollar, created_at').eq('type', 'معامله فردایی ✅').gte('created_at', unifiedStartISO),
+                client.from('price_logs').select('price, created_at').eq('info', 'هرات معامله فردایی ⏳').gte('created_at', unifiedStartISO),
+                client.from('dirham_rate').select('rate_value_dirham_rate, created_at_dirham_rate').gte('created_at_dirham_rate', unifiedStartISO),
+                client.from('irancurrency_price').select('dollar, euro, dirham, pound, created_at').gte('created_at', unifiedStartISO),
+
+                client.from('justOunce').select('price_blue').gte('created_at', unifiedStartISO).gt('price_blue', 1000).order('price_blue', { ascending: true }).limit(1),
+                
                 client.from('tala_hajiabdollahi').select('*').order('id', { ascending: false }).limit(200),
-                client.from('tala_hajiabdollahi').select('abshode_sell_hajiabdollahi').gte('created_at', startOfToday.toISOString())
+                client.from('tala_hajiabdollahi').select('abshode_sell_hajiabdollahi').gte('created_at', unifiedStartISO)
             ]);
 
             const curr = currRes.data?.[0] || {};
@@ -1750,7 +1792,6 @@
 
             let dhsPrice = parsePrice(dirhamRate.rate_value_dirham_rate); 
             if (dhsPrice > 200000) dhsPrice /= 10;
-            const dhsTime = dirhamRate.created_at_dirham_rate ? new Date(dirhamRate.created_at_dirham_rate).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-';
             const inherentDollar = dhsPrice * DIRHAM_TO_DOLLAR;
 
             const sabzaDollar = parsePrice(sabza.tahran_sabza_price_dollar);
@@ -1763,24 +1804,21 @@
             let magholiGoldBuy = parsePrice(magholiRes.data?.[0]?.gram_buy_magholi);
             if (magholiGoldBuy > 100000000) magholiGoldBuy /= 10;
             
-            // Define hPrice and dPrice HERE so they are available for ranges
             const hPrice = parsePrice(herat.price) > 1000000 ? parsePrice(herat.price)/10 : parsePrice(herat.price);
             const dPrice = parsePrice(curr.dollar) > 1000000 ? parsePrice(curr.dollar)/10 : parsePrice(curr.dollar);
 
-            // Haji Abdollahi Parsing (With Fallback for Null/Empty Prices)
             const hajiRows = hajiRes.data || [];
             const hajiLatest = hajiRows[0] || {};
             
-            // Helper function to scan backwards for the first valid price
             const getValidHajiPrice = (key) => {
                 for (let i = 0; i < hajiRows.length; i++) {
                     const row = hajiRows[i];
                     let p = parsePrice(row[key]);
                     if (p > 0) {
-                        if (p > 500000000) p /= 10; // Threshold logic for big prices
+                        if (p > 500000000) p /= 10; 
                         return { 
                             value: p, 
-                            isStale: i > 0, // It's considered stale if it's not in the absolute latest row
+                            isStale: i > 0, 
                             time: row.time_hajiabdollahi || (row.created_at ? new Date(row.created_at).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-')
                         };
                     }
@@ -1794,14 +1832,11 @@
             const hajiHalfData = getValidHajiPrice('coin_half_sell_hajiabdollahi');
             const hajiQuarterData = getValidHajiPrice('coin_quarter_sell_hajiabdollahi');
 
-            // Extraction for Bubbles & math
             const hajiGold = hajiGoldData.value;
-            const hajiGoldBuy = hajiGoldBuyData.value;
             const hajiFull = hajiFullData.value;
             const hajiHalf = hajiHalfData.value;
             const hajiQuarter = hajiQuarterData.value;
             
-            // Haji Range (Based on Abshode -> 18k Gram)
             const hHigh = hajiRangeRes.data?.reduce((max, r) => {
                  const p = parsePrice(r.abshode_sell_hajiabdollahi);
                  if (!p || p <= 0) return max;
@@ -1821,47 +1856,83 @@
             currentLiveGoldPrice = magholiGoldBuy; 
             updateTradeStats(); 
             
-            // --- BUBBLE CALCULATIONS ---
-            const currentBubble = (magholiGold > 0 && inherentGold > 0) ? (magholiGold - inherentGold) : null;
-            const currentHajiBubble = (hajiGold > 0 && inherentGold > 0) ? (hajiGold - inherentGold) : null;
-            
-            if (currentBubble !== null || currentHajiBubble !== null) {
-                const insertData = {};
-                if (currentBubble !== null) insertData.bubble_value = currentBubble;
-                if (currentHajiBubble !== null) insertData.haji_bubble_value = currentHajiBubble;
-                
-                client.from('bubble_fluctuations').insert([insertData]).then(({error}) => {
+            // --- NEW BUBBLE CALCULATIONS & LOGGING ---
+            const inherentFull = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.full.weight : 0;
+            const inherentHalf = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.half.weight : 0;
+            const inherentQuarter = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.quarter.weight : 0;
+
+            const diffUSD = sabzaDollar > 0 && inherentDollar > 0 ? sabzaDollar - inherentDollar : null;
+            const diffGold = magholiGold > 0 && inherentGold > 0 ? magholiGold - inherentGold : null;
+            const diffFull = hajiFull > 0 && inherentFull > 0 ? hajiFull - inherentFull : null;
+            const diffHalf = hajiHalf > 0 && inherentHalf > 0 ? hajiHalf - inherentHalf : null;
+            const diffQuarter = hajiQuarter > 0 && inherentQuarter > 0 ? hajiQuarter - inherentQuarter : null;
+
+            const pctUSD = diffUSD !== null ? (diffUSD / inherentDollar) * 100 : null;
+            const pctGold = diffGold !== null ? (diffGold / inherentGold) * 100 : null;
+            const pctFull = diffFull !== null ? (diffFull / inherentFull) * 100 : null;
+            const pctHalf = diffHalf !== null ? (diffHalf / inherentHalf) * 100 : null;
+            const pctQuarter = diffQuarter !== null ? (diffQuarter / inherentQuarter) * 100 : null;
+
+            // لاگ کردن حباب‌های جدید در دیتابیس (فقط مقادیری که وجود دارند)
+            const bubbleInsertData = {};
+            if (diffUSD !== null) bubbleInsertData.bubble_usd = diffUSD;
+            if (diffGold !== null) bubbleInsertData.bubble_gold_magholi = diffGold;
+            if (diffFull !== null) bubbleInsertData.bubble_coin_full = diffFull;
+            if (diffHalf !== null) bubbleInsertData.bubble_coin_half = diffHalf;
+            if (diffQuarter !== null) bubbleInsertData.bubble_coin_quarter = diffQuarter;
+
+            // به منظور پشتیبانی از کدهای قدیمی، مقادیر قدیم را هم موقتاً پر میکنیم
+            if (diffGold !== null) bubbleInsertData.bubble_value = diffGold; 
+            if (hajiGold > 0 && inherentGold > 0) bubbleInsertData.haji_bubble_value = hajiGold - inherentGold;
+
+            if (Object.keys(bubbleInsertData).length > 0) {
+                client.from('bubble_fluctuations').insert([bubbleInsertData]).then(({error}) => {
                     if(error) console.error("Error logging bubble:", error);
                 });
             }
 
-            let bHigh = -Infinity, bLow = Infinity, bHighTime = null, bLowTime = null;
-            let hBHigh = -Infinity, hBLow = Infinity, hBHighTime = null, hBLowTime = null;
-            
+            // --- FIND MIN/MAX FOR BUBBLES ---
+            let bStats = {
+                usd: { min: Infinity, max: -Infinity, cur: diffUSD, pct: pctUSD },
+                gold: { min: Infinity, max: -Infinity, cur: diffGold, pct: pctGold },
+                full: { min: Infinity, max: -Infinity, cur: diffFull, pct: pctFull },
+                half: { min: Infinity, max: -Infinity, cur: diffHalf, pct: pctHalf },
+                quarter: { min: Infinity, max: -Infinity, cur: diffQuarter, pct: pctQuarter }
+            };
+
             if (bubbleFluctuationsRes.data && bubbleFluctuationsRes.data.length > 0) {
                 bubbleFluctuationsRes.data.forEach(b => {
-                    if (b.bubble_value !== null && b.bubble_value !== undefined) {
-                        if (b.bubble_value > bHigh) { bHigh = b.bubble_value; bHighTime = b.created_at; }
-                        if (b.bubble_value < bLow) { bLow = b.bubble_value; bLowTime = b.created_at; }
-                    }
-                    if (b.haji_bubble_value !== null && b.haji_bubble_value !== undefined) {
-                        if (b.haji_bubble_value > hBHigh) { hBHigh = b.haji_bubble_value; hBHighTime = b.created_at; }
-                        if (b.haji_bubble_value < hBLow) { hBLow = b.haji_bubble_value; hBLowTime = b.created_at; }
-                    }
+                    const check = (key, dbKey) => {
+                        if (b[dbKey] !== null && b[dbKey] !== undefined) {
+                            if (b[dbKey] > bStats[key].max) bStats[key].max = b[dbKey];
+                            if (b[dbKey] < bStats[key].min) bStats[key].min = b[dbKey];
+                        }
+                    };
+                    check('usd', 'bubble_usd');
+                    check('gold', 'bubble_gold_magholi');
+                    check('full', 'bubble_coin_full');
+                    check('half', 'bubble_coin_half');
+                    check('quarter', 'bubble_coin_quarter');
                 });
             }
-            
-            const nowISO = new Date().toISOString();
-            if (currentBubble !== null) {
-                if (currentBubble > bHigh) { bHigh = currentBubble; bHighTime = nowISO; }
-                if (currentBubble < bLow) { bLow = currentBubble; bLowTime = nowISO; }
-            }
-            if (currentHajiBubble !== null) {
-                if (currentHajiBubble > hBHigh) { hBHigh = currentHajiBubble; hBHighTime = nowISO; }
-                if (currentHajiBubble < hBLow) { hBLow = currentHajiBubble; hBLowTime = nowISO; }
-            }
 
-            // --- RANGE HELPERS ---
+            // الحاق مقادیر فعلی به ماکسیمم/مینیمم در صورتی که رکورد جدیدی ثبت شده باشد
+            const includeCurInStats = (key) => {
+                if (bStats[key].cur !== null) {
+                    if (bStats[key].cur > bStats[key].max) bStats[key].max = bStats[key].cur;
+                    if (bStats[key].cur < bStats[key].min) bStats[key].min = bStats[key].cur;
+                }
+            };
+            includeCurInStats('usd'); includeCurInStats('gold'); includeCurInStats('full'); includeCurInStats('half'); includeCurInStats('quarter');
+
+            // آپدیت 5 ویجت مربوط به حباب‌ها
+            updateBubbleWidgetUI('usd', bStats.usd.cur, bStats.usd.pct, bStats.usd.min, bStats.usd.max);
+            updateBubbleWidgetUI('gold', bStats.gold.cur, bStats.gold.pct, bStats.gold.min, bStats.gold.max);
+            updateBubbleWidgetUI('full', bStats.full.cur, bStats.full.pct, bStats.full.min, bStats.full.max);
+            updateBubbleWidgetUI('half', bStats.half.cur, bStats.half.pct, bStats.half.min, bStats.half.max);
+            updateBubbleWidgetUI('quarter', bStats.quarter.cur, bStats.quarter.pct, bStats.quarter.min, bStats.quarter.max);
+
+            // --- RANGE HELPERS (General Widgets) ---
             const calculateRangeWithTime = (arr, key, timeKey) => {
                 if(!arr || arr.length === 0) return { high: 0, low: 0, highTime: '-', lowTime: '-' };
                 let h = -Infinity, l = Infinity, hT = '-', lT = '-';
@@ -1914,17 +1985,15 @@
                 if (mLow === 0 || magholiGold < mLow) mLow = magholiGold;
             }
             
-            // CORRECTED OUNCE HIGH/LOW LOGIC
             let oHigh = parsePrice(ounceHighRes.data?.[0]?.price_blue);
             let oLow = parsePrice(ounceLowRes.data?.[0]?.price_blue);
 
-            // Logic correction: If current price breaks the high/low, update them
             if (ouncePrice > 0) {
                 if (oHigh === 0 || ouncePrice > oHigh) oHigh = ouncePrice;
                 if (oLow === 0 || ouncePrice < oLow) oLow = ouncePrice;
             }
 
-            // --- WIDGET UPDATES ---
+            // --- WIDGET UPDATES (Top 4) ---
             
             // 1. Ounce Widget
             const oPos = (oHigh - oLow) > 0 ? ((ouncePrice - oLow) / (oHigh - oLow)) * 100 : 50;
@@ -1940,7 +2009,14 @@
             document.getElementById('w-dollar-max').innerText = `Max: ${Math.round(sRange.high).toLocaleString()}`;
             document.getElementById('w-dollar-marker').style.right = `${100 - dPos}%`; 
 
-            // NEW: Intrinsic Gold 18k Widget
+            // 3. Gold 18k Maqholi (Sell) Widget
+            const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
+            document.getElementById('w-gold-price').innerText = Math.round(magholiGold).toLocaleString();
+            document.getElementById('w-gold-min').innerText = `Min: ${Math.round(mLow).toLocaleString()}`;
+            document.getElementById('w-gold-max').innerText = `Max: ${Math.round(mHigh).toLocaleString()}`;
+            document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; 
+
+            // 4. Intrinsic Gold 18k Widget
             const iHigh = (oHigh > 0 && sRange.high > 0) ? (oHigh / OUNCE_TO_GRAM) * PURITY_18K * sRange.high : inherentGold;
             const iLow = (oLow > 0 && sRange.low > 0) ? (oLow / OUNCE_TO_GRAM) * PURITY_18K * sRange.low : inherentGold;
             const iPos = (iHigh - iLow) > 0 ? ((inherentGold - iLow) / (iHigh - iLow)) * 100 : 50;
@@ -1950,7 +2026,6 @@
             document.getElementById('w-intrinsic-max').innerText = `Max: ${Math.round(iHigh).toLocaleString()}`;
             document.getElementById('w-intrinsic-marker').style.right = `${100 - iPos}%`; 
 
-            // --- STORE INTRINSIC VALUE ---
             if (inherentGold > 0) {
                 client.from('intrinsic_value_logs').insert([{
                     live_value: inherentGold,
@@ -1962,98 +2037,24 @@
                 });
             }
 
-            // 3. Gold 18k Maqholi (Sell) Widget
-            const mPos = (mHigh - mLow) > 0 ? ((magholiGold - mLow) / (mHigh - mLow)) * 100 : 50;
-            document.getElementById('w-gold-price').innerText = Math.round(magholiGold).toLocaleString();
-            
-            document.getElementById('w-gold-min').innerText = `Min: ${Math.round(mLow).toLocaleString()}`;
-            document.getElementById('w-gold-max').innerText = `Max: ${Math.round(mHigh).toLocaleString()}`;
-            
-            document.getElementById('w-gold-marker').style.right = `${100 - mPos}%`; 
-
-            // 4. Bubbles Widget
-            const inherentFull = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.full.weight : 0;
-            const inherentHalf = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.half.weight : 0;
-            const inherentQuarter = inherentGold > 0 ? (inherentGold * 1.2) * COIN_SPECS.quarter.weight : 0;
-
-            const bubbleGold = inherentGold > 0 ? ((magholiGold - inherentGold) / inherentGold) * 100 : 0;
-            const bubbleUSD = inherentDollar > 0 ? ((sabzaDollar - inherentDollar) / inherentDollar) * 100 : 0;
-            const bubbleFull = inherentFull > 0 ? ((hajiFull - inherentFull) / inherentFull) * 100 : 0;
-            const bubbleHalf = inherentHalf > 0 ? ((hajiHalf - inherentHalf) / inherentHalf) * 100 : 0;
-            const bubbleQuarter = inherentQuarter > 0 ? ((hajiQuarter - inherentQuarter) / inherentQuarter) * 100 : 0;
-            
-            const diffGold = magholiGold - inherentGold;
-            const diffUSD = sabzaDollar - inherentDollar;
-            const diffFull = hajiFull - inherentFull;
-            const diffHalf = hajiHalf - inherentHalf;
-            const diffQuarter = hajiQuarter - inherentQuarter;
-
-            const scaleBubble = (b) => {
-                // ضریب ۲ برای نمایش بهتر حباب‌های بزرگ (مثل سکه‌ها که تا ۲۵٪ می‌رسد)
-                let w = Math.min(Math.abs(b) * 2, 50); 
-                return { width: w + '%', right: b > 0 ? '50%' : (50 - w) + '%', color: b > 0 ? '#ef4444' : '#10b981' };
-            };
-
-            const updateBubbleDom = (idPrefix, bubblePct, diffAbs, infoText) => {
-                const valEl = document.getElementById(`w-bubble-${idPrefix}-val`);
-                if(valEl) valEl.innerHTML = `${bubblePct.toFixed(1)}% <span class="text-[9px] opacity-60 font-normal mx-1 num-sm">(${Math.round(diffAbs).toLocaleString()})</span>`;
-                
-                const barEl = document.getElementById(`w-bubble-${idPrefix}-bar`);
-                if(barEl) {
-                    const style = scaleBubble(bubblePct);
-                    barEl.style.width = style.width;
-                    barEl.style.marginRight = style.right;
-                    barEl.style.backgroundColor = style.color;
-                }
-
-                const infoEl = document.getElementById(`w-bubble-${idPrefix}-info`);
-                if (infoEl && infoText) {
-                    infoEl.innerText = infoText;
-                }
-            };
-
-            const fmtT = (iso) => iso ? new Date(iso).toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}) : '-';
-            const magTime = magholiRes.data?.[0]?.time_magholi || fmtT(magholiRes.data?.[0]?.created_at);
-
-            updateBubbleDom('usd', bubbleUSD, diffUSD, `سبزه‌میدان | ${fmtT(sabza.created_at)}`);
-            updateBubbleDom('gold', bubbleGold, diffGold, `معقولی | ${magTime}`);
-            updateBubbleDom('full', bubbleFull, diffFull, `حاجی‌عبداللهی | ${hajiFullData.time}`);
-            updateBubbleDom('half', bubbleHalf, diffHalf, `حاجی‌عبداللهی | ${hajiHalfData.time}`);
-            updateBubbleDom('quarter', bubbleQuarter, diffQuarter, `حاجی‌عبداللهی | ${hajiQuarterData.time}`);
-
-            let bStatus = "متعادل";
-            let bStatusClass = "text-slate-500";
-            const maxBubble = Math.max(bubbleGold, bubbleUSD, bubbleFull, bubbleHalf, bubbleQuarter);
-            const minBubble = Math.min(bubbleGold, bubbleUSD, bubbleFull, bubbleHalf, bubbleQuarter);
-
-            if (maxBubble > 15) { bStatus = "مثبت شدید (ریسک بالای اصلاح)"; bStatusClass = "text-red-500"; }
-            else if (maxBubble > 5) { bStatus = "مثبت (ریسک اصلاح)"; bStatusClass = "text-red-400"; }
-            else if (minBubble < -1) { bStatus = "منفی (فرصت خرید)"; bStatusClass = "text-emerald-400"; }
-            
-            document.getElementById('w-bubble-status').innerHTML = `وضعیت کلی: <span class="${bStatusClass}">${bStatus}</span>`;
-
             const goldSources = [
-                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow === Infinity ? 0 : mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow, bubble_high: bHigh, bubble_low: bLow, bubble_high_time: bHighTime, bubble_low_time: bLowTime },
+                { label: 'طلای معقولی', time: magholiRes.data?.[0]?.time_magholi || '-', gold: magholiGold, gold_buy: parsePrice(magholiRes.data?.[0]?.gram_buy_magholi), range_high: mHigh, range_low: mLow === Infinity ? 0 : mLow, inherent_gold: inherentGold, ounce_high: oHigh, ounce_low: oLow === Infinity ? 0 : oLow },
                 { 
                     label: 'حاجی‌عبداللهی', 
                     time: hajiLatest.time_hajiabdollahi || '-', 
-                    gold: hajiGoldData, // Pass the parsed objects with 'isStale' flags
+                    gold: hajiGoldData,
                     gold_buy: hajiGoldBuyData, 
                     full: hajiFullData, 
                     half: hajiHalfData, 
                     quarter: hajiQuarterData, 
                     inherent_gold: inherentGold,
                     range_high: hHigh,
-                    range_low: hLow === Infinity ? 0 : hLow,
-                    bubble_high: hBHigh,
-                    bubble_low: hBLow,
-                    bubble_high_time: hBHighTime,
-                    bubble_low_time: hBLowTime
+                    range_low: hLow === Infinity ? 0 : hLow
                 }
             ];
 
             const goldAssets = [
-                { id: 'bubble_range_18k', label: 'نوسان حباب ۱۸ عیار' },
+                { id: 'bubble_range_18k', label: 'نوسان حباب ۱۸ عیار' }, // Hidden in table now
                 { id: 'gold', label: 'طلای ۱۸ عیار (فروش)' },
                 { id: 'gold_intrinsic', label: 'ارزش ذاتی ۱۸ عیار', isIntrinsic: true },
                 { id: 'gold_buy', label: 'طلای ۱۸ عیار (خرید)' }, 
@@ -2199,7 +2200,6 @@
 
         let query = client.from('trade_sessions').select('*').order('created_at', { ascending: false });
 
-        // واکشی نشست‌ها بر اساس اکانت فعال (یا نشست‌های قدیمی خود کاربر)
         if (activeAccountId && activeAccountId !== 'default') {
              query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser?.id})`);
         } else if (currentUser) {
@@ -2215,18 +2215,16 @@
 
         sessions = data || [];
 
-        // منطق هوشمند برای تریدر: ساخت خودکار نشست برای حساب اشتراکی با استفاده از نام اکانت خودش
         const currentAcc = accounts.find(a => a.id === activeAccountId);
         const isTrader = currentAcc && currentAcc.role !== 'owner' && activeAccountId !== 'default';
 
         if (isTrader) {
             const todayStr = new Date().toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' });
             
-            // گرفتن نام شخصی تریدر به جای استفاده از ایمیل
             const myOwnerAcc = accounts.find(a => a.role === 'owner');
             let traderName = 'همکار';
             if (myOwnerAcc && myOwnerAcc.name && myOwnerAcc.name !== 'حساب شخصی من') {
-                traderName = myOwnerAcc.name; // از نام انتخابی کاربر استفاده میکند
+                traderName = myOwnerAcc.name; 
             }
 
             const expectedSessionName = `${traderName} - ${todayStr}`;
@@ -2234,7 +2232,6 @@
             let traderSession = sessions.find(s => s.name === expectedSessionName && s.status === 'open');
             
             if (!traderSession) {
-                // ساخت نشست جدید برای این تریدر در این روز
                 const { data: newSess, error: createErr } = await client
                     .from('trade_sessions')
                     .insert([{ 
@@ -2252,7 +2249,6 @@
             }
             activeSession = traderSession || sessions.find(s => s.status === 'open') || sessions[0];
         } else {
-            // رفتار عادی برای صاحب حساب
             if (!activeSession && sessions.length > 0) {
                 activeSession = sessions.find(s => s.status === 'open') || sessions[0];
             } else if (activeSession) {
@@ -2285,8 +2281,8 @@
 
     async function switchAccount(id) {
         activeAccountId = id;
-        activeSession = null; // با تغییر اکانت، نشست قبلی باید پاک شود تا نشست مربوط به اکانت جدید لود شود
-        await fetchSessions(); // این تابع حالا خودش لیست سفارشات را هم لود می‌کند
+        activeSession = null; 
+        await fetchSessions(); 
         await fetchGlobalTradeStats(); 
     }
 
@@ -2342,7 +2338,7 @@
             return;
         }
 
-        activeSession = data; // نشست جدید بلافاصله فعال می‌شود
+        activeSession = data; 
         await fetchSessions();
     }
 
@@ -2381,7 +2377,7 @@
             await client.from('trade_orders').delete().eq('session_ref', activeSession.id);
             await client.from('trade_sessions').delete().eq('id', activeSession.id);
             activeSession = null;
-            await fetchSessions(); // بازخوانی مجدد نشست‌ها
+            await fetchSessions(); 
             await fetchGlobalTradeStats(); 
         });
     }
@@ -2398,20 +2394,16 @@
             return;
         }
 
-        // بیس کوئری: همیشه فقط معاملات نشست انتخاب شده را بیاور
         let query = client.from('trade_orders').select('*').eq('session_ref', activeSession.id);
 
         if (activeAccountId && activeAccountId !== 'default') {
             const isOwner = accounts.find(a => a.id === activeAccountId)?.role === 'owner';
             if (isOwner) {
-                // مال خودش: معاملاتی که به این اکانت متصلند یا معاملاتی که اکانت ندارند (قدیمی‌ها)
                 query = query.or(`account_id.eq.${activeAccountId},account_id.is.null`);
             } else {
-                // اکانت اشتراکی: فقط معاملاتی که "خودش" برای این اکانت در این نشست ثبت کرده
                 query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
             }
         } else {
-            // حالت قدیمی تک اکانتی
             query = query.eq('user_id', currentUser.id);
         }
 
@@ -2447,20 +2439,16 @@
                 const isOwner = acc.role === 'owner';
                 if (isOwner) {
                     accDisplayName = acc.name + ' (من)';
-                    // اگر حساب مال خودش است، معاملات قدیمی (بدون اکانت) هم جمع زده شود
                     query = query.or(`account_id.eq.${activeAccountId},and(account_id.is.null,user_id.eq.${currentUser.id})`);
                 } else {
                     accDisplayName = `${acc.name} (اشتراکی)`;
-                    // اگر حساب همکار است، فقط معاملات مختص همان اکانت که "خودش" ثبت کرده
                     query = query.eq('account_id', activeAccountId).eq('user_id', currentUser.id);
                 }
             }
         } else {
-             // حالت فال‌بک تک اکانتی
              query = query.eq('user_id', currentUser.id);
         }
 
-        // بروزرسانی عناوین با نام اکانت
         const mainTitleEl = document.getElementById('global-stats-title');
         if (mainTitleEl) mainTitleEl.innerText = `آمار کل معاملات: ${accDisplayName}`;
 
@@ -2510,9 +2498,8 @@
         if (pGSellEl) pGSellEl.innerText = format(avgSell);
     }
 
-    // --- Helper for backwards compatibility in local session viewing ---
     function getFilteredSessionOrders() {
-        return currentSession.orders; // چون کوئری دیتابیس رو درست کردیم، نیازی به فیلتر دستی نیست
+        return currentSession.orders; 
     }
 
     function setTradeSide(side) {
@@ -2647,7 +2634,6 @@
         const listEl = document.getElementById('orders-list');
         listEl.innerHTML = '';
         
-        // چون فیلترینگ را در دیتابیس (fetchOrders) تصحیح کردیم، همه سفارش‌های لود شده مال همین نشست هستند
         const filteredOrders = currentSession.orders;
 
         if(filteredOrders.length === 0) {
