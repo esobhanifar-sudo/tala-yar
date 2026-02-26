@@ -878,7 +878,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                                 تحلیل نوسانات (۱۸ عیار)
                             </h3>
-                            <p class="text-[10px] opacity-80 mt-1">پایش سقف و کف بر اساس بازه‌های ۱۵ دقیقه‌ای</p>
+                            <p class="text-[10px] opacity-80 mt-1">پایش سقف و کف بر اساس بازه‌های ۲ دقیقه‌ای</p>
                         </div>
                         <div class="flex bg-slate-800/50 p-1 rounded-xl border border-white/5">
                             <button onclick="loadMaqholiChart('today')" id="btn-chart-today" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-lg">امروز</button>
@@ -896,7 +896,44 @@
         <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-4">
             
-            <!-- NEW WIDGET: Global Trade Stats -->
+            <!-- AI Trade Consultant Widget (NEW) -->
+            <div class="glass-panel rounded-3xl p-6 shadow-xl border border-white/5 relative overflow-hidden mb-4">
+                <h3 class="text-sm font-bold text-amber-400 mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        مشاور هوشمند
+                    </div>
+                </h3>
+                <div class="text-center bg-black/20 p-4 rounded-xl border border-white/5 relative overflow-hidden">
+                    <div id="ai-signal-pulse" class="absolute -inset-1 rounded-xl blur opacity-20 transition-all duration-1000 bg-slate-500"></div>
+                    <div class="relative z-10">
+                        <div class="text-[10px] text-slate-400 mb-1" id="ai-validity-display">آماده تحلیل بازار</div>
+                        <div id="ai-signal-wrapper" class="text-lg md:text-xl font-black text-slate-300 my-2">
+                            <span id="ai-signal-text" class="num-sm transition-all duration-300">---</span>
+                        </div>
+                        <div id="ai-signal-reason" class="text-[9px] text-slate-400 leading-relaxed mt-2 border-t border-white/10 pt-2 mb-3">
+                            برای دریافت پیشنهاد لحظه‌ای کلیک کنید.
+                        </div>
+                        <button onclick="calculateAISignal()" id="btn-calc-signal" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg w-full transition-colors shadow-lg">
+                            تحلیل و پیشنهاد گیری
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-3 text-center">
+                    <div class="bg-black/20 p-2 rounded-lg border border-emerald-500/10 relative overflow-hidden text-xs">
+                        <div class="absolute inset-0 bg-emerald-500/5"></div>
+                        <span class="text-[8px] text-emerald-400/80 block mb-0.5 relative z-10">پیشنهاد خرید (کف)</span>
+                        <span id="ai-buy-target" class="font-bold text-emerald-400 latin-nums relative z-10 num-sm transition-all duration-300">---</span>
+                    </div>
+                    <div class="bg-black/20 p-2 rounded-lg border border-red-500/10 relative overflow-hidden text-xs">
+                        <div class="absolute inset-0 bg-red-500/5"></div>
+                        <span class="text-[8px] text-red-400/80 block mb-0.5 relative z-10">پیشنهاد فروش (سقف)</span>
+                        <span id="ai-sell-target" class="font-bold text-red-400 latin-nums relative z-10 num-sm transition-all duration-300">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Trade Stats -->
             <div class="glass-panel rounded-3xl p-6 shadow-xl border border-white/5 relative overflow-hidden">
                 <h3 class="text-sm font-bold text-indigo-300 mb-4 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -926,7 +963,7 @@
                 </div>
             </div>
 
-            <!-- NEW WIDGET: Portfolio Distribution -->
+            <!-- Portfolio Distribution -->
             <div class="glass-panel rounded-3xl p-6 shadow-xl border border-white/5 relative overflow-hidden">
                 <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
@@ -1007,6 +1044,15 @@
     let accounts = [];
     let activeAccountId = null;
     let currentUser = null; 
+
+    // --- AI Strategy Data Cache ---
+    let latestAiData = {
+        magholiData: null,
+        magholiGold: 0,
+        mHigh: 0,
+        mLow: 0,
+        bStats: null
+    };
 
     // --- Unified Trading Day Start Helper ---
     function getTehranMarketStart() {
@@ -1736,6 +1782,90 @@
         }
     }
 
+    function calculateAISignal() {
+        const btn = document.getElementById('btn-calc-signal');
+        if (!btn) return;
+        
+        btn.innerHTML = '<span class="animate-pulse">در حال پردازش...</span>';
+        btn.disabled = true;
+
+        setTimeout(() => { // ایجاد تاخیر کوتاه برای حس بهتر UX
+            const { magholiData, magholiGold, mHigh, mLow, bStats } = latestAiData;
+
+            if (magholiData && magholiData.length > 5 && magholiGold > 0 && mHigh > 0 && mLow > 0 && bStats && bStats.gold.max !== -Infinity) {
+                const recentRecords = [...magholiData].reverse(); 
+                const oldPriceRaw = parsePrice(recentRecords[0].gram_sell_magholi);
+                const oldPrice = oldPriceRaw > 100000000 ? oldPriceRaw / 10 : oldPriceRaw;
+                const trendPct = ((magholiGold - oldPrice) / oldPrice) * 100;
+
+                let pricePos = (mHigh > mLow) ? (magholiGold - mLow) / (mHigh - mLow) : 0.5;
+                let bubblePos = (bStats.gold.max > bStats.gold.min) ? (bStats.gold.cur - bStats.gold.min) / (bStats.gold.max - bStats.gold.min) : 0.5;
+
+                let dailyRange = mHigh - mLow;
+                let vol30m = Math.max(dailyRange * 0.15, magholiGold * 0.001);
+
+                let predictedLow = Math.max(magholiGold - vol30m, mLow * 0.998);
+                let predictedHigh = Math.min(magholiGold + vol30m, mHigh * 1.002);
+
+                let sigText = 'صبر و پایش (رنج)';
+                let sigColor = 'text-slate-300';
+                let sigGlow = 'bg-slate-500';
+                let reason = `قیمت در میانه روز است. کف تخمینی نیم ساعت آینده: ${Math.round(predictedLow).toLocaleString()} و سقف: ${Math.round(predictedHigh).toLocaleString()}`;
+                let bestBuy = predictedLow;
+                let bestSell = predictedHigh;
+
+                if (pricePos <= 0.35 && bubblePos >= 0.65) {
+                    sigText = 'شکار در کف (سیگنال خرید)';
+                    sigColor = 'text-emerald-400'; sigGlow = 'bg-emerald-500';
+                    reason = '🎯 استراتژی هوشمند: قیمت طلا به کف روزانه رسیده اما حباب در سقف مقاومت می‌کند (چسبندگی قیمت). در قیمت پیشنهادی (کف) خرید کنید، ریزش بیشتر بعید است.';
+                    bestBuy = magholiGold > mLow ? magholiGold - (magholiGold - mLow)*0.5 : magholiGold; 
+                    bestSell = magholiGold + (vol30m * 1.5); 
+                }
+                else if (pricePos >= 0.65 && bubblePos <= 0.35) {
+                    sigText = 'مقاومت سقف (سیگنال فروش)';
+                    sigColor = 'text-red-400'; sigGlow = 'bg-red-500';
+                    reason = '⚠️ استراتژی هوشمند: قیمت در سقف روزانه است اما حباب تخلیه شده (عدم حمایت خریداران). در قیمت پیشنهادی (سقف) بفروشید، صعود بیشتر بعید است.';
+                    bestBuy = magholiGold - (vol30m * 1.5); 
+                    bestSell = magholiGold < mHigh ? magholiGold + (mHigh - magholiGold)*0.5 : magholiGold;
+                }
+                else if (trendPct > 0.15) {
+                     sigText = 'مومنتوم صعودی';
+                     sigColor = 'text-blue-400'; sigGlow = 'bg-blue-500';
+                     reason = 'شتاب قیمت در ۳۰ دقیقه گذشته رو به بالاست. در پولبک‌ها به سمت قیمت پیشنهادی خرید وارد شوید.';
+                } else if (trendPct < -0.15) {
+                     sigText = 'مومنتوم نزولی';
+                     sigColor = 'text-amber-400'; sigGlow = 'bg-amber-500';
+                     reason = 'شتاب قیمت در ۳۰ دقیقه گذشته رو به پایین است. برای خرید عجله نکنید و منتظر رسیدن به کف پیشنهادی باشید.';
+                }
+
+                document.getElementById('ai-signal-text').innerText = sigText;
+                document.getElementById('ai-signal-wrapper').className = `text-lg md:text-xl font-black my-2 ${sigColor}`;
+                document.getElementById('ai-signal-pulse').className = `absolute -inset-1 rounded-xl blur opacity-20 transition-all duration-1000 ${sigGlow}`;
+                document.getElementById('ai-signal-reason').innerText = reason;
+                
+                const buyEl = document.getElementById('ai-buy-target');
+                const sellEl = document.getElementById('ai-sell-target');
+                if(buyEl) buyEl.innerText = Math.round(bestBuy).toLocaleString();
+                if(sellEl) sellEl.innerText = Math.round(bestSell).toLocaleString();
+
+                // ثبت زمان معتبر بودن سیگنال (30 دقیقه)
+                const now = new Date();
+                const validUntil = new Date(now.getTime() + 30 * 60000); // +30 minutes
+                const timeOpts = { hour: '2-digit', minute: '2-digit' };
+                const nowStr = now.toLocaleTimeString('fa-IR', timeOpts);
+                const untilStr = validUntil.toLocaleTimeString('fa-IR', timeOpts);
+                
+                document.getElementById('ai-validity-display').innerHTML = `<span class="text-amber-400 font-bold">اعتبار سیگنال:</span> از ساعت <span class="latin-nums">${nowStr}</span> تا <span class="latin-nums">${untilStr}</span>`;
+
+            } else {
+                document.getElementById('ai-signal-reason').innerText = 'داده‌های کافی برای تحلیل دریافت نشد. لطفا دقایقی دیگر مجدداً تلاش کنید.';
+            }
+
+            btn.innerText = 'به‌روزرسانی پیشنهاد';
+            btn.disabled = false;
+        }, 600);
+    }
+
     async function fetchLiveTicker() {
         const client = getSupabaseClient();
         if (!client) return;
@@ -1762,14 +1892,14 @@
                 client.from('prices').select('*').order('id', { ascending: false }).limit(1),
                 client.from('tahran_sabza').select('*').eq('type', 'معامله فردایی ✅').not('tahran_sabza_price_dollar', 'is', null).order('id', { ascending: false }).limit(1),
                 client.from('justOunce').select('*').gt('price_blue', 1000).order('id', { ascending: false }).limit(1),
-                client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20),
+                client.from('gold_magholi').select('*').order('id', { ascending: false }).limit(20), // گرفتن 20 داده آخر برای مشاور هوشمند
                 client.from('gold_magholi').select('mesghal_sell_magholi').gte('created_at', unifiedStartISO),
                 client.from('USDTTetherp').select('*').eq('type_USDTTetherp', 'فروش').order('id_USDTTetherp', { ascending: false }).limit(1),
                 
                 client.from('justOunce').select('price_blue').gte('created_at', unifiedStartISO).gt('price_blue', 1000).order('price_blue', { ascending: false }).limit(1),
                 
                 client.from('dirham_rate').select('*').order('id_dirham_rate', { ascending: false }).limit(1),
-                // کوئری گرفتن حباب‌ها از مبدا 9:30 صبح
+                // کوئری گرفتن حباب‌ها از مبدا مشخص شده
                 client.from('bubble_fluctuations').select('bubble_usd, bubble_gold_magholi, bubble_coin_full, bubble_coin_half, bubble_coin_quarter, created_at').gte('created_at', unifiedStartISO),
                 
                 client.from('USDTTetherp').select('price_USDTTetherp, created_at_USDTTetherp').eq('type_USDTTetherp', 'فروش').gte('created_at_USDTTetherp', unifiedStartISO),
@@ -1881,7 +2011,6 @@
             if (diffHalf !== null) bubbleInsertData.bubble_coin_half = diffHalf;
             if (diffQuarter !== null) bubbleInsertData.bubble_coin_quarter = diffQuarter;
 
-            // به منظور پشتیبانی از کدهای قدیمی، مقادیر قدیم را هم موقتاً پر میکنیم
             if (diffGold !== null) bubbleInsertData.bubble_value = diffGold; 
             if (hajiGold > 0 && inherentGold > 0) bubbleInsertData.haji_bubble_value = hajiGold - inherentGold;
 
@@ -1985,6 +2114,13 @@
                 if (mLow === 0 || magholiGold < mLow) mLow = magholiGold;
             }
             
+            // ذخیره مقادیر فعلی در کش برای دکمه "دریافت پیشنهاد"
+            latestAiData.magholiData = magholiRes.data;
+            latestAiData.magholiGold = magholiGold;
+            latestAiData.mHigh = mHigh;
+            latestAiData.mLow = mLow;
+            latestAiData.bStats = bStats;
+
             let oHigh = parsePrice(ounceHighRes.data?.[0]?.price_blue);
             let oLow = parsePrice(ounceLowRes.data?.[0]?.price_blue);
 
@@ -2117,8 +2253,8 @@
                 let key;
                 if (timeframe === 'today') {
                     const minutes = date.getMinutes();
-                    const quarter = Math.floor(minutes / 15) * 15;
-                    key = `${date.getHours().toString().padStart(2, '0')}:${quarter.toString().padStart(2, '0')}`;
+                    const interval = Math.floor(minutes / 2) * 2;
+                    key = `${date.getHours().toString().padStart(2, '0')}:${interval.toString().padStart(2, '0')}`;
                 } else {
                     key = r.date_magholi;
                 }
@@ -2163,6 +2299,14 @@
                     labels: { 
                         formatter: (v) => Math.round(v).toLocaleString(),
                         style: { colors: '#94a3b8' }
+                    }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function(value) {
+                            return Math.round(value).toLocaleString();
+                        }
                     }
                 },
                 grid: { borderColor: '#334155' }
