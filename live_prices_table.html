@@ -442,7 +442,7 @@
                 <div class="grid grid-cols-2 gap-2 text-center mb-3">
                     <div class="bg-black/20 p-2 rounded-lg col-span-2">
                         <div class="text-[9px] opacity-50">موجودی (گرم)</div>
-                        <div id="trade-net-weight" class="text-base font-bold latin-nums mt-1 text-white">0.00</div>
+                        <div id="trade-net-weight" class="text-base font-bold latin-nums mt-1 text-white">0.000</div>
                     </div>
                     <div class="bg-black/20 p-2 rounded-lg">
                         <div class="text-[9px] opacity-50 text-emerald-400">میانگین خرید (این نشست)</div>
@@ -1214,8 +1214,8 @@
         
         if (gBuyEl) gBuyEl.innerText = format(avgBuy);
         if (gSellEl) gSellEl.innerText = format(avgSell);
-        if (gBuyWEl) gBuyWEl.innerText = totalBuyWeight.toFixed(2) + ' g';
-        if (gSellWEl) gSellWEl.innerText = totalSellWeight.toFixed(2) + ' g';
+        if (gBuyWEl) gBuyWEl.innerText = totalBuyWeight.toFixed(3) + ' g';
+        if (gSellWEl) gSellWEl.innerText = totalSellWeight.toFixed(3) + ' g';
 
         const pGBuyEl = document.getElementById('panel-global-avg-buy');
         const pGSellEl = document.getElementById('panel-global-avg-sell');
@@ -2856,7 +2856,7 @@
         const sessionAvgBuy = totalBuyWeight > 0 ? totalBuyValue / totalBuyWeight : 0;
         const sessionAvgSell = totalSellWeight > 0 ? totalSellValue / totalSellWeight : 0;
 
-        document.getElementById('trade-net-weight').innerText = inventoryGram.toFixed(2);
+        document.getElementById('trade-net-weight').innerText = inventoryGram.toFixed(3);
         document.getElementById('trade-avg-buy-display').innerText = Math.round(sessionAvgBuy).toLocaleString();
         document.getElementById('trade-avg-sell-display').innerText = Math.round(sessionAvgSell).toLocaleString();
 
