@@ -1,493 +1,714 @@
-import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { ShieldAlert, TrendingUp, TrendingDown, Landmark, Scale, Clock, Coins, ZoomIn, Calculator, Percent } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مدل‌ساز استراتژی تخصیص دارایی و اهرم | رهدیس</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
-// استفاده از فرمت en-US برای نمایش اعداد به صورت انگلیسی
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US').format(Math.round(value));
-};
+    <style>
+        :root {
+            --scale-factor: 1;
+        }
 
-const formatGrams = (value) => {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-};
+        body {
+            font-family: Tahoma, Arial, sans-serif;
+            background-color: #f1f5f9;
+        }
 
-export default function App() {
-  // === پارامترهای بزرگنمایی ===
-  const [numScale, setNumScale] = useState(1);
-
-  // === پارامترهای ورودی بازار ===
-  const [totalCapital, setTotalCapital] = useState(1000000000); // 1 میلیارد تومان
-  const [goldCurrentPrice, setGoldCurrentPrice] = useState(19000000); // 19 میلیون
-  const [goldPriceDrop, setGoldPriceDrop] = useState(12500000); // سناریو الف
-  const [goldPriceRise, setGoldPriceRise] = useState(22500000); // سناریو ب
-  
-  // === پارامترهای زمان و اهرم بانکی ===
-  const [daysDeposited, setDaysDeposited] = useState(90); // مدت زمان رسوب (روز)
-  const [loanRatePerMonth, setLoanRatePerMonth] = useState(33.3); // ضریب تولید وام به ازای هر ماه
-  
-  // === پارامترهای جدید: هزینه بهره وام ===
-  const [annualInterestRate, setAnnualInterestRate] = useState(24); // نرخ بهره سالانه وام (درصد)
-  const [holdingPeriodMonths, setHoldingPeriodMonths] = useState(12); // افق سرمایه‌گذاری یا مدت وام (ماه)
-
-  // === درصد تخصیص به طلا ===
-  const [goldWeight, setGoldWeight] = useState(50); // 50% طلا، 50% نقد
-
-  // === متغیرهای محاسباتی پایه ===
-  const cashWeight = 100 - goldWeight;
-  const investedInGold = totalCapital * (goldWeight / 100);
-  const investedInCash = totalCapital * (cashWeight / 100);
-  
-  const initialGoldGrams = investedInGold / goldCurrentPrice;
-  const baselineGoldGrams = totalCapital / goldCurrentPrice;
-
-  // محاسبات وام و بهره
-  const monthsDeposited = daysDeposited / 30;
-  const loanMultiplier = monthsDeposited * (loanRatePerMonth / 100);
-  const loanAmount = investedInCash * loanMultiplier; // اصل وام
-  
-  // هزینه بهره وام بر اساس افق سرمایه‌گذاری
-  const loanInterestCost = loanAmount * (annualInterestRate / 100) * (holdingPeriodMonths / 12);
-  const totalLoanDebt = loanAmount + loanInterestCost; // کل بدهی (اصل + سود بانکی)
-  
-  const totalLiquidityAtEnd = investedInCash + loanAmount;
-
-  // === نتایج سناریو الف (ریزش) ===
-  const goldBoughtWithLiquidityA = totalLiquidityAtEnd / goldPriceDrop;
-  const grossGoldA = initialGoldGrams + goldBoughtWithLiquidityA; 
-  // کسر کل بدهی (اصل + بهره) از ارزش ناخالص
-  const netFiatWorthA = (grossGoldA * goldPriceDrop) - totalLoanDebt; 
-  const netGoldEquivalentA = netFiatWorthA / goldPriceDrop; 
-  
-  // محاسبه ریسک سناریو الف (درصد افت دارایی طلا نسبت به بنچمارک پایه)
-  const riskA = Math.max(0, ((baselineGoldGrams - netGoldEquivalentA) / baselineGoldGrams) * 100);
-
-  // === نتایج سناریو ب (رشد) ===
-  const goldBoughtWithLiquidityB = totalLiquidityAtEnd / goldPriceRise;
-  const grossGoldB = initialGoldGrams + goldBoughtWithLiquidityB;
-  // کسر کل بدهی (اصل + بهره) از ارزش ناخالص
-  const netFiatWorthB = (grossGoldB * goldPriceRise) - totalLoanDebt;
-  const netGoldEquivalentB = netFiatWorthB / goldPriceRise;
-
-  // محاسبه ریسک سناریو ب
-  const riskB = Math.max(0, ((baselineGoldGrams - netGoldEquivalentB) / baselineGoldGrams) * 100);
-
-  // تولید داده‌ها برای نمودار
-  const [chartData, setChartData] = useState([]);
-
-  useEffect(() => {
-    const data = [];
-    for (let w = 0; w <= 100; w += 5) {
-      const gInv = totalCapital * (w / 100);
-      const cInv = totalCapital * ((100 - w) / 100);
-      const gGrams = gInv / goldCurrentPrice;
-      
-      const lAmnt = cInv * (daysDeposited / 30) * (loanRatePerMonth / 100);
-      const liq = cInv + lAmnt;
-      
-      // محاسبه بهره برای هر نقطه از نمودار
-      const lInterest = lAmnt * (annualInterestRate / 100) * (holdingPeriodMonths / 12);
-      const totalDebt = lAmnt + lInterest;
-      
-      const netWorthA = ((gGrams + (liq / goldPriceDrop)) * goldPriceDrop) - totalDebt;
-      const netGoldA = netWorthA / goldPriceDrop;
-
-      const netWorthB = ((gGrams + (liq / goldPriceRise)) * goldPriceRise) - totalDebt;
-      const netGoldB = netWorthB / goldPriceRise;
-      
-      data.push({
-        name: `${w}%`,
-        goldPercent: w,
-        scenarioA: Number(netGoldA.toFixed(2)),
-        scenarioB: Number(netGoldB.toFixed(2)),
-        baseline: Number(baselineGoldGrams.toFixed(2))
-      });
-    }
-    setChartData(data);
-  }, [totalCapital, goldCurrentPrice, goldPriceDrop, goldPriceRise, daysDeposited, loanRatePerMonth, annualInterestRate, holdingPeriodMonths]);
-
-  return (
-    <div 
-      className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans transition-all duration-300 pb-20" 
-      dir="rtl" 
-      style={{ 
-        fontFamily: 'Tahoma, Arial, sans-serif',
-        '--scale-factor': numScale 
-      }}
-    >
-      <style>{`
         .en-num {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-          letter-spacing: -0.5px;
-          direction: ltr;
-          unicode-bidi: embed;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+            letter-spacing: -0.5px;
+            direction: ltr;
+            unicode-bidi: embed;
         }
+
         .scalable {
-          font-size: calc(1em * var(--scale-factor));
-          transition: font-size 0.2s ease-out;
+            font-size: calc(1em * var(--scale-factor));
+            transition: font-size 0.2s ease-out;
         }
+
         .scalable-text {
-          font-size: calc(1em * (1 + (var(--scale-factor) - 1) * 0.5)); /* متون با ضریب کمتری نسبت به اعداد بزرگ می‌شوند */
-          transition: font-size 0.2s ease-out;
+            font-size: calc(1em * (1 + (var(--scale-factor) - 1) * 0.5));
+            transition: font-size 0.2s ease-out;
         }
         
         input[type=range]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: #4f46e5;
-          cursor: pointer;
-          margin-top: -8px;
-          box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
         }
+        
         input[type=range]::-webkit-slider-runnable-track {
-          width: 100%;
-          height: 6px;
-          cursor: pointer;
-          background: #cbd5e1;
-          border-radius: 4px;
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 4px;
         }
         
         .input-premium {
-          background-color: #f8fafc;
-          border: 1px solid #e2e8f0;
-          transition: all 0.2s;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
         }
-        .input-premium:focus {
-          background-color: #ffffff;
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-      `}</style>
-
-      <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* هدر و تنظیمات */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 md:col-span-2 flex flex-col justify-center">
-            <h1 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                <Scale className="w-8 h-8" />
-              </div>
-              مدل‌ساز تخصیص و اهرم (Pro)
-            </h1>
-            <p className="text-slate-500 mt-3 font-medium scalable-text">
-              پیدا کردن نقطه طلایی (Risk Parity) بین خرید طلای فیزیکی و ایجاد رسوب بانکی برای دریافت تسهیلات ارزان.
-            </p>
-          </div>
+        .input-premium:focus {
+            background-color: #ffffff;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
 
-          {/* ابزار بزرگنمایی */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-center">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-slate-700 flex items-center gap-2 scalable-text">
-                <ZoomIn className="w-5 h-5 text-indigo-500" />
-                بزرگ‌نمایی (Zoom)
-              </h3>
-              <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-bold en-num text-sm">
-                {numScale}x
-              </span>
-            </div>
-            <input 
-              type="range" min="1" max="3" step="0.1" 
-              value={numScale} 
-              onChange={e => setNumScale(Number(e.target.value))} 
-              className="w-full" 
-            />
-          </div>
+        /* SVG Icon styling */
+        svg.icon {
+            width: 1.25em;
+            height: 1.25em;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+    </style>
+</head>
+<body class="transition-all duration-300 pb-20">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="min-h-screen bg-slate-50 flex items-center justify-center fixed inset-0 z-50">
+        <div class="animate-pulse flex flex-col items-center gap-4">
+            <svg class="icon w-12 h-12 text-indigo-500 opacity-50" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"></path><path d="M12 8v4l3 3"></path></svg>
+            <span class="text-slate-400 font-bold">در حال ارتباط با سرور...</span>
         </div>
-
-        {/* بنچمارک اصلی */}
-        <div className="bg-gradient-to-l from-amber-500 to-orange-400 p-6 rounded-3xl shadow-lg text-white flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
-              <Coins className="w-10 h-10 text-white" />
-            </div>
-            <div>
-              <div className="text-amber-100 font-bold mb-1 scalable-text">قدرت خرید پایه (اگر ۱۰۰٪ سرمایه طلا بخرید)</div>
-              <div className="text-3xl font-black en-num scalable">{formatGrams(baselineGoldGrams)} <span className="text-lg">g</span></div>
-            </div>
-          </div>
-          <div className="relative z-10 text-right bg-black/10 px-6 py-4 rounded-2xl backdrop-blur-md border border-white/10 w-full md:w-auto">
-            <div className="text-amber-100 text-sm font-bold scalable-text mb-1">سرمایه کل درگیر</div>
-            <div className="text-2xl font-black en-num scalable">{formatCurrency(totalCapital)} <span className="text-sm">Toman</span></div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* پنل تنظیمات ورودی */}
-          <div className="lg:col-span-4 space-y-6">
-            
-            {/* ۱. متغیرهای بازار */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-              <h2 className="font-black text-slate-800 mb-5 pb-3 border-b border-slate-100 flex items-center gap-2 scalable-text">
-                <Calculator className="w-5 h-5 text-indigo-500" />
-                متغیرهای بازار
-              </h2>
-              
-              <div className="space-y-5">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-2 scalable-text">سرمایه کل (تومان)</label>
-                  <input type="number" value={totalCapital} onChange={e => setTotalCapital(Number(e.target.value))} className="w-full input-premium rounded-xl px-4 py-3 text-lg font-bold outline-none en-num" />
-                </div>
-                
-                <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-2 scalable-text">قیمت فعلی طلا (تومان/گرم)</label>
-                  <input type="number" value={goldCurrentPrice} onChange={e => setGoldCurrentPrice(Number(e.target.value))} className="w-full input-premium rounded-xl px-4 py-3 text-lg font-bold outline-none en-num" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 mt-4">
-                  <div className="col-span-2">
-                    <label className="text-[11px] text-red-600 font-bold block mb-2 scalable-text">کف قیمت در سناریو توافق (ریزش)</label>
-                    <input type="number" value={goldPriceDrop} onChange={e => setGoldPriceDrop(Number(e.target.value))} className="w-full bg-white border border-red-200 rounded-xl px-3 py-2 text-base focus:ring-2 focus:ring-red-500 outline-none text-red-600 font-bold en-num" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-[11px] text-emerald-600 font-bold block mb-2 scalable-text">سقف قیمت در سناریو تنش (پرش)</label>
-                    <input type="number" value={goldPriceRise} onChange={e => setGoldPriceRise(Number(e.target.value))} className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-base focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-600 font-bold en-num" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ۲. موتور خلق نقدینگی و هزینه بهره */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-3xl shadow-sm border border-blue-100">
-              <h2 className="font-black text-blue-900 mb-5 pb-3 border-b border-blue-200/50 flex items-center gap-2 scalable-text">
-                <Clock className="w-5 h-5 text-blue-600" />
-                موتور خلق وام و هزینه‌ها
-              </h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="text-[11px] text-blue-800 font-bold block mb-3 flex justify-between scalable-text">
-                    <span>مدت زمان رسوب پول</span>
-                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded-lg en-num shadow-sm">{daysDeposited} Days</span>
-                  </label>
-                  <input type="range" min="15" max="180" step="15" value={daysDeposited} onChange={e => setDaysDeposited(Number(e.target.value))} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer" />
-                </div>
-                
-                <div>
-                  <label className="text-[11px] text-blue-800 font-bold block mb-3 flex justify-between scalable-text">
-                    <span>امتیاز وام اعطایی (ماهانه)</span>
-                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded-lg en-num shadow-sm">{loanRatePerMonth}% / Mo</span>
-                  </label>
-                  <input type="range" min="10" max="50" step="1" value={loanRatePerMonth} onChange={e => setLoanRatePerMonth(Number(e.target.value))} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer" />
-                </div>
-
-                <div className="pt-4 border-t border-blue-200/50 space-y-6">
-                  <div>
-                    <label className="text-[11px] text-red-700 font-bold block mb-3 flex justify-between scalable-text">
-                      <span className="flex items-center gap-1"><Percent className="w-3 h-3"/> نرخ بهره سالانه وام</span>
-                      <span className="bg-red-500 text-white px-2 py-0.5 rounded-lg en-num shadow-sm">{annualInterestRate}%</span>
-                    </label>
-                    <input type="range" min="0" max="50" step="1" value={annualInterestRate} onChange={e => setAnnualInterestRate(Number(e.target.value))} className="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer" />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-red-700 font-bold block mb-3 flex justify-between scalable-text">
-                      <span>افق سرمایه‌گذاری (برای کسر بهره)</span>
-                      <span className="bg-red-500 text-white px-2 py-0.5 rounded-lg en-num shadow-sm">{holdingPeriodMonths} Mo</span>
-                    </label>
-                    <input type="range" min="1" max="36" step="1" value={holdingPeriodMonths} onChange={e => setHoldingPeriodMonths(Number(e.target.value))} className="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer" />
-                  </div>
-                </div>
-
-                <div className="bg-white/60 p-4 rounded-xl border border-blue-200/50 text-[10px] leading-relaxed text-slate-700 font-medium scalable-text">
-                  <p className="mb-2">🔹 بانک معادل <span className="font-bold en-num text-blue-700">{(loanMultiplier * 100).toFixed(0)}%</span> از رسوب شما را وام می‌دهد.</p>
-                  <p>🔸 در افق <span className="en-num font-bold">{holdingPeriodMonths}</span> ماهه، هزینه بهره این وام <span className="font-bold en-num text-red-600">{formatCurrency(loanInterestCost)}</span> تومان خواهد بود که از ارزش خالص سبد شما کسر می‌شود.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* پنل داشبورد و نتایج */}
-          <div className="lg:col-span-8 space-y-6">
-            
-            {/* اسلایدر تصمیم‌گیری تخصیص */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-              <h2 className="font-black text-slate-800 mb-6 flex items-center gap-2 scalable-text">
-                <ShieldAlert className="w-6 h-6 text-indigo-500" />
-                اهرم تصمیم: استراتژی تخصیص پورتفو
-              </h2>
-              
-              <div className="flex justify-between text-sm font-bold mb-4 scalable-text">
-                <span className="text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100">سهم طلا: <span className="en-num">{goldWeight}%</span></span>
-                <span className="text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">سهم بانک: <span className="en-num">{cashWeight}%</span></span>
-              </div>
-              <input 
-                type="range" min="0" max="100" step="5" 
-                value={goldWeight} 
-                onChange={e => setGoldWeight(Number(e.target.value))} 
-                className="w-full h-6 rounded-2xl appearance-none cursor-pointer shadow-inner border border-slate-200" 
-                style={{ background: `linear-gradient(to left, #3b82f6 ${cashWeight}%, #f59e0b ${cashWeight}%)` }}
-              />
-              
-              <div className="grid grid-cols-2 gap-6 mt-8">
-                <div className="bg-white p-5 rounded-2xl border-2 border-amber-100 text-center shadow-sm relative overflow-hidden group hover:border-amber-300 transition-colors">
-                  <div className="absolute top-0 right-0 bg-amber-100 text-amber-800 text-[10px] px-3 py-1 rounded-bl-xl font-bold scalable-text">دارایی سخت</div>
-                  <div className="text-xs text-amber-700 font-bold mb-2 scalable-text mt-2">طلای خریداری شده در امروز</div>
-                  <div className="font-black text-amber-600 text-2xl md:text-3xl my-3 en-num scalable">{formatGrams(initialGoldGrams)} <span className="text-base text-amber-400">g</span></div>
-                  <div className="text-[11px] text-amber-600 font-medium scalable-text">ارزش تخصیصی: <span className="en-num font-bold">{formatCurrency(investedInGold)}</span> تومان</div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border-2 border-blue-100 text-center shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
-                  <div className="absolute top-0 right-0 bg-blue-100 text-blue-800 text-[10px] px-3 py-1 rounded-bl-xl font-bold scalable-text">اهرم اعتباری</div>
-                  <div className="text-xs text-blue-700 font-bold mb-2 scalable-text mt-2">کل نقدینگی تولید شده (اصل + وام)</div>
-                  <div className="font-black text-blue-600 text-2xl md:text-3xl my-3 en-num scalable">{formatCurrency(totalLiquidityAtEnd)}</div>
-                  <div className="text-[11px] text-blue-600 font-medium scalable-text flex flex-wrap justify-center gap-1">
-                    اصل: <span className="en-num font-bold">{formatCurrency(investedInCash)}</span> | 
-                    وام: <span className="en-num font-bold text-emerald-600">+{formatCurrency(loanAmount)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* کارت‌های نتیجه سناریو (محاسبه به گرم طلا) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* سناریو الف */}
-              <div className={`p-6 rounded-3xl border-2 transition-all duration-300 ${netGoldEquivalentA >= baselineGoldGrams ? 'bg-white border-emerald-400 shadow-emerald-100/50 shadow-xl scale-[1.02]' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="flex justify-between items-center mb-6 border-b pb-4 border-slate-100">
-                  <div>
-                    <h3 className="font-black text-slate-800 flex items-center gap-2 scalable-text">
-                      <TrendingDown className="w-6 h-6 text-emerald-500" />
-                      فرصت شکار (ریزش به ۱۲.۵)
-                    </h3>
-                  </div>
-                  <div className={`px-3 py-1.5 rounded-xl text-[11px] font-bold scalable-text ${netGoldEquivalentA >= baselineGoldGrams ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                    {netGoldEquivalentA >= baselineGoldGrams ? 'پوشش موفق' : 'زیان استراتژیک'}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-slate-100 p-3 rounded-xl">
-                    <span className="text-slate-600 text-xs font-bold scalable-text">خرید طلا با نقدینگی:</span>
-                    <span className="font-bold text-slate-800 en-num scalable">+{formatGrams(goldBoughtWithLiquidityA)} g</span>
-                  </div>
-                  <div className="flex justify-between items-center px-3">
-                    <span className="text-amber-600 font-bold text-xs scalable-text">کل طلای فیزیکی (Gross):</span>
-                    <span className="font-black text-amber-500 text-xl en-num scalable">{formatGrams(grossGoldA)} g</span>
-                  </div>
-                  <div className="flex justify-between items-center px-3">
-                    <span className="text-red-400 font-bold text-[11px] scalable-text">بدهی بانکی (اصل+بهره):</span>
-                    <span className="font-bold text-red-500 text-sm en-num scalable">-{formatCurrency(totalLoanDebt)}</span>
-                  </div>
-
-                  {/* نوار نمایش ریسک */}
-                  <div className="flex flex-col px-3 py-2 bg-slate-100/50 rounded-xl border border-slate-200/50">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-slate-500 font-bold text-[11px] scalable-text">ریسک افت دارایی نسبت به پایه:</span>
-                      <span className={`font-black text-xs en-num scalable ${riskA > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                        {riskA > 0 ? `-${riskA.toFixed(1)}%` : 'بدون ریسک (Safe)'}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex justify-end">
-                      <div className={`h-1.5 rounded-full ${riskA > 0 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${riskA > 0 ? Math.min(riskA, 100) : 100}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div className={`pt-4 mt-2 border-t-2 border-dashed flex justify-between items-center p-4 rounded-2xl ${netGoldEquivalentA >= baselineGoldGrams ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-                    <span className="font-black text-slate-800 text-sm scalable-text">ارزش خالص (Net Gold):</span>
-                    <div className="text-left">
-                      <div className={`text-2xl font-black en-num scalable ${netGoldEquivalentA >= baselineGoldGrams ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatGrams(netGoldEquivalentA)} g
-                      </div>
-                      <div className={`text-[11px] mt-1 font-bold en-num scalable-text ${netGoldEquivalentA >= baselineGoldGrams ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {netGoldEquivalentA >= baselineGoldGrams ? '+' : ''}{formatGrams(netGoldEquivalentA - baselineGoldGrams)} g vs Base
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* سناریو ب */}
-              <div className={`p-6 rounded-3xl border-2 transition-all duration-300 ${netGoldEquivalentB >= baselineGoldGrams ? 'bg-white border-emerald-400 shadow-emerald-100/50 shadow-xl scale-[1.02]' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="flex justify-between items-center mb-6 border-b pb-4 border-slate-100">
-                  <div>
-                    <h3 className="font-black text-slate-800 flex items-center gap-2 scalable-text">
-                      <TrendingUp className="w-6 h-6 text-red-500" />
-                      تنش و پرش (صعود به ۲۲.۵)
-                    </h3>
-                  </div>
-                  <div className={`px-3 py-1.5 rounded-xl text-[11px] font-bold scalable-text ${netGoldEquivalentB >= baselineGoldGrams ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                    {netGoldEquivalentB >= baselineGoldGrams ? 'پوشش موفق' : 'زیان استراتژیک'}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-slate-100 p-3 rounded-xl">
-                    <span className="text-slate-600 text-xs font-bold scalable-text">خرید طلا با نقدینگی:</span>
-                    <span className="font-bold text-slate-800 en-num scalable">+{formatGrams(goldBoughtWithLiquidityB)} g</span>
-                  </div>
-                  <div className="flex justify-between items-center px-3">
-                    <span className="text-amber-600 font-bold text-xs scalable-text">کل طلای فیزیکی (Gross):</span>
-                    <span className="font-black text-amber-500 text-xl en-num scalable">{formatGrams(grossGoldB)} g</span>
-                  </div>
-                  <div className="flex justify-between items-center px-3">
-                    <span className="text-red-400 font-bold text-[11px] scalable-text">بدهی بانکی (اصل+بهره):</span>
-                    <span className="font-bold text-red-500 text-sm en-num scalable">-{formatCurrency(totalLoanDebt)}</span>
-                  </div>
-
-                  {/* نوار نمایش ریسک */}
-                  <div className="flex flex-col px-3 py-2 bg-slate-100/50 rounded-xl border border-slate-200/50">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-slate-500 font-bold text-[11px] scalable-text">ریسک افت دارایی نسبت به پایه:</span>
-                      <span className={`font-black text-xs en-num scalable ${riskB > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                        {riskB > 0 ? `-${riskB.toFixed(1)}%` : 'بدون ریسک (Safe)'}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex justify-end">
-                      <div className={`h-1.5 rounded-full ${riskB > 0 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${riskB > 0 ? Math.min(riskB, 100) : 100}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div className={`pt-4 mt-2 border-t-2 border-dashed flex justify-between items-center p-4 rounded-2xl ${netGoldEquivalentB >= baselineGoldGrams ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-                    <span className="font-black text-slate-800 text-sm scalable-text">ارزش خالص (Net Gold):</span>
-                    <div className="text-left">
-                      <div className={`text-2xl font-black en-num scalable ${netGoldEquivalentB >= baselineGoldGrams ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatGrams(netGoldEquivalentB)} g
-                      </div>
-                      <div className={`text-[11px] mt-1 font-bold en-num scalable-text ${netGoldEquivalentB >= baselineGoldGrams ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {netGoldEquivalentB >= baselineGoldGrams ? '+' : ''}{formatGrams(netGoldEquivalentB - baselineGoldGrams)} g vs Base
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* نمودار نقطه تعادل به گرم */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-              <h3 className="font-black text-slate-800 mb-3 scalable-text">منحنی تعادل استراتژیک (Risk Parity Curve)</h3>
-              <p className="text-xs text-slate-500 mb-6 scalable-text leading-relaxed font-medium">
-                هدف شما تنظیم کردن درصد تخصیص به گونه‌ای است که خطوط سبز (سناریو صعود) و قرمز (سناریو ریزش)، هر دو بالای خط‌چین بنفش (میزان طلای شما در حالت ۱۰۰٪ خرید نقدی) قرار بگیرند. در این حالت، شما یک سبدِ <b>ضدگلوله</b> ساخته‌اید.
-              </p>
-              
-              <div className="h-80 w-full" dir="ltr">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 20, right: 10, bottom: 10, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748b', fontFamily: 'monospace', fontWeight: 'bold'}} tickMargin={10} />
-                    <YAxis domain={['auto', 'auto']} tick={{fontSize: 12, fill: '#64748b', fontFamily: 'monospace'}} width={60} />
-                    <Tooltip 
-                      formatter={(value, name) => [`${value} g`, name === 'scenarioA' ? 'سناریو ریزش' : (name === 'scenarioB' ? 'سناریو صعود' : 'بنچمارک پایه')]}
-                      labelFormatter={(label) => `تخصیص طلا: ${label}`}
-                      contentStyle={{textAlign: 'right', direction: 'rtl', fontFamily: 'Tahoma', fontSize: '13px', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
-                    />
-                    <Legend wrapperStyle={{fontSize: '12px', fontFamily: 'Tahoma', fontWeight: 'bold', marginTop: '10px'}} formatter={(value) => value === 'scenarioA' ? 'سناریو ریزش' : 'سناریو صعود'} />
-                    
-                    <ReferenceLine y={baselineGoldGrams} label={{position: 'top', value: 'Base (100% Gold)', fill: '#8b5cf6', fontSize: 11, fontWeight: 'bold'}} stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" />
-                    
-                    <Line type="monotone" dataKey="scenarioB" name="scenarioB" stroke="#10b981" strokeWidth={4} dot={{r: 4, fill: '#10b981'}} activeDot={{r: 8, strokeWidth: 0}} />
-                    <Line type="monotone" dataKey="scenarioA" name="scenarioA" stroke="#f43f5e" strokeWidth={4} dot={{r: 4, fill: '#f43f5e'}} activeDot={{r: 8, strokeWidth: 0}} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
     </div>
-  );
-}
+
+    <!-- Login Screen -->
+    <div id="auth-container" class="min-h-screen bg-slate-50 items-center justify-center p-4 hidden">
+        <div class="bg-white max-w-md w-full p-8 rounded-3xl shadow-xl border border-slate-200">
+            <div class="flex justify-center mb-6">
+                <div class="p-4 bg-indigo-50 rounded-2xl">
+                    <svg class="icon w-10 h-10 text-indigo-600" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+            </div>
+            
+            <h2 class="text-2xl font-black text-center text-slate-800 mb-2">ورود به سیستم</h2>
+            <p class="text-sm text-center text-slate-500 mb-8">لطفاً برای دسترسی به مدل‌ساز استراتژی، وارد حساب کاربری خود شوید.</p>
+            
+            <div id="auth-error" class="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold mb-6 border border-red-100 text-center hidden"></div>
+            
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2 flex items-center gap-1">
+                        <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> آدرس ایمیل
+                    </label>
+                    <input type="email" id="email" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-left outline-none focus:border-indigo-500 focus:bg-white transition-colors en-num" placeholder="name@example.com" required dir="ltr">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2 flex items-center gap-1">
+                        <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> رمز عبور
+                    </label>
+                    <input type="password" id="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-left outline-none focus:border-indigo-500 focus:bg-white transition-colors en-num" placeholder="••••••••" required dir="ltr">
+                </div>
+                
+                <button type="submit" id="btn-login" class="w-full py-3.5 rounded-xl font-bold text-white transition-all shadow-lg bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/30">
+                    ورود امن به داشبورد
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app-container" class="max-w-7xl mx-auto space-y-6 mt-6 px-4 md:px-8 hidden">
+        
+        <!-- Header & Top Tools -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 md:col-span-2 flex flex-col justify-center relative">
+                <button onclick="handleLogout()" class="absolute top-6 left-6 text-slate-400 hover:text-red-500 flex items-center gap-1 text-sm font-bold transition-colors bg-slate-50 hover:bg-red-50 px-3 py-1.5 rounded-lg" title="خروج از حساب">
+                    <span class="hidden md:inline">خروج</span>
+                    <svg class="icon w-4 h-4" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+
+                <h1 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <svg class="icon w-8 h-8" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path></svg>
+                    </div>
+                    مدل‌ساز تخصیص و اهرم (Pro)
+                </h1>
+                <p class="text-slate-500 mt-3 font-medium scalable-text pl-16">
+                    پیدا کردن نقطه طلایی (Risk Parity) بین خرید طلای فیزیکی و ایجاد رسوب بانکی برای دریافت تسهیلات ارزان.
+                </p>
+            </div>
+
+            <!-- Zoom Tool -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2 scalable-text">
+                        <svg class="icon w-5 h-5 text-indigo-500" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                        بزرگ‌نمایی (Zoom)
+                    </h3>
+                    <span id="out-scale" class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-bold en-num text-sm">1x</span>
+                </div>
+                <input type="range" id="in-scale" min="1" max="3" step="0.1" value="1" class="w-full">
+            </div>
+        </div>
+
+        <!-- Main Benchmark -->
+        <div class="bg-gradient-to-l from-amber-500 to-orange-400 p-6 rounded-3xl shadow-lg text-white flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
+            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+            <div class="relative z-10 flex items-center gap-4">
+                <div class="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
+                    <svg class="icon w-10 h-10 text-white" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>
+                </div>
+                <div>
+                    <div class="text-amber-100 font-bold mb-1 scalable-text">قدرت خرید پایه (اگر ۱۰۰٪ سرمایه طلا بخرید)</div>
+                    <div class="text-3xl font-black en-num scalable"><span id="out-baseline-gold">0.00</span> <span class="text-lg">g</span></div>
+                </div>
+            </div>
+            <div class="relative z-10 text-right bg-black/10 px-6 py-4 rounded-2xl backdrop-blur-md border border-white/10 w-full md:w-auto">
+                <div class="text-amber-100 text-sm font-bold scalable-text mb-1">سرمایه کل درگیر</div>
+                <div class="text-2xl font-black en-num scalable"><span id="out-total-capital-disp">0</span> <span class="text-sm">Toman</span></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Input Panel -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Market Variables -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <h2 class="font-black text-slate-800 mb-5 pb-3 border-b border-slate-100 flex items-center gap-2 scalable-text">
+                        <svg class="icon w-5 h-5 text-indigo-500" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="8" y1="2" x2="8" y2="4"></line><line x1="16" y1="2" x2="16" y2="4"></line><line x1="4" y1="10" x2="20" y2="10"></line></svg>
+                        متغیرهای بازار
+                    </h2>
+                    
+                    <div class="space-y-5">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 block mb-2 scalable-text">سرمایه کل (تومان)</label>
+                            <input type="number" id="in-capital" value="1000000000" class="w-full input-premium rounded-xl px-4 py-3 text-lg font-bold outline-none en-num">
+                        </div>
+                        
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 block mb-2 scalable-text">قیمت فعلی طلا (تومان/گرم)</label>
+                            <input type="number" id="in-gold-price" value="19000000" class="w-full input-premium rounded-xl px-4 py-3 text-lg font-bold outline-none en-num">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 mt-4">
+                            <div class="col-span-2">
+                                <label class="text-[11px] text-red-600 font-bold block mb-2 scalable-text">کف قیمت در سناریو توافق (ریزش)</label>
+                                <input type="number" id="in-drop" value="12500000" class="w-full bg-white border border-red-200 rounded-xl px-3 py-2 text-base focus:ring-2 focus:ring-red-500 outline-none text-red-600 font-bold en-num">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-[11px] text-emerald-600 font-bold block mb-2 scalable-text">سقف قیمت در سناریو تنش (پرش)</label>
+                                <input type="number" id="in-rise" value="22500000" class="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-base focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-600 font-bold en-num">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loan Engine -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-3xl shadow-sm border border-blue-100">
+                    <h2 class="font-black text-blue-900 mb-5 pb-3 border-b border-blue-200/50 flex items-center gap-2 scalable-text">
+                        <svg class="icon w-5 h-5 text-blue-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        موتور خلق وام و هزینه‌ها
+                    </h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="text-[11px] text-blue-800 font-bold block mb-3 flex justify-between scalable-text">
+                                <span>مدت زمان رسوب پول</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-lg en-num shadow-sm"><span id="out-days">90</span> Days</span>
+                            </label>
+                            <input type="range" id="in-days" min="15" max="180" step="15" value="90" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        
+                        <div>
+                            <label class="text-[11px] text-blue-800 font-bold block mb-3 flex justify-between scalable-text">
+                                <span>امتیاز وام اعطایی (ماهانه)</span>
+                                <span class="bg-blue-600 text-white px-2 py-0.5 rounded-lg en-num shadow-sm"><span id="out-loan-rate">33.3</span>% / Mo</span>
+                            </label>
+                            <input type="range" id="in-loan-rate" min="10" max="50" step="1" value="33.3" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <div class="pt-4 border-t border-blue-200/50 space-y-6">
+                            <div>
+                                <label class="text-[11px] text-red-700 font-bold block mb-3 flex justify-between scalable-text">
+                                    <span class="flex items-center gap-1"><svg class="icon w-3 h-3" viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg> نرخ بهره سالانه وام</span>
+                                    <span class="bg-red-500 text-white px-2 py-0.5 rounded-lg en-num shadow-sm"><span id="out-interest">24</span>%</span>
+                                </label>
+                                <input type="range" id="in-interest" min="0" max="50" step="1" value="24" class="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+
+                            <div>
+                                <label class="text-[11px] text-red-700 font-bold block mb-3 flex justify-between scalable-text">
+                                    <span>افق سرمایه‌گذاری (برای کسر بهره)</span>
+                                    <span class="bg-red-500 text-white px-2 py-0.5 rounded-lg en-num shadow-sm"><span id="out-holding">12</span> Mo</span>
+                                </label>
+                                <input type="range" id="in-holding" min="1" max="36" step="1" value="12" class="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+
+                        <div class="bg-white/60 p-4 rounded-xl border border-blue-200/50 text-[10px] leading-relaxed text-slate-700 font-medium scalable-text">
+                            <p class="mb-2">🔹 بانک معادل <span id="out-loan-multiplier" class="font-bold en-num text-blue-700">100%</span> از رسوب شما را وام می‌دهد.</p>
+                            <p>🔸 در افق <span id="out-holding-text" class="en-num font-bold">12</span> ماهه، هزینه بهره این وام <span id="out-interest-cost" class="font-bold en-num text-red-600">0</span> تومان خواهد بود که از ارزش خالص سبد شما کسر می‌شود.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Results -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Allocation Slider -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <h2 class="font-black text-slate-800 mb-6 flex items-center gap-2 scalable-text">
+                        <svg class="icon w-6 h-6 text-indigo-500" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                        اهرم تصمیم: استراتژی تخصیص پورتفو
+                    </h2>
+                    
+                    <div class="flex justify-between text-sm font-bold mb-4 scalable-text">
+                        <span class="text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100">سهم طلا: <span id="out-weight-gold" class="en-num">50%</span></span>
+                        <span class="text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">سهم بانک: <span id="out-weight-cash" class="en-num">50%</span></span>
+                    </div>
+                    <input type="range" id="in-weight" min="0" max="100" step="5" value="50" class="w-full h-6 rounded-2xl appearance-none cursor-pointer shadow-inner border border-slate-200">
+                    
+                    <div class="grid grid-cols-2 gap-6 mt-8">
+                        <div class="bg-white p-5 rounded-2xl border-2 border-amber-100 text-center shadow-sm relative overflow-hidden group hover:border-amber-300 transition-colors">
+                            <div class="absolute top-0 right-0 bg-amber-100 text-amber-800 text-[10px] px-3 py-1 rounded-bl-xl font-bold scalable-text">دارایی سخت</div>
+                            <div class="text-xs text-amber-700 font-bold mb-2 scalable-text mt-2">طلای خریداری شده در امروز</div>
+                            <div class="font-black text-amber-600 text-2xl md:text-3xl my-3 en-num scalable"><span id="out-initial-gold-grams">0.00</span> <span class="text-base text-amber-400">g</span></div>
+                            <div class="text-[11px] text-amber-600 font-medium scalable-text">ارزش تخصیصی: <span id="out-invested-gold" class="en-num font-bold">0</span> تومان</div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border-2 border-blue-100 text-center shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
+                            <div class="absolute top-0 right-0 bg-blue-100 text-blue-800 text-[10px] px-3 py-1 rounded-bl-xl font-bold scalable-text">اهرم اعتباری</div>
+                            <div class="text-xs text-blue-700 font-bold mb-2 scalable-text mt-2">کل نقدینگی تولید شده (اصل + وام)</div>
+                            <div class="font-black text-blue-600 text-2xl md:text-3xl my-3 en-num scalable" id="out-total-liquidity">0</div>
+                            <div class="text-[11px] text-blue-600 font-medium scalable-text flex flex-wrap justify-center gap-1">
+                                اصل: <span id="out-invested-cash" class="en-num font-bold">0</span> | 
+                                وام: <span id="out-loan-amt" class="en-num font-bold text-emerald-600">+0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Scenario A (Drop) -->
+                    <div id="card-a" class="p-6 rounded-3xl border-2 transition-all duration-300 bg-white">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4 border-slate-100">
+                            <div>
+                                <h3 class="font-black text-slate-800 flex items-center gap-2 scalable-text">
+                                    <svg class="icon w-6 h-6 text-emerald-500" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                                    فرصت شکار (ریزش به <span id="lbl-drop">12.5</span>)
+                                </h3>
+                            </div>
+                            <div id="badge-a" class="px-3 py-1.5 rounded-xl text-[11px] font-bold scalable-text"></div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center bg-slate-100 p-3 rounded-xl">
+                                <span class="text-slate-600 text-xs font-bold scalable-text">خرید طلا با نقدینگی:</span>
+                                <span class="font-bold text-slate-800 en-num scalable">+<span id="out-a-bought">0.00</span> g</span>
+                            </div>
+                            <div class="flex justify-between items-center px-3">
+                                <span class="text-amber-600 font-bold text-xs scalable-text">کل طلای فیزیکی (Gross):</span>
+                                <span class="font-black text-amber-500 text-xl en-num scalable"><span id="out-a-gross">0.00</span> g</span>
+                            </div>
+                            <div class="flex justify-between items-center px-3">
+                                <span class="text-red-400 font-bold text-[11px] scalable-text">بدهی بانکی (اصل+بهره):</span>
+                                <span class="font-bold text-red-500 text-sm en-num scalable">-<span id="out-a-debt">0</span></span>
+                            </div>
+
+                            <!-- Risk Bar -->
+                            <div class="flex flex-col px-3 py-2 bg-slate-100/50 rounded-xl border border-slate-200/50">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="text-slate-500 font-bold text-[11px] scalable-text">ریسک افت دارایی نسبت به پایه:</span>
+                                    <span id="out-a-risk-text" class="font-black text-xs en-num scalable text-emerald-500">بدون ریسک (Safe)</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex justify-end">
+                                    <div id="out-a-risk-bar" class="h-1.5 rounded-full bg-emerald-500" style="width: 100%"></div>
+                                </div>
+                            </div>
+
+                            <div id="footer-a" class="pt-4 mt-2 border-t-2 border-dashed flex justify-between items-center p-4 rounded-2xl bg-emerald-50 border-emerald-200">
+                                <span class="font-black text-slate-800 text-sm scalable-text">ارزش خالص (Net Gold):</span>
+                                <div class="text-left">
+                                    <div id="out-a-net" class="text-2xl font-black en-num scalable text-emerald-600">0.00 g</div>
+                                    <div id="out-a-diff" class="text-[11px] mt-1 font-bold en-num scalable-text text-emerald-500">+0.00 g vs Base</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scenario B (Rise) -->
+                    <div id="card-b" class="p-6 rounded-3xl border-2 transition-all duration-300 bg-white">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4 border-slate-100">
+                            <div>
+                                <h3 class="font-black text-slate-800 flex items-center gap-2 scalable-text">
+                                    <svg class="icon w-6 h-6 text-red-500" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>
+                                    تنش و پرش (صعود به <span id="lbl-rise">22.5</span>)
+                                </h3>
+                            </div>
+                            <div id="badge-b" class="px-3 py-1.5 rounded-xl text-[11px] font-bold scalable-text"></div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center bg-slate-100 p-3 rounded-xl">
+                                <span class="text-slate-600 text-xs font-bold scalable-text">خرید طلا با نقدینگی:</span>
+                                <span class="font-bold text-slate-800 en-num scalable">+<span id="out-b-bought">0.00</span> g</span>
+                            </div>
+                            <div class="flex justify-between items-center px-3">
+                                <span class="text-amber-600 font-bold text-xs scalable-text">کل طلای فیزیکی (Gross):</span>
+                                <span class="font-black text-amber-500 text-xl en-num scalable"><span id="out-b-gross">0.00</span> g</span>
+                            </div>
+                            <div class="flex justify-between items-center px-3">
+                                <span class="text-red-400 font-bold text-[11px] scalable-text">بدهی بانکی (اصل+بهره):</span>
+                                <span class="font-bold text-red-500 text-sm en-num scalable">-<span id="out-b-debt">0</span></span>
+                            </div>
+
+                            <!-- Risk Bar -->
+                            <div class="flex flex-col px-3 py-2 bg-slate-100/50 rounded-xl border border-slate-200/50">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="text-slate-500 font-bold text-[11px] scalable-text">ریسک افت دارایی نسبت به پایه:</span>
+                                    <span id="out-b-risk-text" class="font-black text-xs en-num scalable text-emerald-500">بدون ریسک (Safe)</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex justify-end">
+                                    <div id="out-b-risk-bar" class="h-1.5 rounded-full bg-emerald-500" style="width: 100%"></div>
+                                </div>
+                            </div>
+
+                            <div id="footer-b" class="pt-4 mt-2 border-t-2 border-dashed flex justify-between items-center p-4 rounded-2xl bg-emerald-50 border-emerald-200">
+                                <span class="font-black text-slate-800 text-sm scalable-text">ارزش خالص (Net Gold):</span>
+                                <div class="text-left">
+                                    <div id="out-b-net" class="text-2xl font-black en-num scalable text-emerald-600">0.00 g</div>
+                                    <div id="out-b-diff" class="text-[11px] mt-1 font-bold en-num scalable-text text-emerald-500">+0.00 g vs Base</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Risk Parity Chart -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <h3 class="font-black text-slate-800 mb-3 scalable-text">منحنی تعادل استراتژیک (Risk Parity Curve)</h3>
+                    <p class="text-xs text-slate-500 mb-6 scalable-text leading-relaxed font-medium">
+                        هدف شما تنظیم کردن درصد تخصیص به گونه‌ای است که خطوط سبز (سناریو صعود) و قرمز (سناریو ریزش)، هر دو بالای خط‌چین بنفش (میزان طلای شما در حالت ۱۰۰٪ خرید نقدی) قرار بگیرند. در این حالت، شما یک سبدِ <b>ضدگلوله</b> ساخته‌اید.
+                    </p>
+                    
+                    <div id="chart-container" class="h-80 w-full" dir="ltr"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+    // === Supabase Config ===
+    const SUPABASE_URL = 'https://otlechriihxznnoamzbx.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bGVjaHJpaWh4em5ub2FtemJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0ODgyNjIsImV4cCI6MjA3ODA2NDI2Mn0._4eHezjQ_RI0Cjw_ZTz0Kxo-ysC4NN2Vexj8QUWBeLg';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let apexChart = null;
+    let baselineGoldGrams = 0;
+
+    // Formatters
+    const formatCurrency = (val) => new Intl.NumberFormat('en-US').format(Math.round(val));
+    const formatGrams = (val) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+
+    // Get Elements
+    const getEl = (id) => document.getElementById(id);
+
+    // Elements Map
+    const inputs = {
+        capital: getEl('in-capital'),
+        goldPrice: getEl('in-gold-price'),
+        drop: getEl('in-drop'),
+        rise: getEl('in-rise'),
+        days: getEl('in-days'),
+        loanRate: getEl('in-loan-rate'),
+        interest: getEl('in-interest'),
+        holding: getEl('in-holding'),
+        weight: getEl('in-weight'),
+        scale: getEl('in-scale')
+    };
+
+    // Attach Event Listeners
+    Object.values(inputs).forEach(el => {
+        el.addEventListener('input', calculate);
+    });
+
+    inputs.scale.addEventListener('input', (e) => {
+        document.documentElement.style.setProperty('--scale-factor', e.target.value);
+        getEl('out-scale').innerText = `${e.target.value}x`;
+    });
+
+    // Core Logic
+    function calculate() {
+        const capital = Number(inputs.capital.value) || 0;
+        const currentPrice = Number(inputs.goldPrice.value) || 1;
+        const dropPrice = Number(inputs.drop.value) || 1;
+        const risePrice = Number(inputs.rise.value) || 1;
+        
+        const days = Number(inputs.days.value) || 0;
+        const loanRate = Number(inputs.loanRate.value) || 0;
+        const interestRate = Number(inputs.interest.value) || 0;
+        const holding = Number(inputs.holding.value) || 1;
+        
+        const goldWeight = Number(inputs.weight.value) || 0;
+        const cashWeight = 100 - goldWeight;
+
+        // UI Updates for slider labels
+        getEl('out-weight-gold').innerText = `${goldWeight}%`;
+        getEl('out-weight-cash').innerText = `${cashWeight}%`;
+        inputs.weight.style.background = `linear-gradient(to left, #eff6ff ${cashWeight}%, #fffbeb ${cashWeight}%)`;
+
+        getEl('out-days').innerText = days;
+        getEl('out-loan-rate').innerText = loanRate;
+        getEl('out-interest').innerText = interestRate;
+        getEl('out-holding').innerText = holding;
+        getEl('out-holding-text').innerText = holding;
+
+        getEl('lbl-drop').innerText = (dropPrice/1000000).toFixed(1) + 'M';
+        getEl('lbl-rise').innerText = (risePrice/1000000).toFixed(1) + 'M';
+
+        // Base Calculations
+        const investedInGold = capital * (goldWeight / 100);
+        const investedInCash = capital * (cashWeight / 100);
+        
+        const initialGoldGrams = investedInGold / currentPrice;
+        baselineGoldGrams = capital / currentPrice;
+
+        const monthsDeposited = days / 30;
+        const loanMultiplier = monthsDeposited * (loanRate / 100);
+        const loanAmount = investedInCash * loanMultiplier;
+        
+        const loanInterestCost = loanAmount * (interestRate / 100) * (holding / 12);
+        const totalLoanDebt = loanAmount + loanInterestCost;
+        const totalLiquidityAtEnd = investedInCash + loanAmount;
+
+        // Update Base UI
+        getEl('out-baseline-gold').innerText = formatGrams(baselineGoldGrams);
+        getEl('out-total-capital-disp').innerText = formatCurrency(capital);
+        getEl('out-initial-gold-grams').innerText = formatGrams(initialGoldGrams);
+        getEl('out-invested-gold').innerText = formatCurrency(investedInGold);
+        getEl('out-total-liquidity').innerText = formatCurrency(totalLiquidityAtEnd);
+        getEl('out-invested-cash').innerText = formatCurrency(investedInCash);
+        getEl('out-loan-amt').innerText = formatCurrency(loanAmount);
+        getEl('out-loan-multiplier').innerText = (loanMultiplier * 100).toFixed(0) + '%';
+        getEl('out-interest-cost').innerText = formatCurrency(loanInterestCost);
+
+        // Calculate Scenarios
+        const calcScenario = (price) => {
+            const bought = totalLiquidityAtEnd / price;
+            const gross = initialGoldGrams + bought;
+            const netWorth = (gross * price) - totalLoanDebt;
+            const netGold = netWorth / price;
+            const risk = Math.max(0, ((baselineGoldGrams - netGold) / baselineGoldGrams) * 100);
+            return { bought, gross, debt: totalLoanDebt, netGold, risk, isWin: netGold >= baselineGoldGrams };
+        };
+
+        const resA = calcScenario(dropPrice);
+        const resB = calcScenario(risePrice);
+
+        // Update Scenario A UI
+        updateScenarioUI('a', resA);
+        // Update Scenario B UI
+        updateScenarioUI('b', resB);
+
+        renderChart(capital, currentPrice, dropPrice, risePrice, days, loanRate, interestRate, holding);
+    }
+
+    function updateScenarioUI(prefix, res) {
+        getEl(`out-${prefix}-bought`).innerText = formatGrams(res.bought);
+        getEl(`out-${prefix}-gross`).innerText = formatGrams(res.gross);
+        getEl(`out-${prefix}-debt`).innerText = formatCurrency(res.debt);
+        getEl(`out-${prefix}-net`).innerText = formatGrams(res.netGold) + ' g';
+        
+        const diff = res.netGold - baselineGoldGrams;
+        getEl(`out-${prefix}-diff`).innerText = `${diff >= 0 ? '+' : ''}${formatGrams(diff)} g vs Base`;
+        getEl(`out-${prefix}-diff`).className = `text-[11px] mt-1 font-bold en-num scalable-text ${res.isWin ? 'text-emerald-500' : 'text-red-500'}`;
+        getEl(`out-${prefix}-net`).className = `text-2xl font-black en-num scalable ${res.isWin ? 'text-emerald-600' : 'text-red-600'}`;
+
+        const card = getEl(`card-${prefix}`);
+        const badge = getEl(`badge-${prefix}`);
+        const footer = getEl(`footer-${prefix}`);
+
+        if (res.isWin) {
+            card.className = "p-6 rounded-3xl border-2 transition-all duration-300 bg-white border-emerald-400 shadow-emerald-100/50 shadow-xl scale-[1.02]";
+            badge.className = "px-3 py-1.5 rounded-xl text-[11px] font-bold scalable-text bg-emerald-100 text-emerald-700";
+            badge.innerText = "پوشش موفق";
+            footer.className = "pt-4 mt-2 border-t-2 border-dashed flex justify-between items-center p-4 rounded-2xl bg-emerald-50 border-emerald-200";
+        } else {
+            card.className = "p-6 rounded-3xl border-2 transition-all duration-300 bg-slate-50 border-slate-200";
+            badge.className = "px-3 py-1.5 rounded-xl text-[11px] font-bold scalable-text bg-red-100 text-red-700";
+            badge.innerText = "زیان استراتژیک";
+            footer.className = "pt-4 mt-2 border-t-2 border-dashed flex justify-between items-center p-4 rounded-2xl bg-red-50 border-red-200";
+        }
+
+        const riskText = getEl(`out-${prefix}-risk-text`);
+        const riskBar = getEl(`out-${prefix}-risk-bar`);
+        
+        if (res.risk > 0) {
+            riskText.innerText = `-${res.risk.toFixed(1)}%`;
+            riskText.className = "font-black text-xs en-num scalable text-red-500";
+            riskBar.className = "h-1.5 rounded-full bg-red-500";
+            riskBar.style.width = `${Math.min(res.risk, 100)}%`;
+        } else {
+            riskText.innerText = "بدون ریسک (Safe)";
+            riskText.className = "font-black text-xs en-num scalable text-emerald-500";
+            riskBar.className = "h-1.5 rounded-full bg-emerald-500";
+            riskBar.style.width = "100%";
+        }
+    }
+
+    function renderChart(capital, currentPrice, dropP, riseP, days, lRate, intRate, holding) {
+        const dataA = [];
+        const dataB = [];
+        const categories = [];
+
+        for (let w = 0; w <= 100; w += 5) {
+            const gInv = capital * (w / 100);
+            const cInv = capital * ((100 - w) / 100);
+            const gGrams = gInv / currentPrice;
+            
+            const lAmnt = cInv * (days / 30) * (lRate / 100);
+            const liq = cInv + lAmnt;
+            
+            const lInterest = lAmnt * (intRate / 100) * (holding / 12);
+            const totalDebt = lAmnt + lInterest;
+            
+            const netWorthA = ((gGrams + (liq / dropP)) * dropP) - totalDebt;
+            const netGoldA = netWorthA / dropP;
+
+            const netWorthB = ((gGrams + (liq / riseP)) * riseP) - totalDebt;
+            const netGoldB = netWorthB / riseP;
+            
+            categories.push(`${w}%`);
+            dataA.push(Number(netGoldA.toFixed(2)));
+            dataB.push(Number(netGoldB.toFixed(2)));
+        }
+
+        const options = {
+            series: [
+                { name: 'سناریو صعود', data: dataB },
+                { name: 'سناریو ریزش', data: dataA }
+            ],
+            chart: {
+                type: 'line',
+                height: 320,
+                fontFamily: 'Tahoma, Arial, sans-serif',
+                toolbar: { show: false },
+                animations: { enabled: false }
+            },
+            colors: ['#10b981', '#f43f5e'],
+            stroke: { width: 4, curve: 'smooth' },
+            markers: { size: 4, hover: { size: 8 } },
+            xaxis: {
+                categories: categories,
+                labels: { style: { colors: '#64748b', fontSize: '12px', fontFamily: 'monospace', fontWeight: 'bold' } },
+                tickAmount: 10
+            },
+            yaxis: {
+                labels: { style: { colors: '#64748b', fontSize: '12px', fontFamily: 'monospace' } }
+            },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+            annotations: {
+                yaxis: [{
+                    y: baselineGoldGrams,
+                    borderColor: '#8b5cf6',
+                    strokeDashArray: 5,
+                    borderWidth: 2,
+                    label: {
+                        borderColor: '#8b5cf6',
+                        style: { color: '#fff', background: '#8b5cf6', fontSize: '11px', fontWeight: 'bold' },
+                        text: 'Base (100% Gold)'
+                    }
+                }]
+            },
+            tooltip: {
+                theme: 'light',
+                y: { formatter: (val) => val + ' g' },
+                style: { fontSize: '13px', fontFamily: 'Tahoma' }
+            },
+            legend: { position: 'top', horizontalAlign: 'center', fontSize: '12px', fontWeight: 'bold' }
+        };
+
+        if (apexChart) {
+            apexChart.updateOptions(options);
+        } else {
+            apexChart = new ApexCharts(document.querySelector("#chart-container"), options);
+            apexChart.render();
+        }
+    }
+
+    // === AUTHENTICATION LOGIC ===
+    const authContainer = document.getElementById('auth-container');
+    const appContainer = document.getElementById('app-container');
+    const loadingScreen = document.getElementById('loading-screen');
+    const loginForm = document.getElementById('login-form');
+    const authError = document.getElementById('auth-error');
+    const btnLogin = document.getElementById('btn-login');
+
+    async function checkAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        loadingScreen.classList.add('hidden');
+        if (session) {
+            authContainer.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            calculate(); // Init calculator
+        } else {
+            authContainer.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+        }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btnLogin.innerText = 'در حال ورود...';
+        btnLogin.disabled = true;
+        authError.classList.add('hidden');
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            authError.innerText = 'ایمیل یا رمز عبور نامعتبر است.';
+            authError.classList.remove('hidden');
+            btnLogin.innerText = 'ورود امن به داشبورد';
+            btnLogin.disabled = false;
+        }
+    });
+
+    async function handleLogout() {
+        await supabase.auth.signOut();
+    }
+
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            checkAuth();
+        }
+    });
+
+    // Initial load
+    checkAuth();
+
+</script>
+</body>
+</html>
